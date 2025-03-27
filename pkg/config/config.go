@@ -55,7 +55,6 @@ type RabbitMQ struct {
 type JWT struct {
 	Secret     string        `env:"JWT_SECRET,required"`
 	Expiration time.Duration `env:"JWT_EXPIRATION" envDefault:"24h"`
-	Issuer     string        `env:"JWT_ISSUER" envDefault:"go-layout"`
 }
 
 // Log holds the logging related configuration.

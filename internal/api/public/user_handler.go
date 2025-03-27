@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"github.com/xelarion/go-layout/internal/api/web/middleware"
 	"github.com/xelarion/go-layout/internal/service"
 )
 
@@ -25,48 +26,19 @@ func NewUserHandler(userService *service.UserService, logger *zap.Logger) *UserH
 	}
 }
 
-// Login handles user login requests for public API.
-func (h *UserHandler) Login(c *gin.Context) {
-	var request struct {
-		Email    string `json:"email" binding:"required,email"`
-		Password string `json:"password" binding:"required"`
-		ApiKey   string `json:"api_key" binding:"required"`
-	}
-
-	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Convert to service request
-	serviceReq := &service.UserRequest{
-		Email:    request.Email,
-		Password: request.Password,
-	}
-
-	response, err := h.userService.LoginUser(c.Request.Context(), serviceReq)
-	if err != nil {
-		h.logger.Warn("Public API login failed", zap.String("email", request.Email), zap.Error(err))
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"access_token": response.Token,
-		"expires_at":   response.TokenExpiry,
-		"user_info": gin.H{
-			"user_id": response.User.ID,
-			"name":    response.User.Name,
-		},
-	})
-}
-
 // GetUserInfo handles requests to get a user's public information.
 func (h *UserHandler) GetUserInfo(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	// Get current authenticated user from context
+	currentUser := middleware.GetCurrentUser(c)
+	if currentUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 

@@ -141,6 +141,7 @@
 
 - **Git Commit Guidelines**:
   - Follow the Conventional Commits specification (e.g., feat(xxx): add new feature, fix: resolve bug) with optional scopes and clear descriptions.
+
 ---
 
 ### Additional Recommendations

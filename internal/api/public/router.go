@@ -6,7 +6,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/xelarion/go-layout/internal/service"
-	"github.com/xelarion/go-layout/pkg/auth"
 )
 
 // Router handles all routes for the Public API.
@@ -14,16 +13,14 @@ type Router struct {
 	Engine      *gin.Engine
 	logger      *zap.Logger
 	userService *service.UserService
-	jwtService  *auth.JWT
 }
 
 // NewRouter creates a new Public API router.
-func NewRouter(engine *gin.Engine, userService *service.UserService, jwtService *auth.JWT, logger *zap.Logger) *Router {
+func NewRouter(engine *gin.Engine, userService *service.UserService, logger *zap.Logger) *Router {
 	return &Router{
 		Engine:      engine,
 		logger:      logger.Named("public_router"),
 		userService: userService,
-		jwtService:  jwtService,
 	}
 }
 
@@ -35,34 +32,40 @@ func (r *Router) SetupRoutes() {
 	// API routes
 	api := r.Engine.Group("/public/v1")
 
-	// Auth middleware for public API
-	jwtMiddleware := func(c *gin.Context) {
+	// API token authentication middleware
+	// This is a placeholder that should be implemented by actual users of the template
+	apiAuthMiddleware := func(c *gin.Context) {
+		// Check for API token in header or query parameter
 		token := c.GetHeader("X-API-Token")
 		if token == "" {
 			token = c.Query("api_token")
 		}
 
+		// Placeholder validation - replace with actual validation logic
 		if token == "" {
-			c.AbortWithStatusJSON(401, gin.H{"error": "API token required"})
+			c.AbortWithStatusJSON(401, gin.H{
+				"code":    401,
+				"message": "API token required",
+			})
 			return
 		}
 
-		claims, err := r.jwtService.VerifyToken(token)
-		if err != nil {
-			c.AbortWithStatusJSON(401, gin.H{"error": "Invalid or expired API token"})
-			return
-		}
-
-		c.Set("userID", claims.UserID)
+		// Example: Set user ID after validation
+		// In a real implementation, you would validate the token and extract user information
+		c.Set("userID", uint(1))
 		c.Next()
 	}
 
-	// Public routes
-	api.POST("/auth", userHandler.Login)
+	// Authentication endpoint - implement your own logic here
+	api.POST("/auth", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "Implement your authentication logic here",
+		})
+	})
 
-	// Protected routes
+	// Protected routes - require API token
 	protected := api.Group("/")
-	protected.Use(jwtMiddleware)
+	protected.Use(apiAuthMiddleware)
 	{
 		protected.GET("/users/:id", userHandler.GetUserInfo)
 	}

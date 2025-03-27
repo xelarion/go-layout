@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"github.com/xelarion/go-layout/internal/api/web/middleware"
 	"github.com/xelarion/go-layout/internal/service"
 )
 
@@ -59,43 +60,6 @@ func (h *UserHandler) Register(c *gin.Context) {
 	})
 }
 
-// Login handles user login requests.
-func (h *UserHandler) Login(c *gin.Context) {
-	var request struct {
-		Email    string `json:"email" binding:"required,email"`
-		Password string `json:"password" binding:"required"`
-	}
-
-	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Convert to service request
-	serviceReq := &service.UserRequest{
-		Email:    request.Email,
-		Password: request.Password,
-	}
-
-	response, err := h.userService.LoginUser(c.Request.Context(), serviceReq)
-	if err != nil {
-		h.logger.Warn("Login failed", zap.String("email", request.Email), zap.Error(err))
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"token":        response.Token,
-		"token_expiry": response.TokenExpiry,
-		"user": gin.H{
-			"id":    response.User.ID,
-			"name":  response.User.Name,
-			"email": response.User.Email,
-			"role":  response.User.Role,
-		},
-	})
-}
-
 // GetUser handles requests to get a user by ID.
 func (h *UserHandler) GetUser(c *gin.Context) {
 	idStr := c.Param("id")
@@ -105,10 +69,23 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 		return
 	}
 
+	// Get current authenticated user for permission check
+	currentUser := middleware.GetCurrentUser(c)
+	if currentUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	// Only allow users to view their own profile or admin to view any profile
+	if currentUser.ID != uint(id) && !currentUser.IsAdmin() {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		return
+	}
+
 	user, err := h.userService.GetUser(c.Request.Context(), uint(id))
 	if err != nil {
 		h.logger.Error("Failed to get user", zap.String("id", idStr), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -136,17 +113,24 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	// Verify user is updating their own profile or is an admin
-	userID, _ := c.Get("userID")
-	role, _ := c.Get("role")
-	if userID.(uint) != uint(id) && role.(string) != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You can only update your own profile"})
+	// Get current authenticated user for permission check
+	currentUser := middleware.GetCurrentUser(c)
+	if currentUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	// Only allow users to update their own profile or admin to update any profile
+	if currentUser.ID != uint(id) && !currentUser.IsAdmin() {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
 		return
 	}
 
 	var request struct {
-		Name  string `json:"name" binding:"required,min=2,max=100"`
-		Email string `json:"email" binding:"required,email"`
+		Name     string `json:"name" binding:"omitempty,min=2,max=100"`
+		Email    string `json:"email" binding:"omitempty,email"`
+		Password string `json:"password" binding:"omitempty,min=6"`
+		Role     string `json:"role" binding:"omitempty,oneof=user admin"`
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -154,14 +138,22 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	// Convert to service request
-	serviceReq := &service.UserRequest{
-		ID:    uint(id),
-		Name:  request.Name,
-		Email: request.Email,
+	// Only admin can update role
+	if request.Role != "" && !currentUser.IsAdmin() {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only admins can update roles"})
+		return
 	}
 
-	updatedUser, err := h.userService.UpdateUser(c.Request.Context(), serviceReq)
+	// Convert to service request
+	serviceReq := &service.UserRequest{
+		ID:       uint(id),
+		Name:     request.Name,
+		Email:    request.Email,
+		Password: request.Password,
+		Role:     request.Role,
+	}
+
+	user, err := h.userService.UpdateUser(c.Request.Context(), serviceReq)
 	if err != nil {
 		h.logger.Error("Failed to update user", zap.String("id", idStr), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -169,11 +161,11 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"id":         updatedUser.ID,
-		"name":       updatedUser.Name,
-		"email":      updatedUser.Email,
-		"role":       updatedUser.Role,
-		"updated_at": updatedUser.UpdatedAt,
+		"id":         user.ID,
+		"name":       user.Name,
+		"email":      user.Email,
+		"role":       user.Role,
+		"updated_at": user.UpdatedAt,
 	})
 }
 
@@ -186,80 +178,71 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	// Only admin can delete users
-	role, _ := c.Get("role")
-	if role.(string) != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Admin access required to delete users"})
-		return
-	}
+	// Admin check is handled by middleware in the router.
 
-	if err := h.userService.DeleteUser(c.Request.Context(), uint(id)); err != nil {
+	err = h.userService.DeleteUser(c.Request.Context(), uint(id))
+	if err != nil {
 		h.logger.Error("Failed to delete user", zap.String("id", idStr), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User deleted successfully",
+	})
 }
 
 // ListUsers handles requests to list users with pagination.
 func (h *UserHandler) ListUsers(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	limitStr := c.DefaultQuery("limit", "10")
+	offsetStr := c.DefaultQuery("offset", "0")
 
-	if page < 1 {
-		page = 1
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid limit value"})
+		return
 	}
-	if limit < 1 || limit > 100 {
-		limit = 10
+
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid offset value"})
+		return
 	}
 
-	// Calculate offset from page and limit
-	offset := (page - 1) * limit
+	// Admin check is handled by middleware in the router.
 
-	// Create service request
-	req := &service.UserRequest{
+	serviceReq := &service.UserRequest{
 		Limit:  limit,
 		Offset: offset,
 	}
 
-	response, err := h.userService.ListUsers(c.Request.Context(), req)
+	listResponse, err := h.userService.ListUsers(c.Request.Context(), serviceReq)
 	if err != nil {
 		h.logger.Error("Failed to list users", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	var userList []gin.H
-	for _, user := range response.Users {
-		userList = append(userList, gin.H{
-			"id":         user.ID,
-			"name":       user.Name,
-			"email":      user.Email,
-			"role":       user.Role,
-			"created_at": user.CreatedAt,
-			"updated_at": user.UpdatedAt,
-		})
-	}
-
 	c.JSON(http.StatusOK, gin.H{
-		"data": userList,
-		"meta": gin.H{
-			"page":      page,
-			"limit":     limit,
-			"total":     response.Count,
-			"last_page": (response.Count + limit - 1) / limit,
-		},
+		"users":  listResponse.Users,
+		"limit":  listResponse.Limit,
+		"offset": listResponse.Offset,
+		"count":  listResponse.Count,
 	})
 }
 
 // GetProfile handles requests to get the current user's profile.
 func (h *UserHandler) GetProfile(c *gin.Context) {
-	userID, _ := c.Get("userID")
+	// Get current authenticated user from context
+	currentUser := middleware.GetCurrentUser(c)
+	if currentUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
 
-	user, err := h.userService.GetUser(c.Request.Context(), userID.(uint))
+	user, err := h.userService.GetUser(c.Request.Context(), currentUser.ID)
 	if err != nil {
-		h.logger.Error("Failed to get user profile", zap.Uint("id", userID.(uint)), zap.Error(err))
+		h.logger.Error("Failed to get user profile", zap.Uint("id", currentUser.ID), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

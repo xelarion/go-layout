@@ -8,7 +8,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/xelarion/go-layout/internal/usecase"
-	"github.com/xelarion/go-layout/pkg/auth"
 )
 
 // UserRequest represents the user request data structure.
@@ -50,15 +49,13 @@ type ListResponse struct {
 // UserService coordinates between handlers and usecases for user operations.
 type UserService struct {
 	userUseCase *usecase.UserUseCase
-	jwt         *auth.JWT
 	logger      *zap.Logger
 }
 
 // NewUserService creates a new instance of UserService.
-func NewUserService(userUseCase *usecase.UserUseCase, jwt *auth.JWT, logger *zap.Logger) *UserService {
+func NewUserService(userUseCase *usecase.UserUseCase, logger *zap.Logger) *UserService {
 	return &UserService{
 		userUseCase: userUseCase,
-		jwt:         jwt,
 		logger:      logger.Named("user_service"),
 	}
 }
@@ -101,29 +98,18 @@ func (s *UserService) RegisterUser(ctx context.Context, req *UserRequest) (*User
 	}, nil
 }
 
-// LoginUser authenticates a user and generates a JWT token.
-func (s *UserService) LoginUser(ctx context.Context, req *UserRequest) (*LoginResponse, error) {
+// LoginUser authenticates a user.
+func (s *UserService) LoginUser(ctx context.Context, req *UserRequest) (*UserResponse, error) {
 	user, err := s.userUseCase.Login(ctx, req.Email, req.Password)
 	if err != nil {
 		return nil, err
 	}
 
-	// Generate JWT token
-	token, expiry, err := s.jwt.GenerateToken(user.ID, user.Role)
-	if err != nil {
-		s.logger.Error("Failed to generate JWT token", zap.Error(err))
-		return nil, err
-	}
-
-	return &LoginResponse{
-		User: UserResponse{
-			ID:    user.ID,
-			Name:  user.Name,
-			Email: user.Email,
-			Role:  user.Role,
-		},
-		Token:       token,
-		TokenExpiry: expiry,
+	return &UserResponse{
+		ID:    user.ID,
+		Name:  user.Name,
+		Email: user.Email,
+		Role:  user.Role,
 	}, nil
 }
 

@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+
+	"github.com/xelarion/go-layout/internal/enum"
 )
 
 // User represents a user model.
@@ -20,6 +22,11 @@ type User struct {
 }
 
 // TableName returns the table name for the User model.
-func (User) TableName() string {
+func (*User) TableName() string {
 	return "users"
+}
+
+// IsAdmin returns true if the user has admin role.
+func (u *User) IsAdmin() bool {
+	return u.Role == enum.RoleAdmin
 }

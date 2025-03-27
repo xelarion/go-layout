@@ -12,12 +12,11 @@ import (
 
 	"github.com/xelarion/go-layout/internal/api/public"
 	"github.com/xelarion/go-layout/internal/api/web"
-	"github.com/xelarion/go-layout/internal/middleware"
+	"github.com/xelarion/go-layout/internal/api/web/middleware"
 	"github.com/xelarion/go-layout/internal/repository"
 	"github.com/xelarion/go-layout/internal/service"
 	"github.com/xelarion/go-layout/internal/usecase"
 	"github.com/xelarion/go-layout/pkg/app"
-	"github.com/xelarion/go-layout/pkg/auth"
 	"github.com/xelarion/go-layout/pkg/config"
 	"github.com/xelarion/go-layout/pkg/database"
 	"github.com/xelarion/go-layout/pkg/server"
@@ -40,10 +39,14 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 	userRepo := repository.NewUserRepository(db.DB, logger)
 	// Initialize usecases
 	userUseCase := usecase.NewUserUseCase(userRepo, logger)
-	// Initialize JWT service
-	jwtService := auth.NewJWT(&cfg.JWT, logger)
-	// Initialize services
-	userService := service.NewUserService(userUseCase, jwtService, logger)
+	// Initialize services (without JWT dependency)
+	userService := service.NewUserService(userUseCase, logger)
+
+	// Initialize auth middleware
+	authMiddleware, err := middleware.NewAuthMiddleware(&cfg.JWT, userUseCase, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create auth middleware: %w", err)
+	}
 
 	// Initialize HTTP server
 	httpServer := server.NewHTTPServer(&server.HTTPConfig{
@@ -63,11 +66,11 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 	httpServer.Router().Use(middleware.Timeout(30 * time.Second))
 
 	// Register Web API routes
-	webRouter := web.NewRouter(httpServer.Router(), userService, jwtService, logger)
+	webRouter := web.NewRouter(httpServer.Router(), userService, authMiddleware, logger)
 	webRouter.SetupRoutes()
 
 	// Register Public API routes
-	publicRouter := public.NewRouter(httpServer.Router(), userService, jwtService, logger)
+	publicRouter := public.NewRouter(httpServer.Router(), userService, logger)
 	publicRouter.SetupRoutes()
 
 	// Common health check endpoint

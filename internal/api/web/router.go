@@ -2,11 +2,12 @@
 package web
 
 import (
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"github.com/xelarion/go-layout/internal/api/web/middleware"
 	"github.com/xelarion/go-layout/internal/service"
-	"github.com/xelarion/go-layout/pkg/auth"
 )
 
 // Router handles all routes for the Web API.
@@ -14,16 +15,16 @@ type Router struct {
 	Engine      *gin.Engine
 	logger      *zap.Logger
 	userService *service.UserService
-	jwtService  *auth.JWT
+	authMW      *jwt.GinJWTMiddleware
 }
 
 // NewRouter creates a new Web API router.
-func NewRouter(engine *gin.Engine, userService *service.UserService, jwtService *auth.JWT, logger *zap.Logger) *Router {
+func NewRouter(engine *gin.Engine, userService *service.UserService, authMiddleware *jwt.GinJWTMiddleware, logger *zap.Logger) *Router {
 	return &Router{
 		Engine:      engine,
 		logger:      logger.Named("web_router"),
 		userService: userService,
-		jwtService:  jwtService,
+		authMW:      authMiddleware,
 	}
 }
 
@@ -35,63 +36,25 @@ func (r *Router) SetupRoutes() {
 	// API routes
 	api := r.Engine.Group("/api/v1")
 
-	// Auth middleware
-	jwtMiddleware := func(c *gin.Context) {
-		token := c.GetHeader("Authorization")
-		if token == "" {
-			token = c.Query("token")
-		}
-
-		if token == "" {
-			c.AbortWithStatusJSON(401, gin.H{"error": "Authentication required"})
-			return
-		}
-
-		claims, err := r.jwtService.VerifyToken(token)
-		if err != nil {
-			c.AbortWithStatusJSON(401, gin.H{"error": "Invalid or expired token"})
-			return
-		}
-
-		c.Set("userID", claims.UserID)
-		c.Set("role", claims.Role)
-		c.Next()
-	}
-
-	// Admin middleware
-	adminMiddleware := func(c *gin.Context) {
-		role, exists := c.Get("role")
-		if !exists {
-			c.AbortWithStatusJSON(401, gin.H{"error": "Authentication required"})
-			return
-		}
-
-		if role.(string) != "admin" {
-			c.AbortWithStatusJSON(403, gin.H{"error": "Admin access required"})
-			return
-		}
-
-		c.Next()
-	}
-
 	// Public routes
+	api.POST("/auth", r.authMW.LoginHandler)
+	api.GET("/refresh_token", r.authMW.RefreshHandler)
 	api.POST("/register", userHandler.Register)
-	api.POST("/login", userHandler.Login)
 
 	// Protected routes
 	protected := api.Group("/")
-	protected.Use(jwtMiddleware)
+	protected.Use(r.authMW.MiddlewareFunc())
 	{
 		protected.GET("/profile", userHandler.GetProfile)
 		protected.GET("/users/:id", userHandler.GetUser)
 		protected.PUT("/users/:id", userHandler.UpdateUser)
-	}
-
-	// Admin routes
-	admin := protected.Group("/")
-	admin.Use(adminMiddleware)
-	{
-		admin.GET("/users", userHandler.ListUsers)
-		admin.DELETE("/users/:id", userHandler.DeleteUser)
+		
+		// Admin routes - require admin role
+		admin := protected.Group("/admin")
+		admin.Use(middleware.AdminAuthorizatorMiddleware())
+		{
+			admin.GET("/users", userHandler.ListUsers)
+			admin.DELETE("/users/:id", userHandler.DeleteUser)
+		}
 	}
 }
