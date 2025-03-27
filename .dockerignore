@@ -1,0 +1,59 @@
+# Git
+.git
+.gitignore
+.github
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+.DS_Store
+
+# Binaries and build artifacts
+bin/
+dist/
+build/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test files
+*_test.go
+*.test
+*.out
+coverage.txt
+
+# Environment files for development
+config/dev/.env
+
+# Documentation
+README.md
+README-zh.md
+LICENSE
+CHANGELOG.md
+docs/
+
+# Temporary files
+tmp/
+temp/
+
+# Log files
+*.log
+logs/
+
+# Kubernetes deployment files
+deploy/k8s/
+
+# Scripts not needed in container
+scripts/
+
+# Database migration files (if they're applied separately)
+# db/migrations/

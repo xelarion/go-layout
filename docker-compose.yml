@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: go-layout-api
+    ports:
+      - "8080:8080"
+    environment:
+      - GO_ENV=prod
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8080
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=xelarion
+      - DB_PASSWORD=8gaGg913NZ8YmLK4s89oVkokVBQPCVk
+      - DB_NAME=go_layout
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    restart: unless-stopped
+    networks:
+      - go-layout-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: go-layout-postgres
+    ports:
+      - "12320:5432"
+    environment:
+      - POSTGRES_USER=xelarion
+      - POSTGRES_PASSWORD=8gaGg913NZ8YmLK4s89oVkokVBQPCVk
+      - POSTGRES_DB=go_layout
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - go-layout-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: go-layout-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - go-layout-network
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: go-layout-rabbitmq
+    ports:
+      - "5672:5672"  # AMQP protocol port
+      - "15672:15672"  # Management UI port
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    restart: unless-stopped
+    networks:
+      - go-layout-network
+
+volumes:
+  postgres-data:
+  redis-data:
+  rabbitmq-data:
+
+networks:
+  go-layout-network:
+    driver: bridge
