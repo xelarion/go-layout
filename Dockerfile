@@ -13,8 +13,9 @@ RUN go mod download
 # Copy the source code
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o api ./cmd/api
+# Build the application (parameterized with ARG)
+ARG SERVICE=api
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app ./cmd/${SERVICE}
 
 # Final stage
 FROM alpine:latest
@@ -29,13 +30,21 @@ ENV TZ=Asia/Shanghai
 WORKDIR /app
 
 # Copy the binary from the builder stage
-COPY --from=builder /app/api .
+COPY --from=builder /app/app .
 
 # Copy configuration files
-COPY --from=builder /app/config/prod/.env /app/config/prod/.env
+ARG SERVICE=api
+ARG CONFIG_ENV=prod
+COPY --from=builder /app/config/${CONFIG_ENV}/.env /app/config/${CONFIG_ENV}/.env
+
+# Create a non-root user and set permissions
+RUN adduser -D -H -h /app appuser && \
+    chown -R appuser:appuser /app
+USER appuser
 
 # Expose the port
 EXPOSE 8080
 
-# Run the application
-CMD ["./api"]
+# Run the application with environment config
+ENV GO_ENV=${CONFIG_ENV}
+CMD ["./app"]

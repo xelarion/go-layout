@@ -1,32 +1,52 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: go-layout-api
-  labels:
-    app: go-layout-api
+  name: api-deployment
+  namespace: go-layout
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: go-layout-api
+      app: api
   template:
     metadata:
       labels:
-        app: go-layout-api
+        app: api
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - api
+              topologyKey: "kubernetes.io/hostname"
       containers:
       - name: api
-        image: go-layout-api:latest
-        imagePullPolicy: IfNotPresent
+        image: ${REGISTRY}/go-layout-api:${TAG}
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080
         env:
         - name: GO_ENV
-          value: "prod"
+          valueFrom:
+            configMapKeyRef:
+              name: go-layout-config
+              key: GO_ENV
         - name: SERVER_HOST
-          value: "0.0.0.0"
+          valueFrom:
+            configMapKeyRef:
+              name: go-layout-config
+              key: SERVER_HOST
         - name: SERVER_PORT
-          value: "8080"
+          valueFrom:
+            configMapKeyRef:
+              name: go-layout-config
+              key: SERVER_PORT
         - name: DB_HOST
           valueFrom:
             configMapKeyRef:
@@ -39,13 +59,13 @@ spec:
               key: DB_PORT
         - name: DB_USER
           valueFrom:
-            secretKeyRef:
-              name: go-layout-secrets
+            configMapKeyRef:
+              name: go-layout-config
               key: DB_USER
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: go-layout-secrets
+              name: go-layout-secret
               key: DB_PASSWORD
         - name: DB_NAME
           valueFrom:
@@ -72,18 +92,13 @@ spec:
             configMapKeyRef:
               name: go-layout-config
               key: RABBITMQ_PORT
-        - name: JWT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: go-layout-secrets
-              key: JWT_SECRET
         resources:
           limits:
             cpu: "500m"
             memory: "512Mi"
           requests:
-            cpu: "100m"
-            memory: "128Mi"
+            cpu: "200m"
+            memory: "256Mi"
         livenessProbe:
           httpGet:
             path: /health
@@ -92,7 +107,7 @@ spec:
           periodSeconds: 10
         readinessProbe:
           httpGet:
-            path: /health
+            path: /ready
             port: 8080
           initialDelaySeconds: 5
           periodSeconds: 5
@@ -100,30 +115,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: go-layout-api
+  name: api-service
+  namespace: go-layout
 spec:
   selector:
-    app: go-layout-api
+    app: api
   ports:
   - port: 80
     targetPort: 8080
   type: ClusterIP
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: go-layout-api
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-spec:
-  rules:
-  - host: api.go-layout.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: go-layout-api
-            port:
-              number: 80

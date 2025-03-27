@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: go-layout-config
+  namespace: go-layout
+data:
+  GO_ENV: "prod"
+  SERVER_HOST: "0.0.0.0"
+  SERVER_PORT: "8080"
+  DB_HOST: "postgres-service"
+  DB_PORT: "5432"
+  DB_USER: "xelarion"
+  DB_NAME: "go_layout"
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  RABBITMQ_HOST: "rabbitmq-service"
+  RABBITMQ_PORT: "5672"
