@@ -10,6 +10,8 @@ A scalable, high-performance, and high-availability web application template bui
 - **Scalability**: Modular design that supports both horizontal and vertical scaling
 - **Clean Code**: Well-organized, maintainable, and extensible codebase
 - **Security**: JWT authentication, input validation, and protection against common vulnerabilities
+- **Error Handling**: Comprehensive error handling system with structured logging and custom error types
+- **Middleware**: Modular middleware components for request processing, error handling, and request timeouts
 - **Task Management**: Integrated support for scheduled tasks, polling tasks, and queue-based asynchronous processing
 
 ## Technology Stack
@@ -20,6 +22,9 @@ A scalable, high-performance, and high-availability web application template bui
 - **Database**: PostgreSQL (configurable to switch to MySQL)
 - **Cache**: Redis (pluggable, can be removed if not needed)
 - **Message Queue**: RabbitMQ (pluggable, can be removed if not needed)
+- **Logging**: Structured logging with zap
+- **Configuration**: Environment-based configuration with github.com/caarlos0/env/v11
+- **Error Handling**: Custom error package with metadata, stack traces, and error categorization
 - **Scheduler**: Integrated CRON-based task scheduler using robfig/cron
 - **Deployment**: Docker and k3s for containerization and orchestration
 
@@ -39,7 +44,11 @@ A scalable, high-performance, and high-availability web application template bui
 │   ├── api/               # API-specific code
 │   │   ├── public/        # Public API handlers and routers
 │   │   └── web/           # Web API handlers and routers
-│   ├── middleware/        # HTTP middleware
+│   │       ├── handler/   # API request handlers
+│   │       ├── middleware/# HTTP middleware components
+│   │       ├── types/     # Request/response structures
+│   │       └── router.go  # Route definitions
+│   ├── enum/              # Enumeration constants
 │   ├── model/             # Domain models
 │   ├── repository/        # Data access layer
 │   ├── service/           # Services coordinating between handlers and usecases
@@ -50,13 +59,15 @@ A scalable, high-performance, and high-availability web application template bui
 │   └── usecase/           # Business logic
 ├── pkg/                   # Public libraries
 │   ├── app/               # Application framework
-│   ├── auth/              # Authentication
+│   ├── binding/           # Request binding utilities
 │   ├── cache/             # Caching
 │   ├── config/            # Configuration
 │   ├── database/          # Database connections
+│   ├── errs/              # Error handling utilities
 │   ├── logger/            # Logging
 │   ├── mq/                # Message queue
-│   └── server/            # HTTP server
+│   ├── server/            # HTTP server
+│   └── utils/             # Utility functions
 └── scripts/               # Scripts for automation
 ```
 
@@ -64,10 +75,30 @@ A scalable, high-performance, and high-availability web application template bui
 
 ### Layer Responsibilities
 
-- **Handler Layer**: Receives and parses HTTP requests, invokes the Service layer with processed data
-- **Service Layer**: Coordinates between Handler and Usecase layers, handles data transformation
-- **Usecase Layer**: Contains core business logic, independent of the API layer
-- **Repository Layer**: Manages data access and database interactions
+- **Handler Layer**: Receives and parses HTTP requests, invokes the Service layer with processed data. Each API endpoint uses dedicated request and response structures.
+- **Service Layer**: Coordinates between Handler and Usecase layers, handles data transformation without implementing core business logic.
+- **Usecase Layer**: Contains core business logic, independent of the API layer. Defines Repository interfaces following dependency inversion principle.
+- **Repository Layer**: Manages data access and database interactions.
+
+### Middleware System
+
+The application includes several middleware components:
+
+- **Error Middleware**: Centralized error handling for API responses with consistent error formats
+- **Recovery Middleware**: Panic recovery with structured logging using zap
+- **Timeout Middleware**: Request timeout enforcement
+- **Authentication Middleware**: JWT-based authentication
+- **Admin Only Middleware**: Role-based authorization for admin routes
+
+### Error Handling System
+
+The application implements a comprehensive error handling system:
+
+- **Error Types**: Business errors, validation errors, and internal errors
+- **Error Metadata**: Support for additional error context
+- **Stack Traces**: Automatic stack trace capture for internal errors
+- **Error Categorization**: Error classification with appropriate HTTP status codes
+- **Structured Logging**: Detailed error logging with consistent format
 
 ### Task System Architecture
 
@@ -78,6 +109,30 @@ The application includes a robust task system with three types of task execution
 - **Queue Tasks**: Asynchronous tasks processed via RabbitMQ for background processing and workload distribution
 
 Each task type follows a consistent registration and execution pattern, making it easy to add new tasks while ensuring proper lifecycle management and error handling.
+
+## API Response Format
+
+All API responses follow a consistent structure:
+
+```json
+{
+  "code": 200,           // HTTP status code
+  "message": "Success",  // Human-readable message
+  "data": {},            // Response payload (when successful)
+  "meta": {}             // Additional metadata (e.g., pagination)
+}
+```
+
+Error responses maintain the same structure:
+
+```json
+{
+  "code": 400,                 // Error code
+  "message": "Validation error", // Error message
+  "data": null,                // No data on error
+  "meta": null                 // No metadata on error
+}
+```
 
 ## Getting Started
 
@@ -142,15 +197,22 @@ Each task type follows a consistent registration and execution pattern, making i
 The API provides the following endpoints:
 
 - **Authentication**
-  - `POST /api/v1/register` - Register a new user
   - `POST /api/v1/login` - Login and get JWT token
+  - `GET /api/v1/refresh_token` - Refresh JWT token
+  - `GET /api/v1/captcha` - Get captcha for login
 
 - **User Management**
   - `GET /api/v1/profile` - Get current user profile (requires authentication)
-  - `GET /api/v1/users/:id` - Get user by ID (requires authentication)
-  - `PUT /api/v1/users/:id` - Update user (requires authentication, can only update own profile or admin required)
-  - `GET /api/v1/users` - List users (requires admin role)
+  - `PUT /api/v1/profile` - Update current user profile (requires authentication)
+  - `POST /api/v1/users` - Create new user (requires admin role)
+  - `GET /api/v1/users/:id` - Get user by ID (requires admin role)
+  - `PUT /api/v1/users/:id` - Update user (requires admin role)
+  - `PATCH /api/v1/users/:id/enabled` - Update user's enabled status (requires admin role)
   - `DELETE /api/v1/users/:id` - Delete user (requires admin role)
+  - `GET /api/v1/users` - List users with pagination and filtering (requires admin role)
+
+- **System**
+  - `GET /health` - Health check endpoint
 
 ## License
 
