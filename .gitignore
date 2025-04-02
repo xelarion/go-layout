@@ -54,6 +54,10 @@ temp/
 
 # Debug files
 debug
+debug-info/
+debug-*.txt
+k3s-*.txt
+pod-*.txt
 
 # Profiling data
 *.prof

@@ -2,7 +2,7 @@
 VERSION := $(shell git describe --tags --always --dirty)
 
 # Docker registry
-REGISTRY ?= registry.example.com
+REGISTRY ?= docker.io
 
 # Service names
 SERVICES = api task
@@ -30,7 +30,7 @@ build-task:
 docker push ${REGISTRY}/go-layout-task:${VERSION}
 
 # Deploy targets
-.PHONY: deploy deploy-single deploy-cluster deploy-server deploy-all
+.PHONY: deploy deploy-single deploy-cluster deploy-server deploy-all deploy-with-preload preload-images
 
 deploy: deploy-single
 
@@ -59,8 +59,20 @@ deploy-cluster:
 	kubectl apply -f deploy/k3s/cluster/ingress.yaml
 
 deploy-server:
-	@echo "Deploying to server: $(SERVER)"
-	./deploy/scripts/deploy-server.sh $(SERVER)
+	@[ "${SERVER}" ] || ( echo "Please provide SERVER=<server_name>"; exit 1 )
+	@echo "Deploying to server: ${SERVER}"
+	./deploy/scripts/deploy-server.sh ${SERVER}
+
+preload-images:
+	@[ "${SERVER}" ] || ( echo "Please provide SERVER=<server_name>"; exit 1 )
+	@echo "Preloading images for server: ${SERVER}"
+	./deploy/scripts/preload-k3s-images.sh ${SERVER}
+
+deploy-with-preload:
+	@[ "${SERVER}" ] || ( echo "Please provide SERVER=<server_name>"; exit 1 )
+	@echo "Preloading images and deploying to server: ${SERVER}"
+	./deploy/scripts/preload-k3s-images.sh ${SERVER}
+	./deploy/scripts/deploy-server.sh ${SERVER}
 
 deploy-all:
 	@echo "Deploying to all servers..."
@@ -82,7 +94,9 @@ help:
 	@echo "  make deploy          - Deploy to single node k3s (default)"
 	@echo "  make deploy-single   - Deploy to single node k3s"
 	@echo "  make deploy-cluster  - Deploy to k3s cluster"
-	@echo "  make deploy-server SERVER=muggleday  - Deploy to specific server"
+	@echo "  make deploy-server SERVER=<server_name>  - Deploy to specific server"
 	@echo "  make deploy-all      - Deploy to all servers"
+	@echo "  make deploy-with-preload SERVER=<server_name>  - Deploy to specific server with preloaded images"
+	@echo "  make preload-images SERVER=<server_name>  - Preload essential K3s images on the server"
 	@echo "  make clean           - Clean up Docker images"
 	@echo "  make help            - Show this help message"

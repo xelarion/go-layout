@@ -1,0 +1,53 @@
+mirrors:
+  # Standard image repositories
+  docker.io:
+    endpoint:
+      - https://registry.cn-hangzhou.aliyuncs.com
+      - https://hub-mirror.c.163.com
+      - https://mirror.ccs.tencentyun.com
+  registry.k8s.io:
+    endpoint:
+      - https://registry.cn-hangzhou.aliyuncs.com/google_containers
+  k8s.gcr.io:
+    endpoint:
+      - https://registry.cn-hangzhou.aliyuncs.com/google_containers
+  gcr.io:
+    endpoint:
+      - https://registry.cn-hangzhou.aliyuncs.com
+  quay.io:
+    endpoint:
+      - https://quay.mirrors.ustc.edu.cn
+  rancher:
+    endpoint:
+      - https://registry.cn-hangzhou.aliyuncs.com/rancher
+
+  # K3s specific components
+  docker.io/rancher:
+    endpoint:
+      - https://registry.cn-hangzhou.aliyuncs.com/rancher
+      - https://hub-mirror.c.163.com/rancher
+  
+  # Ingress-Nginx components
+  registry.k8s.io/ingress-nginx:
+    endpoint:
+      - https://registry.cn-hangzhou.aliyuncs.com/google_containers/ingress-nginx
+      - https://hub-mirror.c.163.com/ingress-nginx
+
+# Skip TLS verification to resolve certificate issues
+configs:
+  "registry.cn-hangzhou.aliyuncs.com":
+    auth:
+      tls:
+        insecure_skip_verify: true
+  "hub-mirror.c.163.com":
+    auth:
+      tls:
+        insecure_skip_verify: true
+  "mirror.ccs.tencentyun.com":
+    auth:
+      tls:
+        insecure_skip_verify: true
+  "quay.mirrors.ustc.edu.cn":
+    auth:
+      tls:
+        insecure_skip_verify: true

@@ -3,17 +3,17 @@ servers:
   - name: muggleday
     host: www.muggleday.com
     user: deploy
-    k3s_version: v1.28.1+k3s1
+    k3s_version: v1.31.6+k3s1
     region: cn
-    
-  - name: customer1
-    host: server1.customer1.com
+
+  - name: k3s-global
+    host: k3s-global.muggleday.com
     user: deploy
-    k3s_version: v1.28.1+k3s1
-    region: cn
-    
+    k3s_version: v1.31.6+k3s1
+    region: global
+
   - name: customer2
     host: server1.customer2.com
     user: deploy
-    k3s_version: v1.28.1+k3s1
+    k3s_version: v1.31.6+k3s1
     region: global
