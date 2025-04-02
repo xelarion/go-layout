@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/xelarion/go-layout/internal/api/web/middleware"
+	"github.com/xelarion/go-layout/internal/api/web/types"
 	"github.com/xelarion/go-layout/internal/service"
 )
 
@@ -42,7 +43,8 @@ func (h *UserHandler) GetUserInfo(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userService.GetUser(c.Request.Context(), uint(id))
+	req := &types.GetUserReq{ID: uint(id)}
+	user, err := h.userService.GetUser(c.Request.Context(), req)
 	if err != nil {
 		h.logger.Error("Failed to get user info", zap.String("id", idStr), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})

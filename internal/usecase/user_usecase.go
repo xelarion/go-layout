@@ -3,32 +3,47 @@ package usecase
 
 import (
 	"context"
-	"errors"
-	"time"
 
-	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
+	"go.uber.org/zap"
+
 	"github.com/xelarion/go-layout/internal/model"
+	"github.com/xelarion/go-layout/pkg/errs"
 )
 
-var (
-	// ErrUserNotFound indicates that the requested user was not found.
-	ErrUserNotFound = errors.New("user not found")
-	// ErrEmailAlreadyExists indicates that the email is already registered.
-	ErrEmailAlreadyExists = errors.New("email already exists")
-	// ErrInvalidCredentials indicates that the provided credentials are invalid.
-	ErrInvalidCredentials = errors.New("invalid credentials")
-)
+// CreateUserParams contains all parameters needed to create a user
+type CreateUserParams struct {
+	Name     string
+	Email    string
+	Password string
+	Role     string
+}
+
+// UpdateUserParams contains all parameters needed to update a user
+type UpdateUserParams struct {
+	ID       uint
+	Name     string
+	Email    string
+	Password string
+	Role     string
+	Enabled  bool
+	// Fields to track which values are explicitly set
+	NameSet     bool
+	EmailSet    bool
+	PasswordSet bool
+	RoleSet     bool
+	EnabledSet  bool
+}
 
 // UserRepository defines methods for user data access.
 type UserRepository interface {
+	Create(ctx context.Context, user *model.User) error
+	List(ctx context.Context, filters map[string]any, limit, offset int) ([]*model.User, int, error)
 	FindByID(ctx context.Context, id uint) (*model.User, error)
 	FindByEmail(ctx context.Context, email string) (*model.User, error)
-	Create(ctx context.Context, user *model.User) error
 	Update(ctx context.Context, user *model.User) error
 	Delete(ctx context.Context, id uint) error
-	List(ctx context.Context, limit, offset int) ([]*model.User, error)
 }
 
 // UserUseCase implements business logic for user operations.
@@ -45,70 +60,93 @@ func NewUserUseCase(repo UserRepository, logger *zap.Logger) *UserUseCase {
 	}
 }
 
-// GetByID retrieves a user by ID.
-func (uc *UserUseCase) GetByID(ctx context.Context, id uint) (*model.User, error) {
-	user, err := uc.repo.FindByID(ctx, id)
-	if err != nil {
-		uc.logger.Error("Failed to find user by ID", zap.Uint("id", id), zap.Error(err))
-		return nil, err
-	}
-	return user, nil
-}
-
-// Register creates a new user.
-func (uc *UserUseCase) Register(ctx context.Context, name, email, password string) (*model.User, error) {
+// Create creates a new user.
+func (uc *UserUseCase) Create(ctx context.Context, params CreateUserParams) (*model.User, error) {
 	// Check if user already exists
-	existingUser, err := uc.repo.FindByEmail(ctx, email)
-	if err == nil && existingUser != nil {
-		return nil, ErrEmailAlreadyExists
+	_, err := uc.repo.FindByEmail(ctx, params.Email)
+	if err != nil {
+		if !errs.IsReason(err, errs.ReasonNotFound) {
+			return nil, err
+		}
+	} else {
+		return nil, errs.NewBusiness("email already exists").
+			WithReason(errs.ReasonDuplicate)
 	}
 
 	// Hash password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(params.Password), bcrypt.DefaultCost)
 	if err != nil {
-		uc.logger.Error("Failed to hash password", zap.Error(err))
-		return nil, err
+		return nil, errs.WrapInternal(err, "failed to hash password")
 	}
 
 	// Create user
 	user := &model.User{
-		Name:      name,
-		Email:     email,
-		Password:  string(hashedPassword),
-		Role:      "user", // Default role
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		Name:     params.Name,
+		Email:    params.Email,
+		Password: string(hashedPassword),
+		Role:     params.Role,
+		Enabled:  true,
 	}
 
 	if err := uc.repo.Create(ctx, user); err != nil {
-		uc.logger.Error("Failed to create user", zap.String("email", email), zap.Error(err))
 		return nil, err
 	}
 
 	return user, nil
 }
 
-// Login authenticates a user.
-func (uc *UserUseCase) Login(ctx context.Context, email, password string) (*model.User, error) {
-	user, err := uc.repo.FindByEmail(ctx, email)
+// List returns a list of users with pagination and filtering.
+func (uc *UserUseCase) List(ctx context.Context, filters map[string]any, limit, offset int) ([]*model.User, int, error) {
+	users, count, err := uc.repo.List(ctx, filters, limit, offset)
 	if err != nil {
-		uc.logger.Warn("User not found during login attempt", zap.String("email", email), zap.Error(err))
-		return nil, ErrInvalidCredentials
+		return nil, 0, err
 	}
+	return users, count, nil
+}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		uc.logger.Warn("Invalid password during login attempt", zap.String("email", email), zap.Error(err))
-		return nil, ErrInvalidCredentials
+// GetByID retrieves a user by ID.
+func (uc *UserUseCase) GetByID(ctx context.Context, id uint) (*model.User, error) {
+	user, err := uc.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
 	}
-
 	return user, nil
 }
 
 // Update updates an existing user.
-func (uc *UserUseCase) Update(ctx context.Context, user *model.User) error {
-	user.UpdatedAt = time.Now()
+func (uc *UserUseCase) Update(ctx context.Context, params UpdateUserParams) error {
+	// Get the existing user
+	user, err := uc.repo.FindByID(ctx, params.ID)
+	if err != nil {
+		return err
+	}
+
+	// Update fields that are explicitly set
+	if params.NameSet {
+		user.Name = params.Name
+	}
+
+	if params.EmailSet {
+		user.Email = params.Email
+	}
+
+	if params.PasswordSet && params.Password != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(params.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return errs.WrapInternal(err, "failed to hash password")
+		}
+		user.Password = string(hashedPassword)
+	}
+
+	if params.RoleSet {
+		user.Role = params.Role
+	}
+
+	if params.EnabledSet {
+		user.Enabled = params.Enabled
+	}
+
 	if err := uc.repo.Update(ctx, user); err != nil {
-		uc.logger.Error("Failed to update user", zap.Uint("id", user.ID), zap.Error(err))
 		return err
 	}
 	return nil
@@ -116,19 +154,37 @@ func (uc *UserUseCase) Update(ctx context.Context, user *model.User) error {
 
 // Delete removes a user.
 func (uc *UserUseCase) Delete(ctx context.Context, id uint) error {
-	if err := uc.repo.Delete(ctx, id); err != nil {
-		uc.logger.Error("Failed to delete user", zap.Uint("id", id), zap.Error(err))
+	_, err := uc.repo.FindByID(ctx, id)
+	if err != nil {
 		return err
 	}
+
+	if err := uc.repo.Delete(ctx, id); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-// List returns a list of users with pagination.
-func (uc *UserUseCase) List(ctx context.Context, limit, offset int) ([]*model.User, error) {
-	users, err := uc.repo.List(ctx, limit, offset)
+// Login authenticates a user.
+func (uc *UserUseCase) Login(ctx context.Context, email, password string) (*model.User, error) {
+	user, err := uc.repo.FindByEmail(ctx, email)
 	if err != nil {
-		uc.logger.Error("Failed to list users", zap.Int("limit", limit), zap.Int("offset", offset), zap.Error(err))
+		if errs.IsReason(err, errs.ReasonNotFound) {
+			return nil, errs.NewBusiness("invalid credentials").WithReason(errs.ReasonUnauthorized)
+		}
 		return nil, err
 	}
-	return users, nil
+
+	// Verify password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		return nil, errs.NewBusiness("invalid credentials").WithReason(errs.ReasonUnauthorized)
+	}
+
+	// Check if user is enabled
+	if !user.Enabled {
+		return nil, errs.NewBusiness("account is disabled").WithReason(errs.ReasonUnauthorized)
+	}
+
+	return user, nil
 }

@@ -72,7 +72,7 @@ func NewAuthMiddleware(cfg *config.JWT, userUseCase *usecase.UserUseCase, logger
 }
 
 // payloadFunc is used to set the JWT payload
-func payloadFunc(data interface{}) jwt.MapClaims {
+func payloadFunc(data any) jwt.MapClaims {
 	if v, ok := data.(*User); ok {
 		return jwt.MapClaims{
 			IdentityKey: v.ID,
@@ -82,7 +82,7 @@ func payloadFunc(data interface{}) jwt.MapClaims {
 }
 
 // identityHandler sets the identity for the JWT claims
-func identityHandler(c *gin.Context) interface{} {
+func identityHandler(c *gin.Context) any {
 	claims := jwt.ExtractClaims(c)
 	return &User{
 		ID: uint(claims[IdentityKey].(float64)),
@@ -90,8 +90,8 @@ func identityHandler(c *gin.Context) interface{} {
 }
 
 // authenticator validates user credentials and returns identity
-func authenticator(userUseCase *usecase.UserUseCase, logger *zap.Logger) func(c *gin.Context) (interface{}, error) {
-	return func(c *gin.Context) (interface{}, error) {
+func authenticator(userUseCase *usecase.UserUseCase, logger *zap.Logger) func(c *gin.Context) (any, error) {
+	return func(c *gin.Context) (any, error) {
 		var loginVals struct {
 			Email    string `form:"email" json:"email" binding:"required,email"`
 			Password string `form:"password" json:"password" binding:"required"`
@@ -117,7 +117,7 @@ func authenticator(userUseCase *usecase.UserUseCase, logger *zap.Logger) func(c 
 }
 
 // authorizator determines if a user has access
-func authorizator(data interface{}, c *gin.Context) bool {
+func authorizator(data any, c *gin.Context) bool {
 	// Store user in context for later use
 	if v, ok := data.(*User); ok {
 		c.Set(UserKey, v)
@@ -146,6 +146,86 @@ func GetCurrentUser(c *gin.Context) *model.User {
 		}
 	}
 	return nil
+}
+
+// GetCurrentFromContext extracts user information and populates the context.Current structure
+func GetCurrentFromContext(c *gin.Context, userUseCase *usecase.UserUseCase) *Current {
+	// First check if we already have a Current in the context
+	if current := GetCurrent(c.Request.Context()); current != nil {
+		return current
+	}
+
+	// If not, try to get JWT user and populate from there
+	if user := GetCurrentUser(c); user != nil {
+		// Fetch complete user info from database
+		fullUser, err := userUseCase.GetByID(c.Request.Context(), user.ID)
+		// TODO
+		if err != nil || fullUser == nil {
+			return nil
+		}
+
+		// Create and store Current in context with user information
+		current := NewCurrent(fullUser)
+
+		// Store in request context for future use
+		c.Request = c.Request.WithContext(SetCurrent(c.Request.Context(), current))
+
+		return current
+	}
+
+	return nil
+}
+
+// AdminOnly returns a middleware that checks if the user has admin role
+func AdminOnly() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get the current user from context
+		user := GetCurrentUser(c)
+		if user == nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"code":    401,
+				"message": "Unauthorized",
+			})
+			return
+		}
+
+		// Check if the user has admin role
+		if user.Role != "admin" {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"code":    403,
+				"message": "Forbidden: Admin access required",
+			})
+			return
+		}
+
+		c.Next()
+	}
+}
+
+// AdminOnlyWithContext returns a middleware that checks if the user has admin role using the context.Current
+func AdminOnlyWithContext(userUseCase *usecase.UserUseCase) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get the current context
+		current := GetCurrentFromContext(c, userUseCase)
+		if current == nil || current.User == nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"code":    401,
+				"message": "Unauthorized",
+			})
+			return
+		}
+
+		// Check if the user has admin role
+		if current.User.Role != "admin" {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"code":    403,
+				"message": "Forbidden: Admin access required",
+			})
+			return
+		}
+
+		c.Next()
+	}
 }
 
 // AdminAuthorizatorMiddleware returns a middleware that checks if the user has admin role

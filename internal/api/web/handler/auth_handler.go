@@ -1,0 +1,37 @@
+package handler
+
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+
+	"go.uber.org/zap"
+
+	"github.com/xelarion/go-layout/internal/api/web/types"
+	"github.com/xelarion/go-layout/internal/service"
+)
+
+type AuthHandler struct {
+	authService *service.AuthService
+	logger      *zap.Logger
+}
+
+// NewAuthHandler creates a new instance of AuthHandler.
+func NewAuthHandler(authService *service.AuthService, logger *zap.Logger) *AuthHandler {
+	return &AuthHandler{
+		authService: authService,
+		logger:      logger.Named("web_auth_handler"),
+	}
+}
+
+// GetCaptcha generates and returns a captcha image.
+func (h *AuthHandler) GetCaptcha(c *gin.Context) {
+	// In a real application, you would use a captcha library to generate the image
+	// For this example, we'll use a mock implementation
+	resp := types.CaptchaResp{
+		CaptchaID:  "sample-captcha-id",
+		CaptchaImg: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAoCAMAAAA...", // Mock base64 image
+	}
+
+	c.JSON(http.StatusOK, types.Success(resp))
+}

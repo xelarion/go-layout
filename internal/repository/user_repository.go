@@ -4,12 +4,12 @@ package repository
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"github.com/xelarion/go-layout/internal/model"
+	"github.com/xelarion/go-layout/pkg/errs"
 )
 
 // UserRepository is a PostgreSQL implementation of the user repository.
@@ -26,15 +26,48 @@ func NewUserRepository(db *gorm.DB, logger *zap.Logger) *UserRepository {
 	}
 }
 
+// Create adds a new user to the database.
+func (r *UserRepository) Create(ctx context.Context, user *model.User) error {
+	if err := r.db.WithContext(ctx).Create(user).Error; err != nil {
+		return errs.WrapInternal(err, "failed to create user")
+	}
+	return nil
+}
+
+// List retrieves users with pagination and filtering.
+func (r *UserRepository) List(ctx context.Context, filters map[string]any, limit, offset int) ([]*model.User, int, error) {
+	query := r.db.WithContext(ctx).Model(&model.User{})
+
+	for field, value := range filters {
+		if value != nil {
+			query = query.Where(field+" = ?", value)
+		}
+	}
+
+	var total int64
+	if err := query.Model(&model.User{}).Count(&total).Error; err != nil {
+		return nil, 0, errs.WrapInternal(err, "failed to count users")
+	}
+
+	var users []*model.User
+	if err := query.Limit(limit).Offset(offset).Find(&users).Error; err != nil {
+		return nil, 0, errs.WrapInternal(err, "failed to list users")
+	}
+
+	return users, int(total), nil
+}
+
 // FindByID retrieves a user by ID.
 func (r *UserRepository) FindByID(ctx context.Context, id uint) (*model.User, error) {
 	var user model.User
-	if err := r.db.WithContext(ctx).First(&user, id).Error; err != nil {
+	err := r.db.WithContext(ctx).First(&user, id).Error
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, errs.NewBusiness("user not found").
+				WithReason(errs.ReasonNotFound).
+				WithMeta("id", id)
 		}
-		r.logger.Error("Failed to find user by ID", zap.Uint("id", id), zap.Error(err))
-		return nil, fmt.Errorf("failed to find user by ID: %w", err)
+		return nil, errs.WrapInternal(err, "failed to find user by ID")
 	}
 	return &user, nil
 }
@@ -42,49 +75,46 @@ func (r *UserRepository) FindByID(ctx context.Context, id uint) (*model.User, er
 // FindByEmail retrieves a user by email.
 func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*model.User, error) {
 	var user model.User
-	if err := r.db.WithContext(ctx).Where("email = ?", email).First(&user).Error; err != nil {
+	err := r.db.WithContext(ctx).Where("email = ?", email).First(&user).Error
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, errs.NewBusiness("user not found").
+				WithReason(errs.ReasonNotFound).
+				WithMeta("email", email)
 		}
-		r.logger.Error("Failed to find user by email", zap.String("email", email), zap.Error(err))
-		return nil, fmt.Errorf("failed to find user by email: %w", err)
+		return nil, errs.WrapInternal(err, "failed to find user by email")
 	}
 	return &user, nil
 }
 
-// Create creates a new user.
-func (r *UserRepository) Create(ctx context.Context, user *model.User) error {
-	if err := r.db.WithContext(ctx).Create(user).Error; err != nil {
-		r.logger.Error("Failed to create user", zap.String("email", user.Email), zap.Error(err))
-		return fmt.Errorf("failed to create user: %w", err)
-	}
-	return nil
-}
-
-// Update updates an existing user.
+// Update updates a user.
 func (r *UserRepository) Update(ctx context.Context, user *model.User) error {
-	if err := r.db.WithContext(ctx).Save(user).Error; err != nil {
-		r.logger.Error("Failed to update user", zap.Uint("id", user.ID), zap.Error(err))
-		return fmt.Errorf("failed to update user: %w", err)
+	result := r.db.WithContext(ctx).Save(user)
+	if result.Error != nil {
+		return errs.WrapInternal(result.Error, "failed to update user")
 	}
+
+	if result.RowsAffected == 0 {
+		return errs.NewBusiness("user not found").
+			WithReason(errs.ReasonNotFound).
+			WithMeta("id", user.ID)
+	}
+
 	return nil
 }
 
-// Delete deletes a user by ID.
+// Delete removes a user by ID.
 func (r *UserRepository) Delete(ctx context.Context, id uint) error {
-	if err := r.db.WithContext(ctx).Delete(&model.User{}, id).Error; err != nil {
-		r.logger.Error("Failed to delete user", zap.Uint("id", id), zap.Error(err))
-		return fmt.Errorf("failed to delete user: %w", err)
+	result := r.db.WithContext(ctx).Delete(&model.User{}, id)
+	if result.Error != nil {
+		return errs.WrapInternal(result.Error, "failed to delete user")
 	}
-	return nil
-}
 
-// List retrieves a list of users with pagination.
-func (r *UserRepository) List(ctx context.Context, limit, offset int) ([]*model.User, error) {
-	var users []*model.User
-	if err := r.db.WithContext(ctx).Limit(limit).Offset(offset).Find(&users).Error; err != nil {
-		r.logger.Error("Failed to list users", zap.Int("limit", limit), zap.Int("offset", offset), zap.Error(err))
-		return nil, fmt.Errorf("failed to list users: %w", err)
+	if result.RowsAffected == 0 {
+		return errs.NewBusiness("user not found").
+			WithReason(errs.ReasonNotFound).
+			WithMeta("id", id)
 	}
-	return users, nil
+
+	return nil
 }

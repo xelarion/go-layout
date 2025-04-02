@@ -16,6 +16,7 @@ type User struct {
 	Email     string         `gorm:"size:100;uniqueIndex;not null" json:"email"`
 	Password  string         `gorm:"size:100;not null" json:"-"` // Password is not exposed in JSON responses
 	Role      string         `gorm:"size:20;default:'user'" json:"role"`
+	Enabled   bool           `gorm:"default:true" json:"enabled"` // User enabled status
 	CreatedAt time.Time      `gorm:"not null" json:"created_at"`
 	UpdatedAt time.Time      `gorm:"not null" json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"` // Soft delete

@@ -1,111 +1,112 @@
-// Package service provides service implementations that coordinate between handlers and usecases.
 package service
 
 import (
 	"context"
-	"time"
 
-	"go.uber.org/zap"
-
+	"github.com/xelarion/go-layout/internal/api/web/middleware"
+	"github.com/xelarion/go-layout/internal/api/web/types"
 	"github.com/xelarion/go-layout/internal/usecase"
+	"github.com/xelarion/go-layout/pkg/errs"
 )
 
-// UserRequest represents the user request data structure.
-type UserRequest struct {
-	ID       uint   `json:"id,omitempty"`
-	Name     string `json:"name,omitempty" binding:"required,min=2,max=100"`
-	Email    string `json:"email,omitempty" binding:"required,email"`
-	Password string `json:"password,omitempty" binding:"required,min=6"`
-	Role     string `json:"role,omitempty"`
-	Limit    int    `json:"limit,omitempty"`
-	Offset   int    `json:"offset,omitempty"`
-}
-
-// UserResponse represents the user response data structure.
-type UserResponse struct {
-	ID        uint       `json:"id"`
-	Name      string     `json:"name"`
-	Email     string     `json:"email"`
-	Role      string     `json:"role"`
-	CreatedAt *time.Time `json:"created_at,omitempty"`
-	UpdatedAt *time.Time `json:"updated_at,omitempty"`
-}
-
-// LoginResponse represents the login response data structure.
-type LoginResponse struct {
-	User        UserResponse `json:"user"`
-	Token       string       `json:"token"`
-	TokenExpiry time.Time    `json:"token_expiry"`
-}
-
-// ListResponse represents the list response data structure.
-type ListResponse struct {
-	Users  []UserResponse `json:"users"`
-	Limit  int            `json:"limit"`
-	Offset int            `json:"offset"`
-	Count  int            `json:"count"`
-}
-
-// UserService coordinates between handlers and usecases for user operations.
+// UserService handles user-related services.
 type UserService struct {
 	userUseCase *usecase.UserUseCase
-	logger      *zap.Logger
 }
 
-// NewUserService creates a new instance of UserService.
-func NewUserService(userUseCase *usecase.UserUseCase, logger *zap.Logger) *UserService {
+// NewUserService creates a new UserService.
+func NewUserService(userUseCase *usecase.UserUseCase) *UserService {
 	return &UserService{
 		userUseCase: userUseCase,
-		logger:      logger.Named("user_service"),
 	}
+}
+
+// CreateUser registers a new user.
+func (s *UserService) CreateUser(ctx context.Context, req *types.CreateUserReq) (*types.CreateUserResp, error) {
+	params := usecase.CreateUserParams{
+		Name:     req.Name,
+		Email:    req.Email,
+		Password: req.Password,
+		Role:     req.Role,
+	}
+
+	user, err := s.userUseCase.Create(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.CreateUserResp{
+		ID: user.ID,
+	}, nil
+}
+
+// ListUsers lists users with pagination.
+func (s *UserService) ListUsers(ctx context.Context, req *types.ListUsersReq) (*types.ListUsersResp, error) {
+	filters := map[string]any{}
+	if req.Name != "" {
+		filters["name"] = req.Name
+	}
+	if req.Email != "" {
+		filters["email"] = req.Email
+	}
+	if req.Role != "" {
+		filters["role"] = req.Role
+	}
+	if req.Enabled != nil {
+		filters["enabled"] = *req.Enabled
+	}
+
+	users, count, err := s.userUseCase.List(ctx, filters, req.GetLimit(), req.GetOffset())
+	if err != nil {
+		return nil, err
+	}
+
+	respResults := make([]types.ListUsersRespResult, 0, len(users))
+	for _, user := range users {
+		u := types.ListUsersRespResult{
+			ID:        user.ID,
+			Name:      user.Name,
+			Email:     user.Email,
+			Role:      user.Role,
+			Enabled:   user.Enabled,
+			CreatedAt: &user.CreatedAt,
+			UpdatedAt: &user.UpdatedAt,
+		}
+		respResults = append(respResults, u)
+	}
+
+	return &types.ListUsersResp{
+		Results:  respResults,
+		PageInfo: types.NewPageInfoResp(count, req.GetPage(), req.GetPageSize()),
+	}, nil
 }
 
 // GetUser retrieves a user by ID.
-func (s *UserService) GetUser(ctx context.Context, id uint) (*UserResponse, error) {
-	user, err := s.userUseCase.GetByID(ctx, id)
+func (s *UserService) GetUser(ctx context.Context, req *types.GetUserReq) (*types.GetUserResp, error) {
+	user, err := s.userUseCase.GetByID(ctx, req.ID)
 	if err != nil {
 		return nil, err
 	}
-	
-	if user == nil {
-		return nil, nil
-	}
-	
-	return &UserResponse{
+
+	return &types.GetUserResp{
 		ID:        user.ID,
 		Name:      user.Name,
 		Email:     user.Email,
 		Role:      user.Role,
+		Enabled:   user.Enabled,
 		CreatedAt: &user.CreatedAt,
 		UpdatedAt: &user.UpdatedAt,
 	}, nil
 }
 
-// RegisterUser registers a new user.
-func (s *UserService) RegisterUser(ctx context.Context, req *UserRequest) (*UserResponse, error) {
-	user, err := s.userUseCase.Register(ctx, req.Name, req.Email, req.Password)
-	if err != nil {
-		return nil, err
-	}
-	
-	return &UserResponse{
-		ID:        user.ID,
-		Name:      user.Name,
-		Email:     user.Email,
-		Role:      user.Role,
-		CreatedAt: &user.CreatedAt,
-		UpdatedAt: &user.UpdatedAt,
-	}, nil
-}
-
-// LoginUser authenticates a user.
-func (s *UserService) LoginUser(ctx context.Context, req *UserRequest) (*UserResponse, error) {
-	user, err := s.userUseCase.Login(ctx, req.Email, req.Password)
+// GetUserFormData provides data needed for user forms (update).
+func (s *UserService) GetUserFormData(ctx context.Context, req *types.GetUserFormDataReq) (*types.GetUserFormDataResp, error) {
+	user, err := s.userUseCase.GetByID(ctx, req.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	return &UserResponse{
+	return &types.GetUserFormDataResp{
 		ID:    user.ID,
 		Name:  user.Name,
 		Email: user.Email,
@@ -113,77 +114,131 @@ func (s *UserService) LoginUser(ctx context.Context, req *UserRequest) (*UserRes
 	}, nil
 }
 
-// UpdateUser updates user information.
-func (s *UserService) UpdateUser(ctx context.Context, req *UserRequest) (*UserResponse, error) {
-	user, err := s.userUseCase.GetByID(ctx, req.ID)
+// UpdateUser updates a user.
+func (s *UserService) UpdateUser(ctx context.Context, req *types.UpdateUserReq) (*types.UpdateUserResp, error) {
+	// First check if the user exists
+	_, err := s.userUseCase.GetByID(ctx, req.ID)
 	if err != nil {
 		return nil, err
 	}
-	
-	if user == nil {
-		return nil, usecase.ErrUserNotFound
+
+	// Create update params
+	params := usecase.UpdateUserParams{
+		ID: req.ID,
 	}
-	
-	// Update fields
-	if req.Name != "" {
-		user.Name = req.Name
+
+	params.Name = req.Name
+	params.NameSet = true
+
+	params.Email = req.Email
+	params.EmailSet = true
+
+	if req.Password != "" {
+		params.Password = req.Password
+		params.PasswordSet = true
 	}
-	
-	if req.Email != "" {
-		user.Email = req.Email
-	}
-	
-	// Only admin can update role
-	if req.Role != "" {
-		user.Role = req.Role
-	}
-	
-	if err := s.userUseCase.Update(ctx, user); err != nil {
+
+	params.Role = req.Role
+	params.RoleSet = true
+
+	if err := s.userUseCase.Update(ctx, params); err != nil {
 		return nil, err
 	}
-	
-	return &UserResponse{
+
+	return &types.UpdateUserResp{}, nil
+}
+
+// UpdateUserEnabled updates a user's enabled status.
+func (s *UserService) UpdateUserEnabled(ctx context.Context, req *types.UpdateUserEnabledReq) (*types.UpdateUserResp, error) {
+	// First check if the user exists
+	_, err := s.userUseCase.GetByID(ctx, req.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create update params with only the enabled status
+	params := usecase.UpdateUserParams{
+		ID:         req.ID,
+		Enabled:    *req.Enabled,
+		EnabledSet: true,
+	}
+
+	if err := s.userUseCase.Update(ctx, params); err != nil {
+		return nil, err
+	}
+
+	return &types.UpdateUserResp{}, nil
+}
+
+// DeleteUser handles user deletion.
+func (s *UserService) DeleteUser(ctx context.Context, req *types.DeleteUserReq) (*types.DeleteUserResp, error) {
+	if err := s.userUseCase.Delete(ctx, req.ID); err != nil {
+		return nil, err
+	}
+
+	return &types.DeleteUserResp{}, nil
+}
+
+// GetProfile gets the current user's profile.
+func (s *UserService) GetProfile(ctx context.Context, req *types.GetProfileReq) (*types.GetProfileResp, error) {
+	// Get current context information
+	current := middleware.GetCurrent(ctx)
+	if current == nil || current.User == nil {
+		return nil, errs.NewBusiness("invalid credentials").WithReason(errs.ReasonUnauthorized)
+	}
+
+	user, err := s.userUseCase.GetByID(ctx, current.User.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.GetProfileResp{
 		ID:        user.ID,
 		Name:      user.Name,
 		Email:     user.Email,
 		Role:      user.Role,
-		UpdatedAt: &user.UpdatedAt,
+		CreatedAt: &user.CreatedAt,
 	}, nil
 }
 
-// DeleteUser deletes a user.
-func (s *UserService) DeleteUser(ctx context.Context, id uint) error {
-	return s.userUseCase.Delete(ctx, id)
-}
-
-// ListUsers retrieves a list of users with pagination.
-func (s *UserService) ListUsers(ctx context.Context, req *UserRequest) (*ListResponse, error) {
-	limit := req.Limit
-	if limit <= 0 {
-		limit = 10 // Default limit
+// UpdateProfile updates the current user's profile.
+func (s *UserService) UpdateProfile(ctx context.Context, req *types.UpdateProfileReq) (*types.UpdateProfileResp, error) {
+	// Get current context information
+	current := middleware.GetCurrent(ctx)
+	if current == nil || current.User == nil {
+		return nil, errs.NewBusiness("invalid credentials").WithReason(errs.ReasonUnauthorized)
 	}
-	
-	users, err := s.userUseCase.List(ctx, limit, req.Offset)
+
+	// First check if the user exists
+	_, err := s.userUseCase.GetByID(ctx, current.User.ID)
 	if err != nil {
 		return nil, err
 	}
-	
-	var responseUsers []UserResponse
-	for _, user := range users {
-		responseUsers = append(responseUsers, UserResponse{
-			ID:        user.ID,
-			Name:      user.Name,
-			Email:     user.Email,
-			Role:      user.Role,
-			CreatedAt: &user.CreatedAt,
-			UpdatedAt: &user.UpdatedAt,
-		})
+
+	// Create update params
+	params := usecase.UpdateUserParams{
+		ID: current.User.ID,
 	}
-	
-	return &ListResponse{
-		Users:  responseUsers,
-		Limit:  limit,
-		Offset: req.Offset,
-		Count:  len(responseUsers),
-	}, nil
+
+	// Only set fields that are provided in the request
+	if req.Name != "" {
+		params.Name = req.Name
+		params.NameSet = true
+	}
+
+	if req.Email != "" {
+		params.Email = req.Email
+		params.EmailSet = true
+	}
+
+	if req.Password != "" {
+		params.Password = req.Password
+		params.PasswordSet = true
+	}
+
+	if err := s.userUseCase.Update(ctx, params); err != nil {
+		return nil, err
+	}
+
+	return &types.UpdateProfileResp{}, nil
 }
