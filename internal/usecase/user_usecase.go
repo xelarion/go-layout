@@ -6,8 +6,6 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"go.uber.org/zap"
-
 	"github.com/xelarion/go-layout/internal/model"
 	"github.com/xelarion/go-layout/pkg/errs"
 )
@@ -48,15 +46,13 @@ type UserRepository interface {
 
 // UserUseCase implements business logic for user operations.
 type UserUseCase struct {
-	repo   UserRepository
-	logger *zap.Logger
+	repo UserRepository
 }
 
 // NewUserUseCase creates a new instance of UserUseCase.
-func NewUserUseCase(repo UserRepository, logger *zap.Logger) *UserUseCase {
+func NewUserUseCase(repo UserRepository) *UserUseCase {
 	return &UserUseCase{
-		repo:   repo,
-		logger: logger.Named("user_usecase"),
+		repo: repo,
 	}
 }
 

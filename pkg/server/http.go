@@ -16,7 +16,7 @@ import (
 type HTTPConfig struct {
 	Host         string
 	Port         int
-	Mode         string
+	Mode         string // debug, release, test
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 	IdleTimeout  time.Duration
@@ -37,7 +37,6 @@ func NewHTTPServer(config *HTTPConfig, logger *zap.Logger) *HTTPServer {
 
 	// Setup router
 	router := gin.New()
-	router.Use(gin.Recovery())
 
 	return &HTTPServer{
 		router: router,

@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/xelarion/go-layout/internal/api/web/types"
 )
 
 // Timeout middleware sets a timeout for the request and aborts it if it takes too long.
@@ -38,9 +40,9 @@ func Timeout(timeout time.Duration) gin.HandlerFunc {
 		case <-ctx.Done():
 			// Request timed out
 			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-				c.AbortWithStatusJSON(http.StatusRequestTimeout, gin.H{
-					"error": "Request timeout",
-				})
+				c.AbortWithStatusJSON(http.StatusRequestTimeout, types.Error(types.CodeRequestTimeout, "Request timeout"))
+			} else {
+				c.Abort()
 			}
 		}
 	}

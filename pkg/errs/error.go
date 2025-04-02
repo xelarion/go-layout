@@ -103,7 +103,7 @@ func (e *Error) Stack() string {
 }
 
 // Meta returns the error metadata
-func (e *Error) Meta() map[string]interface{} {
+func (e *Error) Meta() map[string]any {
 	return e.meta
 }
 
@@ -213,17 +213,6 @@ func NewInternal(message string) *Error {
 	}
 }
 
-// WrapInternal wraps an existing error as an internal error.
-func WrapInternal(err error, message string) *Error {
-	return &Error{
-		errType: InternalError,
-		message: message,
-		reason:  ReasonInternalError, // Default reason for internal errors
-		err:     err,
-		stack:   getStackTrace(1),
-	}
-}
-
 // NewBusiness creates a new business logic error.
 func NewBusiness(message string) *Error {
 	return &Error{
@@ -240,6 +229,17 @@ func NewValidation(message string) *Error {
 		errType: ValidationError,
 		message: message,
 		reason:  ReasonBadRequest, // Default reason for validation errors
+		stack:   getStackTrace(1),
+	}
+}
+
+// WrapInternal wraps an existing error as an internal error.
+func WrapInternal(err error, message string) *Error {
+	return &Error{
+		errType: InternalError,
+		message: message,
+		reason:  ReasonInternalError, // Default reason for internal errors
+		err:     err,
 		stack:   getStackTrace(1),
 	}
 }
@@ -262,6 +262,11 @@ func WrapValidation(err error, message string) *Error {
 		err:     err,
 		stack:   getStackTrace(1),
 	}
+}
+
+// Unwrap implements the errors.Unwrap interface for compatibility with errors.Is/As
+func Unwrap(err error) error {
+	return errors.Unwrap(err)
 }
 
 // getStackTrace returns a formatted stack trace

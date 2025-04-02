@@ -11,8 +11,14 @@ import (
 	"github.com/xelarion/go-layout/pkg/errs"
 )
 
-// ErrorHandler adds centralized error handling and logging for the API layer.
-func ErrorHandler(logger *zap.Logger) gin.HandlerFunc {
+// Error returns a middleware that handles errors and logs them using zap
+// It should be registered at the router level to catch all errors.
+func Error(logger *zap.Logger) gin.HandlerFunc {
+	logger = logger.WithOptions(
+		zap.WithCaller(false),
+		zap.AddStacktrace(zap.FatalLevel),
+	)
+
 	return func(c *gin.Context) {
 		// Process the request
 		c.Next()
@@ -23,23 +29,18 @@ func ErrorHandler(logger *zap.Logger) gin.HandlerFunc {
 		}
 
 		err := c.Errors.Last().Err
-		var statusCode int
-		var errCode int
-		var errMsg string
-
 		// Prepare fields for logging
 		fields := []zap.Field{
 			zap.String("path", c.Request.URL.Path),
 			zap.String("method", c.Request.Method),
 			zap.String("client_ip", c.ClientIP()),
+			zap.Error(err), // Always include the original error
 		}
 
 		// Add metadata if available
 		meta := errs.GetMeta(err)
-		if meta != nil {
-			for k, v := range meta {
-				fields = append(fields, zap.Any(k, v))
-			}
+		if meta != nil && len(meta) > 0 {
+			fields = append(fields, zap.Any("metadata", meta))
 		}
 
 		// Add reason if available
@@ -48,76 +49,75 @@ func ErrorHandler(logger *zap.Logger) gin.HandlerFunc {
 			fields = append(fields, zap.String("reason", reason))
 		}
 
-		// Default error handling
-		statusCode = http.StatusInternalServerError
-		errCode = types.CodeInternalError
-		// Get a user-friendly message
-		errMsg = getMessage(err)
+		var httpStatus int
+		var respCode int
+		respMessage := getErrorMessage(err)
 
 		// Determine the appropriate status code and error code based on error type
 		if errs.IsInternal(err) {
-			statusCode = http.StatusInternalServerError
-			errCode = types.CodeInternalError
-			
+			httpStatus = http.StatusInternalServerError
+			respCode = types.CodeInternalError
+
 			// Add stack trace for internal errors to aid debugging
 			stack := errs.GetStack(err)
 			if stack != "" {
 				fields = append(fields, zap.String("stack_trace", stack))
 			}
-			
+
 			logger.Error("Internal server error", fields...)
 		} else if errs.IsBusiness(err) {
-			statusCode = http.StatusBadRequest
-			errCode = types.CodeBadRequest
-
 			// Map common error reasons to their respective status codes
 			switch reason {
 			case errs.ReasonNotFound:
-				statusCode = http.StatusNotFound
-				errCode = types.CodeNotFound
-			case errs.ReasonUnauthorized:
-				statusCode = http.StatusUnauthorized
-				errCode = types.CodeUnauthorized
-			case errs.ReasonForbidden:
-				statusCode = http.StatusForbidden
-				errCode = types.CodeForbidden
+				httpStatus = http.StatusNotFound
+				respCode = types.CodeNotFound
 			case errs.ReasonDuplicate:
-				statusCode = http.StatusConflict
-				errCode = types.CodeDuplicate
+				httpStatus = http.StatusConflict
+				respCode = types.CodeDuplicate
+			case errs.ReasonUnauthorized:
+				httpStatus = http.StatusUnauthorized
+				respCode = types.CodeUnauthorized
+			case errs.ReasonForbidden:
+				httpStatus = http.StatusForbidden
+				respCode = types.CodeForbidden
 			case errs.ReasonBadRequest:
-				// For validation errors, we stay with 400
-				errCode = types.CodeValidation
-				logger.Debug("Validation error", fields...)
+				httpStatus = http.StatusBadRequest
+				respCode = types.CodeValidation
+			case errs.ReasonInvalidState:
+				httpStatus = http.StatusConflict
+				respCode = types.CodeInvalidState
 			default:
 				// For any other business error, use the same default
-				errCode = types.CodeBadRequest
-				logger.Info("Business error", fields...)
+				httpStatus = http.StatusBadRequest
+				respCode = types.CodeBadRequest
 			}
 
 			logger.Info("Business logic error", fields...)
 		} else if errs.IsValidation(err) {
-			statusCode = http.StatusBadRequest
-			errCode = types.CodeValidation
+			httpStatus = http.StatusBadRequest
+			respCode = types.CodeValidation
 			logger.Info("Validation error", fields...)
 		} else {
 			// Unknown error type
-			logger.Error("Unhandled error", append(fields, zap.Error(err))...)
+			httpStatus = http.StatusInternalServerError
+			respCode = types.CodeInternalError
+			logger.Error("Unhandled error", fields...)
 		}
 
 		// Send the response using the standard types.Response structure
-		c.JSON(statusCode, types.Error(errCode, errMsg))
+		c.JSON(httpStatus, types.Error(respCode, respMessage))
 		c.Abort()
 	}
 }
 
-// getMessage gets a user-appropriate error message
-func getMessage(err error) string {
+// getErrorMessage gets a user-appropriate error message
+func getErrorMessage(err error) string {
 	message := errs.GetMessage(err)
-	
+
 	// For internal errors, we don't want to leak implementation details
 	if errs.IsInternal(err) {
 		return "Internal server error"
 	}
-	
+
 	return message
 }

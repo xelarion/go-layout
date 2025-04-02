@@ -36,9 +36,9 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 	logger.Info("Connected to database successfully")
 
 	// Initialize repositories
-	userRepo := repository.NewUserRepository(db.DB, logger)
+	userRepo := repository.NewUserRepository(db.DB)
 	// Initialize usecases
-	userUseCase := usecase.NewUserUseCase(userRepo, logger)
+	userUseCase := usecase.NewUserUseCase(userRepo)
 	// Initialize services (without JWT dependency)
 	userService := service.NewUserService(userUseCase)
 
@@ -59,11 +59,9 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 	}, logger)
 
 	// Setup global middlewares
-	httpServer.Router().Use(middleware.Logger(logger))
-	// Add recovery middleware to recover from panics
-	httpServer.Router().Use(gin.Recovery())
-	// Add request timeout middleware
 	httpServer.Router().Use(middleware.Timeout(30 * time.Second))
+	httpServer.Router().Use(middleware.Recovery(logger))
+	httpServer.Router().Use(middleware.Error(logger))
 
 	// Initialize auth service
 	authService := service.NewAuthService(userUseCase, logger)

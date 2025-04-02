@@ -11,6 +11,7 @@ import (
 	"github.com/xelarion/go-layout/internal/api/web/types"
 	"github.com/xelarion/go-layout/internal/service"
 	"github.com/xelarion/go-layout/pkg/binding"
+	"github.com/xelarion/go-layout/pkg/errs"
 )
 
 // UserHandler defines the user HTTP handlers for Web API.
@@ -31,14 +32,13 @@ func NewUserHandler(userService *service.UserService, logger *zap.Logger) *UserH
 func (h *UserHandler) CreateUser(c *gin.Context) {
 	var req types.CreateUserReq
 	if err := binding.Bind(c, &req, binding.JSON); err != nil {
-		c.JSON(http.StatusBadRequest, types.Error(types.CodeValidation, err.Error()))
+		_ = c.Error(errs.WrapValidation(err, err.Error()))
 		return
 	}
 
 	resp, err := h.userService.CreateUser(c.Request.Context(), &req)
 	if err != nil {
-		h.logger.Error("Failed to create user", zap.String("email", req.Email), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, types.Error(types.CodeInternalError, err.Error()))
+		_ = c.Error(err)
 		return
 	}
 
@@ -49,14 +49,13 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 func (h *UserHandler) ListUsers(c *gin.Context) {
 	var req types.ListUsersReq
 	if err := binding.Bind(c, &req, binding.Query); err != nil {
-		c.JSON(http.StatusBadRequest, types.Error(types.CodeValidation, err.Error()))
+		_ = c.Error(errs.WrapValidation(err, err.Error()))
 		return
 	}
 
 	resp, err := h.userService.ListUsers(c.Request.Context(), &req)
 	if err != nil {
-		h.logger.Error("Failed to list users", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, types.Error(types.CodeInternalError, err.Error()))
+		_ = c.Error(err)
 		return
 	}
 
@@ -67,14 +66,13 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 func (h *UserHandler) GetUser(c *gin.Context) {
 	var req types.GetUserReq
 	if err := binding.Bind(c, &req, binding.URI, binding.Query); err != nil {
-		c.JSON(http.StatusBadRequest, types.Error(types.CodeValidation, err.Error()))
+		_ = c.Error(errs.WrapValidation(err, err.Error()))
 		return
 	}
 
 	resp, err := h.userService.GetUser(c.Request.Context(), &req)
 	if err != nil {
-		h.logger.Error("Failed to get user", zap.String("id", c.Param("id")), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, types.Error(types.CodeInternalError, "Internal server error"))
+		_ = c.Error(err)
 		return
 	}
 
@@ -90,14 +88,13 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 func (h *UserHandler) GetUserFormData(c *gin.Context) {
 	var req types.GetUserFormDataReq
 	if err := binding.Bind(c, &req, binding.URI, binding.Query); err != nil {
-		c.JSON(http.StatusBadRequest, types.Error(types.CodeValidation, err.Error()))
+		_ = c.Error(errs.WrapValidation(err, err.Error()))
 		return
 	}
 
 	resp, err := h.userService.GetUserFormData(c.Request.Context(), &req)
 	if err != nil {
-		h.logger.Error("Failed to get user", zap.String("id", c.Param("id")), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, types.Error(types.CodeInternalError, "Internal server error"))
+		_ = c.Error(err)
 		return
 	}
 
@@ -108,14 +105,13 @@ func (h *UserHandler) GetUserFormData(c *gin.Context) {
 func (h *UserHandler) UpdateUser(c *gin.Context) {
 	var req types.UpdateUserReq
 	if err := binding.Bind(c, &req, binding.URI, binding.JSON); err != nil {
-		c.JSON(http.StatusBadRequest, types.Error(types.CodeValidation, err.Error()))
+		_ = c.Error(errs.WrapValidation(err, err.Error()))
 		return
 	}
 
 	resp, err := h.userService.UpdateUser(c.Request.Context(), &req)
 	if err != nil {
-		h.logger.Error("Failed to update user", zap.String("id", c.Param("id")), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, types.Error(types.CodeInternalError, err.Error()))
+		_ = c.Error(err)
 		return
 	}
 
@@ -126,14 +122,13 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 func (h *UserHandler) UpdateUserEnabled(c *gin.Context) {
 	var req types.UpdateUserEnabledReq
 	if err := binding.Bind(c, &req, binding.URI, binding.JSON); err != nil {
-		c.JSON(http.StatusBadRequest, types.Error(types.CodeValidation, err.Error()))
+		_ = c.Error(errs.WrapValidation(err, err.Error()))
 		return
 	}
 
 	resp, err := h.userService.UpdateUserEnabled(c.Request.Context(), &req)
 	if err != nil {
-		h.logger.Error("Failed to update user enabled status", zap.String("id", c.Param("id")), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, types.Error(types.CodeInternalError, err.Error()))
+		_ = c.Error(err)
 		return
 	}
 
@@ -144,7 +139,7 @@ func (h *UserHandler) UpdateUserEnabled(c *gin.Context) {
 func (h *UserHandler) DeleteUser(c *gin.Context) {
 	var req types.DeleteUserReq
 	if err := binding.Bind(c, &req, binding.URI, binding.Query); err != nil {
-		c.JSON(http.StatusBadRequest, types.Error(types.CodeValidation, err.Error()))
+		_ = c.Error(errs.WrapValidation(err, err.Error()))
 		return
 	}
 
@@ -161,20 +156,19 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 func (h *UserHandler) GetProfile(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {
-		c.JSON(http.StatusUnauthorized, types.Error(types.CodeUnauthorized, "Unauthorized"))
+		_ = c.Error(errs.NewBusiness("Unauthorized").WithReason(errs.ReasonUnauthorized))
 		return
 	}
 
 	var req types.GetProfileReq
 	if err := binding.Bind(c, &req, binding.Query); err != nil {
-		c.JSON(http.StatusBadRequest, types.Error(types.CodeValidation, err.Error()))
+		_ = c.Error(errs.WrapValidation(err, err.Error()))
 		return
 	}
 
 	resp, err := h.userService.GetProfile(c.Request.Context(), &req)
 	if err != nil {
-		h.logger.Error("Failed to get user profile", zap.Uint("id", currentUser.ID), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, types.Error(types.CodeInternalError, err.Error()))
+		_ = c.Error(err)
 		return
 	}
 
@@ -185,20 +179,19 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {
-		c.JSON(http.StatusUnauthorized, types.Error(types.CodeUnauthorized, "Unauthorized"))
+		_ = c.Error(errs.NewBusiness("Unauthorized").WithReason(errs.ReasonUnauthorized))
 		return
 	}
 
 	var req types.UpdateProfileReq
 	if err := binding.Bind(c, &req, binding.JSON); err != nil {
-		c.JSON(http.StatusBadRequest, types.Error(types.CodeValidation, err.Error()))
+		_ = c.Error(errs.WrapValidation(err, err.Error()))
 		return
 	}
 
 	resp, err := h.userService.UpdateProfile(c.Request.Context(), &req)
 	if err != nil {
-		h.logger.Error("Failed to update profile", zap.Uint("id", currentUser.ID), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, types.Error(types.CodeInternalError, err.Error()))
+		_ = c.Error(err)
 		return
 	}
 

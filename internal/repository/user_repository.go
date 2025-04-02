@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"github.com/xelarion/go-layout/internal/model"
@@ -14,15 +13,13 @@ import (
 
 // UserRepository is a PostgreSQL implementation of the user repository.
 type UserRepository struct {
-	db     *gorm.DB
-	logger *zap.Logger
+	db *gorm.DB
 }
 
 // NewUserRepository creates a new instance of user repository.
-func NewUserRepository(db *gorm.DB, logger *zap.Logger) *UserRepository {
+func NewUserRepository(db *gorm.DB) *UserRepository {
 	return &UserRepository{
-		db:     db,
-		logger: logger.Named("user_repository"),
+		db: db,
 	}
 }
 

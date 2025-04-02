@@ -7,12 +7,13 @@ const (
 	CodeSuccess = 0 // General success
 
 	// Client error codes (1000-1499)
-	CodeBadRequest   = 1000 // Invalid request parameters or format
-	CodeUnauthorized = 1001 // Authentication required (not logged in)
-	CodeForbidden    = 1002 // Permission denied (no access rights)
-	CodeValidation   = 1003 // Input validation failed
-	CodeNotFound     = 1004 // Resource not found
-	CodeDuplicate    = 1005 // Resource already exists (duplicate)
+	CodeBadRequest     = 1000 // Invalid request parameters or format
+	CodeUnauthorized   = 1001 // Authentication required (not logged in)
+	CodeForbidden      = 1002 // Permission denied (no access rights)
+	CodeValidation     = 1003 // Input validation failed
+	CodeNotFound       = 1004 // Resource not found
+	CodeDuplicate      = 1005 // Resource already exists (duplicate)
+	CodeRequestTimeout = 1006 // Request timeout
 
 	// Business-specific error codes (2000-4999)
 	CodeInvalidState = 2000 // Invalid business state or rule violation

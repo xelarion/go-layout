@@ -59,7 +59,7 @@ type JWT struct {
 
 // Log holds the logging related configuration.
 type Log struct {
-	Level  string `env:"LOG_LEVEL" envDefault:"info"`
+	Level  string `env:"LOG_LEVEL" envDefault:"info"`  // Available options: debug, info, warn, error
 	Format string `env:"LOG_FORMAT" envDefault:"json"` // Available options: json, console
 }
 
