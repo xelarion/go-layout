@@ -40,7 +40,7 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 	// Initialize usecases
 	userUseCase := usecase.NewUserUseCase(userRepo, logger)
 	// Initialize services (without JWT dependency)
-	userService := service.NewUserService(userUseCase, logger)
+	userService := service.NewUserService(userUseCase)
 
 	// Initialize auth middleware
 	authMiddleware, err := middleware.NewAuthMiddleware(&cfg.JWT, userUseCase, logger)
@@ -65,8 +65,11 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 	// Add request timeout middleware
 	httpServer.Router().Use(middleware.Timeout(30 * time.Second))
 
+	// Initialize auth service
+	authService := service.NewAuthService(userUseCase, logger)
+
 	// Register Web API routes
-	webRouter := web.NewRouter(httpServer.Router(), userService, authMiddleware, logger)
+	webRouter := web.NewRouter(httpServer.Router(), userService, authService, authMiddleware, logger)
 	webRouter.SetupRoutes()
 
 	// Register Public API routes
