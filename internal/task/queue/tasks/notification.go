@@ -35,7 +35,7 @@ func NewNotificationHandler(manager *queue.Manager, logger *zap.Logger) *Notific
 
 // Register registers this task with the queue manager.
 func (t *NotificationHandler) Register() error {
-	// Register consumer for notification tasks
+	// Create consumer for notification tasks
 	err := t.manager.RegisterConsumer(
 		"notification-handler",
 		"notification-handler",

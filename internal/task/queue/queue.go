@@ -323,7 +323,7 @@ type PublishOptions struct {
 	// MessageID for message identification
 	MessageID string
 	// Headers for application-specific metadata
-	Headers map[string]interface{}
+	Headers map[string]any
 }
 
 // DefaultPublishOptions returns the default options for publishing messages.
@@ -337,7 +337,7 @@ func DefaultPublishOptions() *PublishOptions {
 		CorrelationID: "",
 		ReplyTo:       "",
 		MessageID:     "",
-		Headers:       make(map[string]interface{}),
+		Headers:       make(map[string]any),
 	}
 }
 
@@ -416,7 +416,7 @@ func WithMessageID(messageID string) func(*PublishOptions) {
 }
 
 // WithHeaders sets additional headers for the message.
-func WithHeaders(headers map[string]interface{}) func(*PublishOptions) {
+func WithHeaders(headers map[string]any) func(*PublishOptions) {
 	return func(opts *PublishOptions) {
 		opts.Headers = headers
 	}
@@ -434,7 +434,7 @@ func FormatExpiration(milliseconds int) string {
 func (qm *Manager) PublishTask(
 	ctx context.Context,
 	routingKey string,
-	payload interface{},
+	payload any,
 	options ...func(*PublishOptions),
 ) error {
 	// Convert payload to JSON

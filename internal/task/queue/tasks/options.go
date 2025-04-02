@@ -83,10 +83,10 @@ func WithMessageID(messageID string) func(*queue.PublishOptions) {
 }
 
 // WithCustomHeader adds a custom header to the message.
-func WithCustomHeader(key string, value interface{}) func(*queue.PublishOptions) {
+func WithCustomHeader(key string, value any) func(*queue.PublishOptions) {
 	return func(opts *queue.PublishOptions) {
 		if opts.Headers == nil {
-			opts.Headers = make(map[string]interface{})
+			opts.Headers = make(map[string]any)
 		}
 		opts.Headers[key] = value
 	}
