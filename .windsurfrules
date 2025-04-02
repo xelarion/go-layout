@@ -51,6 +51,7 @@
   - **Handler Layer**:
     - Responsible for receiving and parsing external requests.
     - Invokes the Service layer after processing the incoming data.
+    - Must use dedicated request and response structures for every API endpoint.
   - **Service Layer**:
     - Acts as a bridge between the Handler and Usecase layers.
     - Handles data transformation and process coordination, without implementing the core business logic directly.
@@ -60,6 +61,13 @@
     - Defines Repository interfaces following the dependency inversion principle.
   - **Repository Layer**:
     - Manages data access and interactions with the database.
+
+- **API Response Structure**:
+  - All API responses must follow a unified structure with these fields:
+    - `code`: HTTP status code
+    - `message`: Human-readable message
+    - `data`: The response payload (when successful)
+    - `meta`: Additional metadata (e.g., pagination information)
 
 ---
 
