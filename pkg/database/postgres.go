@@ -77,6 +77,6 @@ type zapGormWriter struct {
 }
 
 // Printf implements the gorm logger interface.
-func (w *zapGormWriter) Printf(format string, args ...interface{}) {
+func (w *zapGormWriter) Printf(format string, args ...any) {
 	w.log.Sugar().Debugf(format, args...)
 }

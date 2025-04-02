@@ -3,6 +3,7 @@ package cache
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -53,7 +54,7 @@ func NewRedis(cfg *config.Redis, logger *zap.Logger) (*Redis, error) {
 }
 
 // Set sets a key-value pair with expiration.
-func (r *Redis) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
+func (r *Redis) Set(ctx context.Context, key string, value any, expiration time.Duration) error {
 	err := r.Client.Set(ctx, key, value, expiration).Err()
 	if err != nil {
 		r.logger.Error("Failed to set key in Redis",
@@ -67,7 +68,7 @@ func (r *Redis) Set(ctx context.Context, key string, value interface{}, expirati
 // Get retrieves a value by key.
 func (r *Redis) Get(ctx context.Context, key string) (string, error) {
 	val, err := r.Client.Get(ctx, key).Result()
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 		return "", nil // Key does not exist
 	} else if err != nil {
 		r.logger.Error("Failed to get key from Redis",
