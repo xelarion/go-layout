@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"github.com/xelarion/go-layout/internal/api/web/handler"
 	"github.com/xelarion/go-layout/internal/api/web/middleware"
 	"github.com/xelarion/go-layout/internal/service"
 )
@@ -15,15 +16,17 @@ type Router struct {
 	Engine      *gin.Engine
 	logger      *zap.Logger
 	userService *service.UserService
+	authService *service.AuthService
 	authMW      *jwt.GinJWTMiddleware
 }
 
 // NewRouter creates a new Web API router.
-func NewRouter(engine *gin.Engine, userService *service.UserService, authMiddleware *jwt.GinJWTMiddleware, logger *zap.Logger) *Router {
+func NewRouter(engine *gin.Engine, userService *service.UserService, authService *service.AuthService, authMiddleware *jwt.GinJWTMiddleware, logger *zap.Logger) *Router {
 	return &Router{
 		Engine:      engine,
 		logger:      logger.Named("web_router"),
 		userService: userService,
+		authService: authService,
 		authMW:      authMiddleware,
 	}
 }
@@ -31,30 +34,34 @@ func NewRouter(engine *gin.Engine, userService *service.UserService, authMiddlew
 // SetupRoutes configures all routes for the Web API.
 func (r *Router) SetupRoutes() {
 	// Initialize handlers
-	userHandler := NewUserHandler(r.userService, r.logger)
+	userHandler := handler.NewUserHandler(r.userService, r.logger)
+	authHandler := handler.NewAuthHandler(r.authService, r.logger)
 
 	// API routes
 	api := r.Engine.Group("/api/v1")
 
 	// Public routes
-	api.POST("/auth", r.authMW.LoginHandler)
+	api.POST("/login", r.authMW.LoginHandler)
 	api.GET("/refresh_token", r.authMW.RefreshHandler)
-	api.POST("/register", userHandler.Register)
+	api.GET("/captcha", authHandler.GetCaptcha)
 
-	// Protected routes
-	protected := api.Group("/")
-	protected.Use(r.authMW.MiddlewareFunc())
-	{
-		protected.GET("/profile", userHandler.GetProfile)
-		protected.GET("/users/:id", userHandler.GetUser)
-		protected.PUT("/users/:id", userHandler.UpdateUser)
-		
-		// Admin routes - require admin role
-		admin := protected.Group("/admin")
-		admin.Use(middleware.AdminAuthorizatorMiddleware())
-		{
-			admin.GET("/users", userHandler.ListUsers)
-			admin.DELETE("/users/:id", userHandler.DeleteUser)
-		}
-	}
+	// Protected routes - user profile (current user)
+	authorized := api.Group("/")
+	authorized.Use(r.authMW.MiddlewareFunc())
+
+	// User profile routes
+	authorized.GET("/profile", userHandler.GetProfile)
+	authorized.PUT("/profile", userHandler.UpdateProfile)
+
+	adminOnly := authorized.Group("/")
+	adminOnly.Use(middleware.AdminOnly())
+
+	// User management routes (admin only)
+	api.POST("/users", userHandler.CreateUser)
+	api.GET("/users", userHandler.ListUsers)
+	api.GET("/users/:id", userHandler.GetUser)
+	api.GET("/users/:id/form", userHandler.GetUserFormData)
+	api.PUT("/users/:id", userHandler.UpdateUser)
+	api.PATCH("/users/:id/enabled", userHandler.UpdateUserEnabled)
+	api.DELETE("/users/:id", userHandler.DeleteUser)
 }
