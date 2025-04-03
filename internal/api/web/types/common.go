@@ -14,10 +14,10 @@ type PageReq struct {
 
 // PageInfoResp represents pagination metadata in responses.
 type PageInfoResp struct {
-	Total    int `json:"total"`     // Total number of items
-	Page     int `json:"page"`      // Current page number
-	PageSize int `json:"page_size"` // Items per page
-	Pages    int `json:"pages"`     // Total number of pages
+	Page       int `json:"page"`        // Current page number
+	PageSize   int `json:"page_size"`   // Items per page
+	TotalCount int `json:"total_count"` // Total number of items
+	TotalPages int `json:"total_pages"` // Total number of pages
 }
 
 // GetOffset calculates the offset for database queries.
@@ -47,7 +47,7 @@ func (p *PageReq) GetPageSize() int {
 }
 
 // NewPageInfoResp creates pagination metadata.
-func NewPageInfoResp(total, page, pageSize int) PageInfoResp {
+func NewPageInfoResp(count, page, pageSize int) PageInfoResp {
 	if page <= 0 {
 		page = DefaultPage
 	}
@@ -55,15 +55,15 @@ func NewPageInfoResp(total, page, pageSize int) PageInfoResp {
 		pageSize = DefaultPageSize
 	}
 
-	pages := total / pageSize
-	if total%pageSize > 0 {
+	pages := count / pageSize
+	if count%pageSize > 0 {
 		pages++
 	}
 
 	return PageInfoResp{
-		Total:    total,
-		Page:     page,
-		PageSize: pageSize,
-		Pages:    pages,
+		TotalCount: count,
+		Page:       page,
+		PageSize:   pageSize,
+		TotalPages: pages,
 	}
 }
