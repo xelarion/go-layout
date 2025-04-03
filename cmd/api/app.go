@@ -59,7 +59,7 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 	}, logger)
 
 	// Setup global middlewares
-	httpServer.Router().Use(middleware.Timeout(30 * time.Second))
+	httpServer.Router().Use(middleware.Timeout(cfg.HTTP.RequestTimeout))
 	httpServer.Router().Use(middleware.Recovery(logger))
 	httpServer.Router().Use(middleware.Error(logger))
 

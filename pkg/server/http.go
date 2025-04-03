@@ -14,12 +14,15 @@ import (
 
 // HTTPConfig holds configuration for the HTTP server.
 type HTTPConfig struct {
-	Host         string
-	Port         int
-	Mode         string // debug, release, test
-	ReadTimeout  time.Duration
+	Host string
+	Port int
+	Mode string // debug, release, test
+	// ReadTimeout is the maximum duration for reading the entire request
+	ReadTimeout time.Duration
+	// WriteTimeout is the maximum duration before timing out writes of the response
 	WriteTimeout time.Duration
-	IdleTimeout  time.Duration
+	// IdleTimeout is the maximum amount of time to wait for the next request
+	IdleTimeout time.Duration
 }
 
 // HTTPServer represents an HTTP server.

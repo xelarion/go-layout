@@ -29,6 +29,8 @@ type HTTP struct {
 	ReadTimeout  time.Duration `env:"HTTP_READ_TIMEOUT" envDefault:"15s"`
 	WriteTimeout time.Duration `env:"HTTP_WRITE_TIMEOUT" envDefault:"15s"`
 	IdleTimeout  time.Duration `env:"HTTP_IDLE_TIMEOUT" envDefault:"60s"`
+	// RequestTimeout is the application-level timeout for request processing
+	RequestTimeout time.Duration `env:"HTTP_REQUEST_TIMEOUT" envDefault:"10s"`
 }
 
 // PG holds the PostgreSQL database configuration.
