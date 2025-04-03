@@ -7,7 +7,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/xelarion/go-layout/internal/api/web/handler"
-	"github.com/xelarion/go-layout/internal/api/web/middleware"
 	"github.com/xelarion/go-layout/internal/service"
 )
 
@@ -53,15 +52,12 @@ func (r *Router) SetupRoutes() {
 	authorized.GET("/profile", userHandler.GetProfile)
 	authorized.PUT("/profile", userHandler.UpdateProfile)
 
-	adminOnly := authorized.Group("/")
-	adminOnly.Use(middleware.AdminOnly())
-
-	// User management routes (admin only)
-	api.POST("/users", userHandler.CreateUser)
-	api.GET("/users", userHandler.ListUsers)
-	api.GET("/users/:id", userHandler.GetUser)
-	api.GET("/users/:id/form", userHandler.GetUserFormData)
-	api.PUT("/users/:id", userHandler.UpdateUser)
-	api.PATCH("/users/:id/enabled", userHandler.UpdateUserEnabled)
-	api.DELETE("/users/:id", userHandler.DeleteUser)
+	// User management routes
+	authorized.POST("/users", userHandler.CreateUser)
+	authorized.GET("/users", userHandler.ListUsers)
+	authorized.GET("/users/:id", userHandler.GetUser)
+	authorized.GET("/users/:id/form", userHandler.GetUserFormData)
+	authorized.PUT("/users/:id", userHandler.UpdateUser)
+	authorized.PATCH("/users/:id/enabled", userHandler.UpdateUserEnabled)
+	authorized.DELETE("/users/:id", userHandler.DeleteUser)
 }

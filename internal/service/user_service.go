@@ -181,7 +181,6 @@ func (s *UserService) DeleteUser(ctx context.Context, req *types.DeleteUserReq) 
 
 // GetProfile gets the current user's profile.
 func (s *UserService) GetProfile(ctx context.Context, req *types.GetProfileReq) (*types.GetProfileResp, error) {
-	// Get current context information
 	current := middleware.GetCurrent(ctx)
 	if current == nil || current.User == nil {
 		return nil, errs.NewBusiness("invalid credentials").WithReason(errs.ReasonUnauthorized)
@@ -203,7 +202,6 @@ func (s *UserService) GetProfile(ctx context.Context, req *types.GetProfileReq) 
 
 // UpdateProfile updates the current user's profile.
 func (s *UserService) UpdateProfile(ctx context.Context, req *types.UpdateProfileReq) (*types.UpdateProfileResp, error) {
-	// Get current context information
 	current := middleware.GetCurrent(ctx)
 	if current == nil || current.User == nil {
 		return nil, errs.NewBusiness("invalid credentials").WithReason(errs.ReasonUnauthorized)

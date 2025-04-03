@@ -71,11 +71,10 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 	webRouter.SetupRoutes()
 
 	// Register Public API routes
-	publicRouter := public.NewRouter(httpServer.Router(), userService, logger)
+	publicRouter := public.NewRouter(httpServer.Router(), logger)
 	publicRouter.SetupRoutes()
 
 	// Common health check endpoint
-	logger.Debug("Setting up health check endpoint")
 	httpServer.Router().GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status":  "ok",

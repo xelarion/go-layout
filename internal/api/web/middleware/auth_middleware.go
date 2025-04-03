@@ -9,15 +9,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/xelarion/go-layout/internal/model"
+	"github.com/xelarion/go-layout/internal/api/web/types"
 	"github.com/xelarion/go-layout/internal/usecase"
+	"github.com/xelarion/go-layout/pkg/binding"
 	"github.com/xelarion/go-layout/pkg/config"
+	"github.com/xelarion/go-layout/pkg/errs"
 )
 
-// Auth keys in context
 const (
 	IdentityKey = "id"
-	UserKey     = "user"
 )
 
 // User represents the user identity in JWT claims
@@ -25,42 +25,64 @@ type User struct {
 	ID uint `json:"id"`
 }
 
-// NewAuthMiddleware creates a new JWT auth middleware.
+// JWTConfig holds JWT middleware configuration
+type JWTConfig struct {
+	Secret         string
+	Expiration     time.Duration
+	MaxRefresh     time.Duration
+	TokenLookup    string
+	TokenHeadName  string
+	SendCookie     bool
+	SecureCookie   bool
+	CookieHTTPOnly bool
+	CookieDomain   string
+	CookieName     string
+	CookieSameSite http.SameSite
+}
+
+// DefaultJWTConfig returns a production-ready JWT configuration
+func DefaultJWTConfig(cfg *config.JWT) *JWTConfig {
+	return &JWTConfig{
+		Secret:         cfg.Secret,
+		Expiration:     cfg.Expiration,
+		MaxRefresh:     time.Hour * 24 * 7, // 7 days
+		TokenLookup:    "header: Authorization, query: token, cookie: jwt",
+		TokenHeadName:  "Bearer",
+		SendCookie:     true,
+		SecureCookie:   true, // Enable in production
+		CookieHTTPOnly: true,
+		CookieDomain:   "", // Set according to actual deployment
+		CookieName:     "jwt",
+		CookieSameSite: http.SameSiteNoneMode,
+	}
+}
+
+// NewAuthMiddleware creates a new JWT auth middleware with production-ready configuration.
 func NewAuthMiddleware(cfg *config.JWT, userUseCase *usecase.UserUseCase, logger *zap.Logger) (*jwt.GinJWTMiddleware, error) {
+	jwtConfig := DefaultJWTConfig(cfg)
+
 	// Initialize JWT middleware
 	authMiddleware, err := jwt.New(&jwt.GinJWTMiddleware{
 		Realm:           "go-layout",
-		Key:             []byte(cfg.Secret),
-		Timeout:         cfg.Expiration,
-		MaxRefresh:      time.Hour * 24 * 7, // 7 days
+		Key:             []byte(jwtConfig.Secret),
+		Timeout:         jwtConfig.Expiration,
+		MaxRefresh:      jwtConfig.MaxRefresh,
 		IdentityKey:     IdentityKey,
 		PayloadFunc:     payloadFunc,
 		IdentityHandler: identityHandler,
-		Authenticator:   authenticator(userUseCase, logger),
-		Authorizator:    authorizator,
+		Authenticator:   authenticator(userUseCase),
+		Authorizator:    authorizator(userUseCase),
 		Unauthorized:    unauthorized,
-		// TokenLookup is a string in the form of "<source>:<name>" that is used
-		// to extract token from the request.
-		// Optional. Default value "header:Authorization".
-		// Possible values:
-		// - "header:<name>"
-		// - "query:<name>"
-		// - "cookie:<name>"
-		// - "param:<name>"
-		TokenLookup: "header: Authorization, query: token, cookie: jwt",
-		// TokenHeadName is a string in the header
-		// Default value is "Bearer"
-		TokenHeadName: "Bearer",
-		// TimeFunc provides the current time. You can override it to use another time value.
-		// This is useful for testing or if your server uses a different time zone than your tokens.
-		TimeFunc: time.Now,
-		// Best configuration for front-end and back-end separation projects
-		SendCookie:     true,                  // Enable cookie transport
-		SecureCookie:   false,                 // Set to false in development, true in production (requires HTTPS)
-		CookieHTTPOnly: true,                  // Prevent XSS attacks
-		CookieDomain:   "",                    // Set according to actual deployment
-		CookieName:     "jwt",                 // Cookie name
-		CookieSameSite: http.SameSiteNoneMode, // Same-site cookie policy, suitable for front-end and back-end separation
+		LoginResponse:   loginResponse,
+		TokenLookup:     jwtConfig.TokenLookup,
+		TokenHeadName:   jwtConfig.TokenHeadName,
+		TimeFunc:        time.Now,
+		SendCookie:      jwtConfig.SendCookie,
+		SecureCookie:    jwtConfig.SecureCookie,
+		CookieHTTPOnly:  jwtConfig.CookieHTTPOnly,
+		CookieDomain:    jwtConfig.CookieDomain,
+		CookieName:      jwtConfig.CookieName,
+		CookieSameSite:  jwtConfig.CookieSameSite,
 	})
 
 	if err != nil {
@@ -76,6 +98,8 @@ func payloadFunc(data any) jwt.MapClaims {
 	if v, ok := data.(*User); ok {
 		return jwt.MapClaims{
 			IdentityKey: v.ID,
+			"exp":       time.Now().Add(time.Minute * 30).Unix(), // Token expiration
+			"iat":       time.Now().Unix(),                       // Token issued at
 		}
 	}
 	return jwt.MapClaims{}
@@ -90,24 +114,16 @@ func identityHandler(c *gin.Context) any {
 }
 
 // authenticator validates user credentials and returns identity
-func authenticator(userUseCase *usecase.UserUseCase, logger *zap.Logger) func(c *gin.Context) (any, error) {
+func authenticator(userUseCase *usecase.UserUseCase) func(c *gin.Context) (any, error) {
 	return func(c *gin.Context) (any, error) {
-		var loginVals struct {
-			Email    string `form:"email" json:"email" binding:"required,email"`
-			Password string `form:"password" json:"password" binding:"required"`
+		var req types.LoginReq
+		if err := binding.Bind(c, &req, binding.JSON); err != nil {
+			return nil, errs.WrapValidation(err, err.Error())
 		}
 
-		if err := c.ShouldBind(&loginVals); err != nil {
-			return nil, jwt.ErrMissingLoginValues
-		}
-
-		// Get user from database and verify
-		user, err := userUseCase.Login(c.Request.Context(), loginVals.Email, loginVals.Password)
+		user, err := userUseCase.Login(c.Request.Context(), req.Email, req.Password)
 		if err != nil {
-			logger.Warn("Authentication failed",
-				zap.String("email", loginVals.Email),
-				zap.Error(err))
-			return nil, jwt.ErrFailedAuthentication
+			return nil, err
 		}
 
 		return &User{
@@ -116,144 +132,45 @@ func authenticator(userUseCase *usecase.UserUseCase, logger *zap.Logger) func(c 
 	}
 }
 
-// authorizator determines if a user has access
-func authorizator(data any, c *gin.Context) bool {
-	// Store user in context for later use
-	if v, ok := data.(*User); ok {
-		c.Set(UserKey, v)
-		return true
-	}
-	return false
-}
-
-// unauthorized handles unauthorized responses
-func unauthorized(c *gin.Context, code int, message string) {
-	c.JSON(code, gin.H{
-		"code":    code,
-		"message": message,
-	})
-}
-
-// GetCurrentUser extracts the current user from the context
-func GetCurrentUser(c *gin.Context) *model.User {
-	if v, exists := c.Get(UserKey); exists {
-		if user, ok := v.(*User); ok {
-			// Create a model.User from our User
-			// Note: This no longer contains name and role information, complete user info needs to be fetched from database
-			return &model.User{
-				ID: user.ID,
+// authorizator determines if a user has access and stores user in context
+func authorizator(userUseCase *usecase.UserUseCase) func(data any, c *gin.Context) bool {
+	return func(data any, c *gin.Context) bool {
+		if v, ok := data.(*User); ok {
+			// Get full user from database
+			user, err := userUseCase.GetByID(c.Request.Context(), v.ID)
+			if err != nil {
+				_ = c.Error(err)
+				return false
 			}
+
+			// Store full user in request context using Current
+			c.Request = c.Request.WithContext(SetCurrent(c.Request.Context(), NewCurrent(user)))
+
+			return true
 		}
-	}
-	return nil
-}
-
-// GetCurrentFromContext extracts user information and populates the context.Current structure
-func GetCurrentFromContext(c *gin.Context, userUseCase *usecase.UserUseCase) *Current {
-	// First check if we already have a Current in the context
-	if current := GetCurrent(c.Request.Context()); current != nil {
-		return current
-	}
-
-	// If not, try to get JWT user and populate from there
-	if user := GetCurrentUser(c); user != nil {
-		// Fetch complete user info from database
-		fullUser, err := userUseCase.GetByID(c.Request.Context(), user.ID)
-		// TODO
-		if err != nil || fullUser == nil {
-			return nil
-		}
-
-		// Create and store Current in context with user information
-		current := NewCurrent(fullUser)
-
-		// Store in request context for future use
-		c.Request = c.Request.WithContext(SetCurrent(c.Request.Context(), current))
-
-		return current
-	}
-
-	return nil
-}
-
-// AdminOnly returns a middleware that checks if the user has admin role
-func AdminOnly() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Get the current user from context
-		user := GetCurrentUser(c)
-		if user == nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"code":    401,
-				"message": "Unauthorized",
-			})
-			return
-		}
-
-		// Check if the user has admin role
-		if user.Role != "admin" {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-				"code":    403,
-				"message": "Forbidden: Admin access required",
-			})
-			return
-		}
-
-		c.Next()
+		return false
 	}
 }
 
-// AdminOnlyWithContext returns a middleware that checks if the user has admin role using the context.Current
-func AdminOnlyWithContext(userUseCase *usecase.UserUseCase) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Get the current context
-		current := GetCurrentFromContext(c, userUseCase)
-		if current == nil || current.User == nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"code":    401,
-				"message": "Unauthorized",
-			})
-			return
-		}
-
-		// Check if the user has admin role
-		if current.User.Role != "admin" {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-				"code":    403,
-				"message": "Forbidden: Admin access required",
-			})
-			return
-		}
-
-		c.Next()
+// unauthorized handles unauthorized responses with the standard response format
+func unauthorized(c *gin.Context, code int, message string) {
+	var respCode int
+	switch code {
+	case http.StatusUnauthorized:
+		respCode = types.CodeUnauthorized
+	case http.StatusForbidden:
+		respCode = types.CodeForbidden
+	default:
+		respCode = types.CodeUnauthorized
 	}
+
+	c.JSON(code, types.Error(respCode, message))
 }
 
-// AdminAuthorizatorMiddleware returns a middleware that checks if the user has admin role
-// Due to design changes, this middleware no longer extracts role information from JWT,
-// but suggests to judge through business logic
-func AdminAuthorizatorMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		user := GetCurrentUser(c)
-		if user == nil {
-			c.AbortWithStatusJSON(401, gin.H{
-				"code":    401,
-				"message": "Authentication required",
-			})
-			return
-		}
-
-		// In actual projects, user role information should be obtained from the database
-		// This provides a simple example framework, which needs to be replaced with actual logic when used
-		isAdmin := false // Example: Need to query user role from database
-
-		if !isAdmin {
-			c.AbortWithStatusJSON(403, gin.H{
-				"code":    403,
-				"message": "Admin access required",
-			})
-			return
-		}
-
-		c.Next()
-	}
+// loginResponse handles login responses with the standard response format
+func loginResponse(c *gin.Context, code int, token string, time time.Time) {
+	c.JSON(code, types.Success(types.LoginResp{
+		Token:  token,
+		Expire: time,
+	}))
 }

@@ -7,26 +7,28 @@ import (
 	"github.com/xelarion/go-layout/internal/model"
 )
 
-type contextKey string
+// contextKey is a unexported type for context keys to avoid collisions
+type contextKey struct{}
 
-const (
-	// CurrentKey is the key used to store current context information.
-	CurrentKey contextKey = "current_ctx"
+var (
+	// CurrentKey is the key used to store current context information
+	CurrentKey = &contextKey{}
 )
 
 // Current represents the current context information.
 type Current struct {
 	User *model.User
+	// Can be extended with other fields in the future
 }
 
-// NewCurrent creates a new Current instance.
+// NewCurrent creates a new Current instance
 func NewCurrent(user *model.User) *Current {
 	return &Current{
 		User: user,
 	}
 }
 
-// SetCurrent stores the current context information.
+// SetCurrent stores the current context information in the context.
 func SetCurrent(ctx context.Context, current *Current) context.Context {
 	return context.WithValue(ctx, CurrentKey, current)
 }
@@ -34,14 +36,10 @@ func SetCurrent(ctx context.Context, current *Current) context.Context {
 // GetCurrent retrieves the current context information.
 // Returns nil if no current information is found.
 func GetCurrent(ctx context.Context) *Current {
-	current, ok := ctx.Value(CurrentKey).(*Current)
-	if !ok {
-		return nil
+	if v := ctx.Value(CurrentKey); v != nil {
+		if current, ok := v.(*Current); ok {
+			return current
+		}
 	}
-	return current
-}
-
-// WithCurrent creates a context with current information.
-func WithCurrent(ctx context.Context, user *model.User) context.Context {
-	return SetCurrent(ctx, NewCurrent(user))
+	return nil
 }

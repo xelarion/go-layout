@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/xelarion/go-layout/internal/api/web/middleware"
 	"github.com/xelarion/go-layout/internal/api/web/types"
 	"github.com/xelarion/go-layout/internal/service"
 	"github.com/xelarion/go-layout/pkg/binding"
@@ -154,12 +153,6 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 
 // GetProfile handles requests to get the current user's profile.
 func (h *UserHandler) GetProfile(c *gin.Context) {
-	currentUser := middleware.GetCurrentUser(c)
-	if currentUser == nil {
-		_ = c.Error(errs.NewBusiness("Unauthorized").WithReason(errs.ReasonUnauthorized))
-		return
-	}
-
 	var req types.GetProfileReq
 	if err := binding.Bind(c, &req, binding.Query); err != nil {
 		_ = c.Error(errs.WrapValidation(err, err.Error()))
@@ -177,12 +170,6 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 
 // UpdateProfile handles requests to update the current user's profile.
 func (h *UserHandler) UpdateProfile(c *gin.Context) {
-	currentUser := middleware.GetCurrentUser(c)
-	if currentUser == nil {
-		_ = c.Error(errs.NewBusiness("Unauthorized").WithReason(errs.ReasonUnauthorized))
-		return
-	}
-
 	var req types.UpdateProfileReq
 	if err := binding.Bind(c, &req, binding.JSON); err != nil {
 		_ = c.Error(errs.WrapValidation(err, err.Error()))

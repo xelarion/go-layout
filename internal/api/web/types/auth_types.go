@@ -5,16 +5,16 @@ import "time"
 
 // LoginReq represents user login data.
 type LoginReq struct {
-	Email     string `json:"email" binding:"required,email"`
-	Password  string `json:"password" binding:"required"`
-	Captcha   string `json:"captcha" binding:"required"`
-	CaptchaID string `json:"captcha_id" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
+	//Captcha   string `json:"captcha" binding:"required"`
+	//CaptchaID string `json:"captcha_id" binding:"required"`
 }
 
 // LoginResp represents login response data.
 type LoginResp struct {
-	Token       string    `json:"token"`
-	TokenExpiry time.Time `json:"token_expiry"`
+	Token  string    `json:"token"`
+	Expire time.Time `json:"expire"`
 }
 
 // CaptchaResp represents captcha data in responses.
