@@ -20,7 +20,8 @@ type CreateUserResp struct {
 
 // ListUsersReq represents user list query parameters.
 type ListUsersReq struct {
-	PageReq        // embed PageReq struct from common.go
+	PageReq
+	SortReq
 	Name    string `form:"name" binding:"omitempty,max=100"`
 	Email   string `form:"email" binding:"omitempty,max=100"`
 	Role    string `form:"role" binding:"omitempty,oneof=user admin"`

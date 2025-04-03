@@ -37,7 +37,7 @@ type UpdateUserParams struct {
 // UserRepository defines methods for user data access.
 type UserRepository interface {
 	Create(ctx context.Context, user *model.User) error
-	List(ctx context.Context, filters map[string]any, limit, offset int) ([]*model.User, int, error)
+	List(ctx context.Context, filters map[string]any, limit, offset int, sortClause string) ([]*model.User, int, error)
 	FindByID(ctx context.Context, id uint) (*model.User, error)
 	FindByEmail(ctx context.Context, email string) (*model.User, error)
 	Update(ctx context.Context, user *model.User) error
@@ -92,8 +92,8 @@ func (uc *UserUseCase) Create(ctx context.Context, params CreateUserParams) (*mo
 }
 
 // List returns a list of users with pagination and filtering.
-func (uc *UserUseCase) List(ctx context.Context, filters map[string]any, limit, offset int) ([]*model.User, int, error) {
-	users, count, err := uc.repo.List(ctx, filters, limit, offset)
+func (uc *UserUseCase) List(ctx context.Context, filters map[string]any, limit, offset int, sortClause string) ([]*model.User, int, error) {
+	users, count, err := uc.repo.List(ctx, filters, limit, offset, sortClause)
 	if err != nil {
 		return nil, 0, err
 	}

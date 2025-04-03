@@ -32,7 +32,7 @@ func (r *UserRepository) Create(ctx context.Context, user *model.User) error {
 }
 
 // List retrieves users with pagination and filtering.
-func (r *UserRepository) List(ctx context.Context, filters map[string]any, limit, offset int) ([]*model.User, int, error) {
+func (r *UserRepository) List(ctx context.Context, filters map[string]any, limit, offset int, sortClause string) ([]*model.User, int, error) {
 	query := r.db.WithContext(ctx).Model(&model.User{})
 
 	for field, value := range filters {
@@ -44,6 +44,12 @@ func (r *UserRepository) List(ctx context.Context, filters map[string]any, limit
 	var total int64
 	if err := query.Model(&model.User{}).Count(&total).Error; err != nil {
 		return nil, 0, errs.WrapInternal(err, "failed to count users")
+	}
+
+	if sortClause != "" {
+		query = query.Order(sortClause)
+	} else {
+		query = query.Order("users.id desc")
 	}
 
 	var users []*model.User

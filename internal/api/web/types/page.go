@@ -8,8 +8,8 @@ const (
 
 // PageReq represents common pagination parameters for list query requests.
 type PageReq struct {
-	Page     int `form:"page" binding:"omitempty,min=1"`              // Current page number (1-based)
-	PageSize int `form:"page_size" binding:"omitempty,min=1,max=100"` // Items per page
+	Page     int `form:"page" json:"page" binding:"omitempty,min=1"`                   // Current page number (1-based)
+	PageSize int `form:"page_size" json:"page_size" binding:"omitempty,min=1,max=100"` // Items per page
 }
 
 // PageResp represents pagination metadata in responses.

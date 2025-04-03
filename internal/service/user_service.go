@@ -56,7 +56,7 @@ func (s *UserService) ListUsers(ctx context.Context, req *types.ListUsersReq) (*
 		filters["enabled"] = *req.Enabled
 	}
 
-	users, count, err := s.userUseCase.List(ctx, filters, req.GetLimit(), req.GetOffset())
+	users, count, err := s.userUseCase.List(ctx, filters, req.GetLimit(), req.GetOffset(), req.GetSortClause())
 	if err != nil {
 		return nil, err
 	}
