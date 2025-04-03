@@ -55,8 +55,18 @@ type RabbitMQ struct {
 
 // JWT holds the JWT related configuration.
 type JWT struct {
-	Secret     string        `env:"JWT_SECRET,required"`
-	Expiration time.Duration `env:"JWT_EXPIRATION" envDefault:"24h"`
+	// Secret key used to sign JWT tokens
+	Secret string `env:"JWT_SECRET,required"`
+
+	// TokenExpiration is the duration a token is valid (access token lifetime)
+	// After this time, the token will be considered expired and will no longer be valid
+	// Recommended: short duration (15-30 minutes) for security
+	TokenExpiration time.Duration `env:"JWT_TOKEN_EXPIRATION" envDefault:"30m"`
+
+	// RefreshExpiration is the maximum duration during which a token can be refreshed
+	// Even if token has expired, user won't need to re-login if within this window
+	// Recommended: longer duration (1-7 days) for good UX
+	RefreshExpiration time.Duration `env:"JWT_REFRESH_EXPIRATION" envDefault:"168h"` // 7 days
 }
 
 // Log holds the logging related configuration.

@@ -40,6 +40,9 @@ A scalable, high-performance, and high-availability web application template bui
 │   └── prod/              # Production environment configs
 ├── db/                    # Database related files
 │   └── migrations/        # Database migration files
+├── docs/                  # Documentation
+│   ├── jwt-integration-guide.md    # JWT integration guide for frontend developers
+│   └── jwt-integration-guide-zh.md # JWT integration guide in Chinese
 ├── internal/              # Private application code
 │   ├── api/               # API-specific code
 │   │   ├── public/        # Public API handlers and routers
@@ -109,6 +112,17 @@ The application includes a robust task system with three types of task execution
 - **Queue Tasks**: Asynchronous tasks processed via RabbitMQ for background processing and workload distribution
 
 Each task type follows a consistent registration and execution pattern, making it easy to add new tasks while ensuring proper lifecycle management and error handling.
+
+## Authentication System
+
+The application implements a JWT-based authentication system with the following features:
+
+- **Short-lived tokens**: By default, access tokens expire after 30 minutes for enhanced security
+- **Token refresh**: Supports token refresh within a configurable time window (default 7 days)
+- **Stateless design**: No server-side session storage, perfect for horizontal scaling
+- **RESTful implementation**: Token passed via Authorization header
+
+For frontend developers integrating with the authentication system, refer to the [JWT Integration Guide](docs/jwt-integration-guide.md).
 
 ## API Response Format
 

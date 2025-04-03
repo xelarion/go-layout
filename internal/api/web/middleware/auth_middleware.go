@@ -18,6 +18,7 @@ import (
 
 const (
 	IdentityKey = "id"
+	TokenType   = "Bearer" // Standard token type for JWT
 )
 
 // User represents the user identity in JWT claims
@@ -25,64 +26,28 @@ type User struct {
 	ID uint `json:"id"`
 }
 
-// JWTConfig holds JWT middleware configuration
-type JWTConfig struct {
-	Secret         string
-	Expiration     time.Duration
-	MaxRefresh     time.Duration
-	TokenLookup    string
-	TokenHeadName  string
-	SendCookie     bool
-	SecureCookie   bool
-	CookieHTTPOnly bool
-	CookieDomain   string
-	CookieName     string
-	CookieSameSite http.SameSite
-}
-
-// DefaultJWTConfig returns a production-ready JWT configuration
-func DefaultJWTConfig(cfg *config.JWT) *JWTConfig {
-	return &JWTConfig{
-		Secret:         cfg.Secret,
-		Expiration:     cfg.Expiration,
-		MaxRefresh:     time.Hour * 24 * 7, // 7 days
-		TokenLookup:    "header: Authorization, query: token, cookie: jwt",
-		TokenHeadName:  "Bearer",
-		SendCookie:     true,
-		SecureCookie:   true, // Enable in production
-		CookieHTTPOnly: true,
-		CookieDomain:   "", // Set according to actual deployment
-		CookieName:     "jwt",
-		CookieSameSite: http.SameSiteNoneMode,
-	}
-}
-
 // NewAuthMiddleware creates a new JWT auth middleware with production-ready configuration.
 func NewAuthMiddleware(cfg *config.JWT, userUseCase *usecase.UserUseCase, logger *zap.Logger) (*jwt.GinJWTMiddleware, error) {
-	jwtConfig := DefaultJWTConfig(cfg)
-
-	// Initialize JWT middleware
+	// Initialize JWT middleware with RESTful API best practices
 	authMiddleware, err := jwt.New(&jwt.GinJWTMiddleware{
 		Realm:           "go-layout",
-		Key:             []byte(jwtConfig.Secret),
-		Timeout:         jwtConfig.Expiration,
-		MaxRefresh:      jwtConfig.MaxRefresh,
+		Key:             []byte(cfg.Secret),
+		Timeout:         cfg.TokenExpiration,   // Short-lived access token
+		MaxRefresh:      cfg.RefreshExpiration, // How long a user can refresh token without login
 		IdentityKey:     IdentityKey,
-		PayloadFunc:     payloadFunc,
+		PayloadFunc:     payloadFunc(cfg.TokenExpiration),
 		IdentityHandler: identityHandler,
 		Authenticator:   authenticator(userUseCase),
 		Authorizator:    authorizator(userUseCase),
 		Unauthorized:    unauthorized,
 		LoginResponse:   loginResponse,
-		TokenLookup:     jwtConfig.TokenLookup,
-		TokenHeadName:   jwtConfig.TokenHeadName,
-		TimeFunc:        time.Now,
-		SendCookie:      jwtConfig.SendCookie,
-		SecureCookie:    jwtConfig.SecureCookie,
-		CookieHTTPOnly:  jwtConfig.CookieHTTPOnly,
-		CookieDomain:    jwtConfig.CookieDomain,
-		CookieName:      jwtConfig.CookieName,
-		CookieSameSite:  jwtConfig.CookieSameSite,
+		RefreshResponse: refreshResponse,
+		// REST API best practice: use header for token transport
+		TokenLookup:   "header: Authorization",
+		TokenHeadName: "Bearer",
+		TimeFunc:      time.Now,
+		// Disable cookie for REST API (SPA frontend)
+		SendCookie: false,
 	})
 
 	if err != nil {
@@ -94,15 +59,19 @@ func NewAuthMiddleware(cfg *config.JWT, userUseCase *usecase.UserUseCase, logger
 }
 
 // payloadFunc is used to set the JWT payload
-func payloadFunc(data any) jwt.MapClaims {
-	if v, ok := data.(*User); ok {
-		return jwt.MapClaims{
-			IdentityKey: v.ID,
-			"exp":       time.Now().Add(time.Minute * 30).Unix(), // Token expiration
-			"iat":       time.Now().Unix(),                       // Token issued at
+func payloadFunc(tokenExpiration time.Duration) func(data any) jwt.MapClaims {
+	return func(data any) jwt.MapClaims {
+		if v, ok := data.(*User); ok {
+			now := time.Now()
+			return jwt.MapClaims{
+				IdentityKey: v.ID,
+				"exp":       now.Add(tokenExpiration).Unix(), // Token expiration
+				"iat":       now.Unix(),                      // Token issued at
+				"nbf":       now.Unix(),                      // Not valid before
+			}
 		}
+		return jwt.MapClaims{}
 	}
-	return jwt.MapClaims{}
 }
 
 // identityHandler sets the identity for the JWT claims
@@ -168,9 +137,27 @@ func unauthorized(c *gin.Context, code int, message string) {
 }
 
 // loginResponse handles login responses with the standard response format
-func loginResponse(c *gin.Context, code int, token string, time time.Time) {
+func loginResponse(c *gin.Context, code int, token string, expire time.Time) {
+	// Calculate seconds until expiration
+	expiresIn := int64(expire.Sub(time.Now()).Seconds())
+
 	c.JSON(code, types.Success(types.LoginResp{
-		Token:  token,
-		Expire: time,
+		Token:     token,
+		Expire:    expire,
+		ExpiresIn: expiresIn,
+		TokenType: TokenType,
+	}))
+}
+
+// refreshResponse handles refresh token responses with the standard response format
+func refreshResponse(c *gin.Context, code int, token string, expire time.Time) {
+	// Calculate seconds until expiration
+	expiresIn := int64(expire.Sub(time.Now()).Seconds())
+
+	c.JSON(code, types.Success(types.RefreshResp{
+		Token:     token,
+		Expire:    expire,
+		ExpiresIn: expiresIn,
+		TokenType: TokenType,
 	}))
 }
