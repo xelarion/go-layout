@@ -12,8 +12,8 @@ type PageReq struct {
 	PageSize int `form:"page_size" binding:"omitempty,min=1,max=100"` // Items per page
 }
 
-// PageInfoResp represents pagination metadata in responses.
-type PageInfoResp struct {
+// PageResp represents pagination metadata in responses.
+type PageResp struct {
 	Page       int `json:"page"`        // Current page number
 	PageSize   int `json:"page_size"`   // Items per page
 	TotalCount int `json:"total_count"` // Total number of items
@@ -46,8 +46,8 @@ func (p *PageReq) GetPageSize() int {
 	return p.PageSize
 }
 
-// NewPageInfoResp creates pagination metadata.
-func NewPageInfoResp(count, page, pageSize int) PageInfoResp {
+// NewPageResp creates pagination metadata.
+func NewPageResp(count, page, pageSize int) PageResp {
 	if page <= 0 {
 		page = DefaultPage
 	}
@@ -60,7 +60,7 @@ func NewPageInfoResp(count, page, pageSize int) PageInfoResp {
 		pages++
 	}
 
-	return PageInfoResp{
+	return PageResp{
 		TotalCount: count,
 		Page:       page,
 		PageSize:   pageSize,

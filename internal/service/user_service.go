@@ -77,7 +77,7 @@ func (s *UserService) ListUsers(ctx context.Context, req *types.ListUsersReq) (*
 
 	return &types.ListUsersResp{
 		Results:  respResults,
-		PageInfo: types.NewPageInfoResp(count, req.GetPage(), req.GetPageSize()),
+		PageInfo: types.NewPageResp(count, req.GetPage(), req.GetPageSize()),
 	}, nil
 }
 
