@@ -31,6 +31,10 @@ type HTTP struct {
 	IdleTimeout  time.Duration `env:"HTTP_IDLE_TIMEOUT" envDefault:"60s"`
 	// RequestTimeout is the application-level timeout for request processing
 	RequestTimeout time.Duration `env:"HTTP_REQUEST_TIMEOUT" envDefault:"10s"`
+	// AllowOrigins is a comma-separated list of origins allowed for CORS.
+	// Set to "*" to allow all origins (not recommended for production).
+	// Example: "https://example.com,https://api.example.com"
+	AllowOrigins []string `env:"HTTP_ALLOW_ORIGINS,required"`
 }
 
 // PG holds the PostgreSQL database configuration.
