@@ -160,3 +160,7 @@
 
 - **Testing Coverage**:
   - Develop a comprehensive testing strategy including unit tests, integration tests, and end-to-end tests to ensure system stability as the project scales.
+
+- **DocumentationGuidelines**
+1. When making changes to project architecture, technologies, or best practices, always update README.md and translate to README-zh.md
+2. Ensure rules.md reflects the current state of the project for future AI reference.
