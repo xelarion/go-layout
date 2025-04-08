@@ -1,12 +1,178 @@
 # Deployment Guide
 
+This document outlines the process for deploying the go-layout application to production environments.
+
+## Overview
+
+The go-layout application is designed for containerized deployment using Docker and Kubernetes (specifically k3s). The application consists of:
+
+- **API Service**: The main web API service
+- **Task Service**: Background task processing service
+- **Database Migrations**: Separate container for running database migrations
+
 ## Prerequisites
 
-1. k3s installed on target servers
-2. Docker registry access
-3. kubectl configured to access the target k3s cluster
-4. Git installed
-5. yq tool installed for YAML processing
+- Docker and Docker Compose for local development
+- kubectl for interacting with Kubernetes clusters
+- Access to a Docker registry (default: docker.io)
+- A running k3s cluster (single node or multi-node)
+
+## Building Docker Images
+
+All services are packaged as Docker containers. The following commands build and push the images:
+
+```bash
+# Build and push all images (API, Task, Migrations)
+make build
+
+# Build and push individual services
+make build-api
+make build-task
+make build-migrate
+```
+
+The version tag for the images is automatically determined from git tags/commits.
+
+## Database Migrations
+
+Before deploying the application, database migrations should be run to ensure the database schema is up to date.
+
+### Running Migrations for Production
+
+For production deployments, migrations are run via a Kubernetes job:
+
+```bash
+# Run migrations on a single-node k3s
+make deploy-migrate
+
+# Run migrations on a multi-node k3s cluster
+make deploy-migrate-cluster
+```
+
+## Deployment Options
+
+### Single-Node Deployment
+
+For simple deployments on a single k3s node:
+
+```bash
+make deploy-single
+```
+
+This will deploy:
+- The API service
+- The Task service
+- Supporting services (if configured in the k3s manifests)
+- Ingress configuration for external access
+
+### Cluster Deployment
+
+For deploying to a multi-node k3s cluster:
+
+```bash
+make deploy-cluster
+```
+
+This deploys the same components but with appropriate configuration for a distributed environment.
+
+### Server-Specific Deployment
+
+To deploy to a specific server:
+
+```bash
+make deploy-server SERVER=<server_name>
+```
+
+### Multi-Server Deployment
+
+To deploy to all servers:
+
+```bash
+make deploy-all
+```
+
+## Configuration
+
+### Environment Configuration
+
+Production configuration is stored in `config/prod/.env` and is packaged into the Docker images during build.
+
+Important environment variables for production:
+
+- `GO_ENV=prod`: Sets the application to run in production mode
+- `HTTP_MODE=release`: Configures Gin to run in release mode
+- `PG_URL`: PostgreSQL connection string
+- `REDIS_URL`: Redis connection string (if Redis is used)
+- `RABBITMQ_URL`: RabbitMQ connection string (if RabbitMQ is used)
+- `JWT_SECRET`: Secret key for JWT authentication
+- `HTTP_ALLOW_ORIGINS`: CORS allowed origins
+
+### Kubernetes Configuration
+
+Kubernetes-specific configuration is stored in:
+- `deploy/k3s/single/` for single-node deployments
+- `deploy/k3s/cluster/` for multi-node cluster deployments
+
+These include:
+- ConfigMaps and Secrets for application configuration
+- Deployment manifests for services
+- Service definitions
+- Ingress configuration
+- Resource limits and requests
+
+## Health Monitoring
+
+The application provides health check endpoints that are used by Kubernetes to monitor service health:
+- Liveness probes check if the service is running
+- Readiness probes check if the service is able to handle requests
+
+## Scaling
+
+The application is designed to be stateless and can be scaled horizontally by increasing the number of replicas:
+
+```bash
+kubectl scale deployment/go-layout-api --replicas=3 -n go-layout
+kubectl scale deployment/go-layout-task --replicas=2 -n go-layout
+```
+
+## Rollback Procedure
+
+To roll back to a previous version:
+
+1. Identify the previous version tag
+2. Update the deployment with the previous version:
+
+```bash
+kubectl set image deployment/go-layout-api go-layout-api=${REGISTRY}/go-layout-api:${PREVIOUS_VERSION} -n go-layout
+kubectl set image deployment/go-layout-task go-layout-task=${REGISTRY}/go-layout-task:${PREVIOUS_VERSION} -n go-layout
+```
+
+## Troubleshooting
+
+### Checking Logs
+
+```bash
+# View API service logs
+kubectl logs -l app=go-layout,component=api -n go-layout
+
+# View Task service logs
+kubectl logs -l app=go-layout,component=task -n go-layout
+
+# View migration job logs
+kubectl logs -l app=go-layout,component=db-migrate -n go-layout
+```
+
+### Checking Pod Status
+
+```bash
+kubectl get pods -n go-layout
+```
+
+### Common Issues
+
+1. **Database Connection Failures**: Check PG_URL environment variable and network connectivity
+2. **Memory/CPU Limits**: Check if pods are hitting resource limits
+3. **Ingress Issues**: Verify ingress configuration and TLS certificates
 
 ## Server Setup Process
 
@@ -21,7 +187,7 @@ servers:
     user: deploy
     k3s_version: v1.28.1+k3s1
     region: cn    # Use 'cn' for China region (faster mirror) or 'global' for international
-    
+
   - name: customer1
     host: server1.customer1.com
     user: deploy
