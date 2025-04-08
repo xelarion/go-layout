@@ -11,21 +11,23 @@
 - **整洁代码**：结构良好、可维护、可扩展的代码库
 - **安全性**：JWT认证、输入验证和防范常见漏洞的保护
 - **错误处理**：全面的错误处理系统，包含结构化日志和自定义错误类型
-- **中间件**：模块化的中间件组件，用于请求处理、错误处理和请求超时控制
+- **中间件**：模块化的中间件组件，用于请求处理、错误处理、请求超时控制和CORS
 - **任务管理**：集成支持定时任务、轮询任务和基于队列的异步处理
 
 ## 技术栈
 
 - **编程语言**：Go
-- **Web框架**：Gin
-- **ORM**：Gorm
+- **Web框架**：[Gin](https://github.com/gin-gonic/gin)
+- **ORM**：[GORM](https://gorm.io/)
 - **数据库**：PostgreSQL（可配置切换至MySQL）
 - **缓存**：Redis（可插拔，如不需要可移除）
 - **消息队列**：RabbitMQ（可插拔，如不需要可移除）
-- **日志**：使用zap进行结构化日志记录
-- **配置**：基于环境的配置，使用github.com/caarlos0/env/v11
+- **日志**：使用[zap](https://github.com/uber-go/zap)进行结构化日志记录
+- **配置**：基于环境的配置，使用[github.com/caarlos0/env/v11](https://github.com/caarlos0/env)
 - **错误处理**：自定义错误包，支持元数据、堆栈跟踪和错误分类
-- **调度器**：使用robfig/cron的集成CRON定时任务调度器
+- **认证**：基于JWT的认证，使用[gin-jwt](https://github.com/appleboy/gin-jwt)
+- **调度器**：使用[robfig/cron](https://github.com/robfig/cron)的集成CRON定时任务调度器
+- **迁移**：使用[goose](https://github.com/pressly/goose)进行数据库迁移
 - **部署**：使用Docker和k3s进行容器化和编排
 
 ## 项目结构
@@ -34,13 +36,22 @@
 .
 ├── cmd/                   # 应用程序入口点
 │   ├── api/               # API服务器
+│   ├── migrate/           # 数据库迁移工具
 │   └── task/              # 用于定时、轮询和队列任务的任务运行器
 ├── config/                # 配置文件
 │   ├── dev/               # 开发环境配置
 │   └── prod/              # 生产环境配置
 ├── db/                    # 数据库相关文件
 │   └── migrations/        # 数据库迁移文件
+├── deploy/                # 部署配置
+│   ├── config/            # 部署配置文件
+│   ├── k3s/               # k3s部署清单
+│   │   ├── cluster/       # 集群部署配置
+│   │   └── single/        # 单节点部署配置
+│   └── scripts/           # 部署自动化脚本
 ├── docs/                  # 文档
+│   ├── deployment.md      # 详细部署指南（英文）
+│   ├── deployment-zh.md   # 详细部署指南（中文）
 │   ├── jwt-integration-guide.md    # JWT集成指南（英文版）
 │   └── jwt-integration-guide-zh.md # JWT集成指南（中文版）
 ├── internal/              # 私有应用代码
@@ -68,6 +79,7 @@
 │   ├── database/          # 数据库连接
 │   ├── errs/              # 错误处理工具
 │   ├── logger/            # 日志记录
+│   ├── migrate/           # 数据库迁移工具
 │   ├── mq/                # 消息队列
 │   ├── server/            # HTTP服务器
 │   └── utils/             # 工具函数
@@ -92,6 +104,7 @@
 - **超时中间件**：请求超时强制控制
 - **认证中间件**：基于JWT的认证
 - **管理员专用中间件**：基于角色的管理员路由授权
+- **CORS中间件**：跨域资源共享策略执行，采用生产就绪的安全默认设置
 
 ### 错误处理系统
 
@@ -177,7 +190,15 @@
 4. 运行数据库迁移
 
    ```bash
-   go run cmd/migrate/main.go
+   # 最简单的方法，使用默认选项
+   make db
+
+   # 替代命令
+   make migrate
+
+   # 或直接使用CLI并提供更多选项
+   go run cmd/migrate/main.go up
+   go run cmd/migrate/main.go -dir=db/migrations -verbose status
    ```
 
 5. 启动API服务器
@@ -205,6 +226,23 @@
    ```bash
    docker-compose up -d
    ```
+
+### 生产环境部署
+
+有关详细的生产环境部署说明，请参阅我们的[部署指南](docs/deployment-zh.md)。
+
+项目包含用于部署到单节点和多节点k3s集群的配置：
+
+```bash
+# 部署到单节点k3s环境
+make deploy-single
+
+# 部署到k3s集群环境
+make deploy-cluster
+
+# 部署到特定服务器（在deploy/config/servers.yaml中定义）
+make deploy-server SERVER=servername
+```
 
 ## API端点
 
@@ -239,3 +277,133 @@ API提供以下端点：
 3. 提交您的更改
 4. 推送到分支
 5. 创建新的Pull Request
+
+## 数据库迁移
+
+本项目使用 [Goose](https://github.com/pressly/goose) 进行数据库迁移管理。迁移文件使用 SQL 编写，存储在 `db/migrations` 目录中。
+
+### 迁移版本控制策略
+
+我们采用 Goose 的混合版本控制方法来处理团队环境中的迁移：
+
+1. **开发环境**：开发过程中的迁移文件自动使用时间戳命名（如 `20240628120000_add_users.sql`），这有助于避免多个开发人员同时创建迁移时的版本冲突。
+
+2. **生产环境**：在部署到生产环境之前，迁移会被转换为顺序版本编号，同时保留原始顺序，确保在生产环境中可预测地应用。
+
+这种混合方法既允许灵活开发，又保持了生产环境中的严格顺序。
+
+### 本地运行迁移
+
+您可以使用以下 Makefile 命令运行数据库迁移：
+
+```bash
+# 应用所有待处理的迁移
+make migrate
+
+# 检查迁移状态
+make migrate-status
+
+# 回滚最后一次迁移
+make migrate-down
+
+# 回滚所有迁移
+make migrate-reset
+
+# 创建新的迁移文件（自动使用时间戳）
+make migrate-create NAME=add_users_table
+
+# 修复迁移版本（将时间戳转换为顺序编号）
+make migrate-fix
+
+# 打印当前迁移版本
+make migrate-version
+
+# 回滚并重新应用最新的迁移
+make migrate-redo
+
+# 迁移到指定版本
+make migrate-up-to VERSION=20240628120000
+
+# 回滚到指定版本
+make migrate-down-to VERSION=20240628120000
+```
+
+在本地开发期间，系统允许无序迁移，使团队成员可以独立工作而不会产生版本冲突。所有迁移通过正则表达式模式进行验证，以防止SQL注入。
+
+### 生产环境迁移
+
+在生产环境中，迁移由 Kubernetes Job 处理。在部署新版本时，应该在部署应用程序之前运行迁移：
+
+```bash
+# 构建迁移镜像（自动修复版本编号）
+make build-migrate
+
+# 在单节点 k3s 环境中运行迁移
+make deploy-migrate
+
+# 在 k3s 集群环境中运行迁移
+make deploy-migrate-cluster
+```
+
+迁移作业作为Kubernetes作业运行，设置了`restartPolicy: Never`和`backoffLimit: 3`。它执行一次迁移操作后就完成。您可以使用以下命令检查作业状态和日志：
+
+```bash
+kubectl get jobs -n go-layout
+kubectl logs job/db-migrate -n go-layout
+```
+
+### CI/CD 集成
+
+对于 CI/CD 流水线，使用 `migrate-ci` 命令准备用于生产部署的迁移：
+
+```bash
+# 将时间戳版本转换为用于生产部署的顺序版本
+make migrate-ci
+```
+
+这应该在构建迁移镜像之前在 CI 流水线中运行。`build-migrate`命令也会自动运行`migrate-fix`，确保在生产环境中使用顺序版本编号。
+
+### 迁移文件
+
+迁移文件遵循 Goose 命名约定：
+
+```
+{版本号}_{描述}.sql
+```
+
+每个迁移文件包含两个部分：
+- `-- +goose Up`：升级时执行的命令
+- `-- +goose Down`：回滚迁移时执行的命令
+
+示例迁移文件：
+
+```sql
+-- +goose Up
+-- +goose StatementBegin
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE IF EXISTS users;
+-- +goose StatementEnd
+```
+
+### 使用Docker进行迁移
+
+项目包含专用的`Dockerfile.migrate`用于将迁移工具容器化。该容器的入口点配置为运行迁移工具，默认显示迁移状态。在Kubernetes作业中，我们会覆盖这一设置以运行`up`命令。
+
+```bash
+# 在本地运行迁移容器（默认显示状态）
+docker run go-layout-migrate
+
+# 运行特定迁移命令
+docker run go-layout-migrate up
+docker run go-layout-migrate down
+```

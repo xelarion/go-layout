@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migrate
+  namespace: go-layout
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: go-layout
+        component: db-migrate
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: ${REGISTRY}/go-layout-migrate:${VERSION}
+          command: ["./migrate", "up"]
+          env:
+            - name: GO_ENV
+              value: "prod"
+          # Configure resources
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          # Configure liveness probe
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - ps -ef | grep migrate | grep -v grep
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          # Configure security context
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL

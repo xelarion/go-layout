@@ -11,21 +11,23 @@ A scalable, high-performance, and high-availability web application template bui
 - **Clean Code**: Well-organized, maintainable, and extensible codebase
 - **Security**: JWT authentication, input validation, and protection against common vulnerabilities
 - **Error Handling**: Comprehensive error handling system with structured logging and custom error types
-- **Middleware**: Modular middleware components for request processing, error handling, and request timeouts
+- **Middleware**: Modular middleware components for request processing, error handling, request timeouts, and CORS
 - **Task Management**: Integrated support for scheduled tasks, polling tasks, and queue-based asynchronous processing
 
 ## Technology Stack
 
 - **Programming Language**: Go
-- **Web Framework**: Gin
-- **ORM**: Gorm
+- **Web Framework**: [Gin](https://github.com/gin-gonic/gin)
+- **ORM**: [GORM](https://gorm.io/)
 - **Database**: PostgreSQL (configurable to switch to MySQL)
 - **Cache**: Redis (pluggable, can be removed if not needed)
 - **Message Queue**: RabbitMQ (pluggable, can be removed if not needed)
-- **Logging**: Structured logging with zap
-- **Configuration**: Environment-based configuration with github.com/caarlos0/env/v11
+- **Logging**: Structured logging with [zap](https://github.com/uber-go/zap)
+- **Configuration**: Environment-based configuration with [github.com/caarlos0/env/v11](https://github.com/caarlos0/env)
 - **Error Handling**: Custom error package with metadata, stack traces, and error categorization
-- **Scheduler**: Integrated CRON-based task scheduler using robfig/cron
+- **Authentication**: JWT-based authentication with [gin-jwt](https://github.com/appleboy/gin-jwt)
+- **Scheduler**: Integrated CRON-based task scheduler using [robfig/cron](https://github.com/robfig/cron)
+- **Migration**: Database migration with [goose](https://github.com/pressly/goose)
 - **Deployment**: Docker and k3s for containerization and orchestration
 
 ## Project Structure
@@ -34,13 +36,22 @@ A scalable, high-performance, and high-availability web application template bui
 .
 ├── cmd/                   # Application entry points
 │   ├── api/               # API server
+│   ├── migrate/           # Database migration tool
 │   └── task/              # Task runner for scheduled, polling and queue tasks
 ├── config/                # Configuration files
 │   ├── dev/               # Development environment configs
 │   └── prod/              # Production environment configs
 ├── db/                    # Database related files
 │   └── migrations/        # Database migration files
+├── deploy/                # Deployment configuration
+│   ├── config/            # Deployment configuration files
+│   ├── k3s/               # k3s deployment manifests
+│   │   ├── cluster/       # Cluster deployment configurations
+│   │   └── single/        # Single node deployment configurations
+│   └── scripts/           # Deployment automation scripts
 ├── docs/                  # Documentation
+│   ├── deployment.md      # Detailed deployment guide
+│   ├── deployment-zh.md   # Deployment guide in Chinese
 │   ├── jwt-integration-guide.md    # JWT integration guide for frontend developers
 │   └── jwt-integration-guide-zh.md # JWT integration guide in Chinese
 ├── internal/              # Private application code
@@ -68,6 +79,7 @@ A scalable, high-performance, and high-availability web application template bui
 │   ├── database/          # Database connections
 │   ├── errs/              # Error handling utilities
 │   ├── logger/            # Logging
+│   ├── migrate/           # Database migration utilities
 │   ├── mq/                # Message queue
 │   ├── server/            # HTTP server
 │   └── utils/             # Utility functions
@@ -92,6 +104,7 @@ The application includes several middleware components:
 - **Timeout Middleware**: Request timeout enforcement
 - **Authentication Middleware**: JWT-based authentication
 - **Admin Only Middleware**: Role-based authorization for admin routes
+- **CORS Middleware**: Cross-Origin Resource Sharing policy enforcement with production-ready security defaults
 
 ### Error Handling System
 
@@ -177,7 +190,15 @@ Error responses maintain the same structure:
 4. Run database migrations
 
    ```bash
-   go run cmd/migrate/main.go
+   # Simplest approach with default options
+   make db
+
+   # Alternative commands
+   make migrate
+
+   # Or using the CLI directly with more options
+   go run cmd/migrate/main.go up
+   go run cmd/migrate/main.go -dir=db/migrations -verbose status
    ```
 
 5. Start the API server
@@ -205,6 +226,23 @@ Error responses maintain the same structure:
    ```bash
    docker-compose up -d
    ```
+
+### Production Deployment
+
+For detailed production deployment instructions, refer to our [Deployment Guide](docs/deployment.md).
+
+The project includes configuration for deploying to both single-node and multi-node k3s clusters:
+
+```bash
+# Deploy to a single node k3s environment
+make deploy-single
+
+# Deploy to a k3s cluster environment
+make deploy-cluster
+
+# Deploy to a specific server (defined in deploy/config/servers.yaml)
+make deploy-server SERVER=servername
+```
 
 ## API Endpoints
 
@@ -239,3 +277,133 @@ The API provides the following endpoints:
 3. Commit your changes
 4. Push to the branch
 5. Create a new Pull Request
+
+## Database Migrations
+
+This project uses [Goose](https://github.com/pressly/goose) for database migrations. Migrations are written in SQL and stored in the `db/migrations` directory.
+
+### Migration Versioning Strategy
+
+We use Goose's hybrid versioning approach to handle migrations in a team environment:
+
+1. **Development**: Migrations are automatically timestamped (`20240628120000_add_users.sql`) during development, which helps avoid version conflicts when multiple developers create migrations simultaneously.
+
+2. **Production**: Before deploying to production, migrations are converted to sequential versions while preserving their original order, which ensures predictable application in production.
+
+This hybrid approach allows for flexible development while maintaining strict ordering in production.
+
+### Running Migrations Locally
+
+You can run database migrations using the following Makefile commands:
+
+```bash
+# Apply all pending migrations
+make migrate
+
+# Check migration status
+make migrate-status
+
+# Roll back the last migration
+make migrate-down
+
+# Roll back all migrations
+make migrate-reset
+
+# Create a new migration file (automatically timestamped)
+make migrate-create NAME=add_users_table
+
+# Fix migration versioning (converts timestamps to sequential numbers)
+make migrate-fix
+
+# Print current migration version
+make migrate-version
+
+# Rollback and reapply the latest migration
+make migrate-redo
+
+# Migrate up to a specific version
+make migrate-up-to VERSION=20240628120000
+
+# Migrate down to a specific version
+make migrate-down-to VERSION=20240628120000
+```
+
+During local development, the system allows for out-of-order migrations, enabling team members to work independently without version conflicts. All migrations are validated through regex patterns to prevent SQL injection.
+
+### Production Migrations
+
+In production environments, migrations are handled by a Kubernetes Job. When deploying a new version, migrations should be run before deploying the application:
+
+```bash
+# Build the migration image (automatically fixes versioning)
+make build-migrate
+
+# Run migrations in a single node k3s environment
+make deploy-migrate
+
+# Run migrations in a k3s cluster environment
+make deploy-migrate-cluster
+```
+
+The migration job runs as a Kubernetes job with `restartPolicy: Never` and `backoffLimit: 3`. It executes the migration operation once and then completes. You can check the job status and logs using:
+
+```bash
+kubectl get jobs -n go-layout
+kubectl logs job/db-migrate -n go-layout
+```
+
+### CI/CD Integration
+
+For CI/CD pipelines, use the `migrate-ci` command to prepare migrations for production:
+
+```bash
+# Convert timestamp versioning to sequential for production deployment
+make migrate-ci
+```
+
+This should be run in your CI pipeline before building the migration image. The `build-migrate` command also automatically runs `migrate-fix` to ensure sequential versioning in production.
+
+### Migration Files
+
+Migration files follow the Goose naming convention:
+
+```
+{version}_{description}.sql
+```
+
+Each migration file contains two sections:
+- `-- +goose Up`: Commands executed when migrating up
+- `-- +goose Down`: Commands executed when rolling back the migration
+
+Example migration file:
+
+```sql
+-- +goose Up
+-- +goose StatementBegin
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE IF EXISTS users;
+-- +goose StatementEnd
+```
+
+### Using Docker for Migrations
+
+The project includes a dedicated `Dockerfile.migrate` for containerizing the migration tool. This container has an entrypoint configured to run the migration tool and defaults to showing the migration status. In Kubernetes jobs, we override this to run `up` command.
+
+```bash
+# Run a migration container locally (shows status by default)
+docker run go-layout-migrate
+
+# Run specific migration commands
+docker run go-layout-migrate up
+docker run go-layout-migrate down
+```

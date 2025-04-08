@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS users
 (
     id         SERIAL PRIMARY KEY,
@@ -10,3 +12,19 @@ CREATE TABLE IF NOT EXISTS users
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMP WITH TIME ZONE
 );
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
+INSERT INTO users (name, email, password, role)
+VALUES (
+    'Admin User',
+    'admin@example.com',
+    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+    'admin'
+) ON CONFLICT DO NOTHING;
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE IF EXISTS users;
+-- +goose StatementEnd
