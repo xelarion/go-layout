@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"github.com/xelarion/go-layout/internal/model"
@@ -13,13 +14,15 @@ import (
 
 // UserRepository is a PostgreSQL implementation of the user repository.
 type UserRepository struct {
-	db *gorm.DB
+	db  *gorm.DB
+	rds *redis.Client
 }
 
 // NewUserRepository creates a new instance of user repository.
-func NewUserRepository(db *gorm.DB) *UserRepository {
+func NewUserRepository(db *gorm.DB, rds *redis.Client) *UserRepository {
 	return &UserRepository{
-		db: db,
+		db:  db,
+		rds: rds,
 	}
 }
 
@@ -86,6 +89,21 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*model.
 				WithMeta("email", email)
 		}
 		return nil, errs.WrapInternal(err, "failed to find user by email")
+	}
+	return &user, nil
+}
+
+// FindByUsername retrieves a user by username.
+func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*model.User, error) {
+	var user model.User
+	err := r.db.WithContext(ctx).Where("username = ?", username).First(&user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errs.NewBusiness("user not found").
+				WithReason(errs.ReasonNotFound).
+				WithMeta("username", username)
+		}
+		return nil, errs.WrapInternal(err, "failed to find user by username")
 	}
 	return &user, nil
 }

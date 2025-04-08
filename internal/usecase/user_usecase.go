@@ -7,12 +7,13 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/xelarion/go-layout/internal/model"
+	"github.com/xelarion/go-layout/internal/model/gen"
 	"github.com/xelarion/go-layout/pkg/errs"
 )
 
 // CreateUserParams contains all parameters needed to create a user
 type CreateUserParams struct {
-	Name     string
+	Username string
 	Email    string
 	Password string
 	Role     string
@@ -21,13 +22,13 @@ type CreateUserParams struct {
 // UpdateUserParams contains all parameters needed to update a user
 type UpdateUserParams struct {
 	ID       uint
-	Name     string
+	Username string
 	Email    string
 	Password string
 	Role     string
 	Enabled  bool
 	// Fields to track which values are explicitly set
-	NameSet     bool
+	UsernameSet bool
 	EmailSet    bool
 	PasswordSet bool
 	RoleSet     bool
@@ -40,6 +41,7 @@ type UserRepository interface {
 	List(ctx context.Context, filters map[string]any, limit, offset int, sortClause string) ([]*model.User, int, error)
 	FindByID(ctx context.Context, id uint) (*model.User, error)
 	FindByEmail(ctx context.Context, email string) (*model.User, error)
+	FindByUsername(ctx context.Context, username string) (*model.User, error)
 	Update(ctx context.Context, user *model.User) error
 	Delete(ctx context.Context, id uint) error
 }
@@ -77,11 +79,12 @@ func (uc *UserUseCase) Create(ctx context.Context, params CreateUserParams) (*mo
 
 	// Create user
 	user := &model.User{
-		Name:     params.Name,
-		Email:    params.Email,
-		Password: string(hashedPassword),
-		Role:     params.Role,
-		Enabled:  true,
+		User: gen.User{
+			Username: params.Username,
+			Email:    params.Email,
+			Password: string(hashedPassword),
+			Role:     params.Role,
+		},
 	}
 
 	if err := uc.repo.Create(ctx, user); err != nil {
@@ -118,8 +121,8 @@ func (uc *UserUseCase) Update(ctx context.Context, params UpdateUserParams) erro
 	}
 
 	// Update fields that are explicitly set
-	if params.NameSet {
-		user.Name = params.Name
+	if params.UsernameSet {
+		user.Username = params.Username
 	}
 
 	if params.EmailSet {
@@ -163,23 +166,23 @@ func (uc *UserUseCase) Delete(ctx context.Context, id uint) error {
 }
 
 // Login authenticates a user.
-func (uc *UserUseCase) Login(ctx context.Context, email, password string) (*model.User, error) {
-	user, err := uc.repo.FindByEmail(ctx, email)
+func (uc *UserUseCase) Login(ctx context.Context, username, password string) (*model.User, error) {
+	user, err := uc.repo.FindByUsername(ctx, username)
 	if err != nil {
 		if errs.IsReason(err, errs.ReasonNotFound) {
-			return nil, errs.NewBusiness("invalid credentials").WithReason(errs.ReasonUnauthorized)
+			return nil, errs.NewBusiness("Incorrect username or password").WithReason(errs.ReasonUnauthorized)
 		}
 		return nil, err
 	}
 
 	// Verify password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return nil, errs.NewBusiness("invalid credentials").WithReason(errs.ReasonUnauthorized)
+		return nil, errs.NewBusiness("Incorrect username or password").WithReason(errs.ReasonUnauthorized)
 	}
 
 	// Check if user is enabled
 	if !user.Enabled {
-		return nil, errs.NewBusiness("account is disabled").WithReason(errs.ReasonUnauthorized)
+		return nil, errs.NewBusiness("User account is disabled").WithReason(errs.ReasonUnauthorized)
 	}
 
 	return user, nil

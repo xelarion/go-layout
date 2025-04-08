@@ -24,7 +24,7 @@ func NewUserService(userUseCase *usecase.UserUseCase) *UserService {
 // CreateUser registers a new user.
 func (s *UserService) CreateUser(ctx context.Context, req *types.CreateUserReq) (*types.CreateUserResp, error) {
 	params := usecase.CreateUserParams{
-		Name:     req.Name,
+		Username: req.Username,
 		Email:    req.Email,
 		Password: req.Password,
 		Role:     req.Role,
@@ -43,8 +43,8 @@ func (s *UserService) CreateUser(ctx context.Context, req *types.CreateUserReq) 
 // ListUsers lists users with pagination.
 func (s *UserService) ListUsers(ctx context.Context, req *types.ListUsersReq) (*types.ListUsersResp, error) {
 	filters := map[string]any{}
-	if req.Name != "" {
-		filters["name"] = req.Name
+	if req.Username != "" {
+		filters["username"] = req.Username
 	}
 	if req.Email != "" {
 		filters["email"] = req.Email
@@ -65,12 +65,11 @@ func (s *UserService) ListUsers(ctx context.Context, req *types.ListUsersReq) (*
 	for _, user := range users {
 		u := types.ListUsersRespResult{
 			ID:        user.ID,
-			Name:      user.Name,
+			Username:  user.Username,
 			Email:     user.Email,
 			Role:      user.Role,
 			Enabled:   user.Enabled,
-			CreatedAt: &user.CreatedAt,
-			UpdatedAt: &user.UpdatedAt,
+			CreatedAt: user.CreatedAt,
 		}
 		respResults = append(respResults, u)
 	}
@@ -90,12 +89,11 @@ func (s *UserService) GetUser(ctx context.Context, req *types.GetUserReq) (*type
 
 	return &types.GetUserResp{
 		ID:        user.ID,
-		Name:      user.Name,
+		Username:  user.Username,
 		Email:     user.Email,
 		Role:      user.Role,
 		Enabled:   user.Enabled,
-		CreatedAt: &user.CreatedAt,
-		UpdatedAt: &user.UpdatedAt,
+		CreatedAt: user.CreatedAt,
 	}, nil
 }
 
@@ -107,10 +105,10 @@ func (s *UserService) GetUserFormData(ctx context.Context, req *types.GetUserFor
 	}
 
 	return &types.GetUserFormDataResp{
-		ID:    user.ID,
-		Name:  user.Name,
-		Email: user.Email,
-		Role:  user.Role,
+		ID:       user.ID,
+		Username: user.Username,
+		Email:    user.Email,
+		Role:     user.Role,
 	}, nil
 }
 
@@ -127,8 +125,8 @@ func (s *UserService) UpdateUser(ctx context.Context, req *types.UpdateUserReq) 
 		ID: req.ID,
 	}
 
-	params.Name = req.Name
-	params.NameSet = true
+	params.Username = req.Username
+	params.UsernameSet = true
 
 	params.Email = req.Email
 	params.EmailSet = true
@@ -192,11 +190,12 @@ func (s *UserService) GetProfile(ctx context.Context, req *types.GetProfileReq) 
 	}
 
 	return &types.GetProfileResp{
-		ID:        user.ID,
-		Name:      user.Name,
-		Email:     user.Email,
-		Role:      user.Role,
-		CreatedAt: &user.CreatedAt,
+		ID:          user.ID,
+		Username:    user.Username,
+		Email:       user.Email,
+		Role:        user.Role,
+		CreatedAt:   user.CreatedAt,
+		Permissions: []string{}, // TODO
 	}, nil
 }
 
@@ -219,9 +218,9 @@ func (s *UserService) UpdateProfile(ctx context.Context, req *types.UpdateProfil
 	}
 
 	// Only set fields that are provided in the request
-	if req.Name != "" {
-		params.Name = req.Name
-		params.NameSet = true
+	if req.Username != "" {
+		params.Username = req.Username
+		params.UsernameSet = true
 	}
 
 	if req.Email != "" {

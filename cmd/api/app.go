@@ -17,6 +17,7 @@ import (
 	"github.com/xelarion/go-layout/internal/service"
 	"github.com/xelarion/go-layout/internal/usecase"
 	"github.com/xelarion/go-layout/pkg/app"
+	"github.com/xelarion/go-layout/pkg/cache"
 	"github.com/xelarion/go-layout/pkg/config"
 	"github.com/xelarion/go-layout/pkg/database"
 	"github.com/xelarion/go-layout/pkg/server"
@@ -35,8 +36,15 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 	}
 	logger.Info("Connected to database successfully")
 
+	// Initialize redis connection
+	redis, err := cache.NewRedis(&cfg.Redis, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to redis: %w", err)
+	}
+	logger.Info("Connected to redis successfully")
+
 	// Initialize repositories
-	userRepo := repository.NewUserRepository(db.DB)
+	userRepo := repository.NewUserRepository(db.DB, redis.Client)
 	// Initialize usecases
 	userUseCase := usecase.NewUserUseCase(userRepo)
 	// Initialize services (without JWT dependency)
@@ -59,7 +67,7 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 	}, logger)
 
 	// Setup global middlewares
-	httpServer.Router().Use(middleware.CORS(cfg.HTTP.AllowOrigins)) // Use CORS middleware with HTTP config
+	httpServer.Router().Use(middleware.CORS(cfg.HTTP.AllowOrigins))
 	httpServer.Router().Use(middleware.Timeout(cfg.HTTP.RequestTimeout))
 	httpServer.Router().Use(middleware.Recovery(logger))
 	httpServer.Router().Use(middleware.Error(logger))
@@ -124,6 +132,13 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 				logger.Error("Error closing database connection", zap.Error(err))
 			} else {
 				logger.Info("Database connection closed successfully")
+			}
+
+			// Close redis connection
+			if err := redis.Close(); err != nil {
+				logger.Error("Error closing redis connection", zap.Error(err))
+			} else {
+				logger.Info("Redis connection closed successfully")
 			}
 
 			logger.Info("API server stopped successfully")

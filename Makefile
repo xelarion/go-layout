@@ -8,7 +8,7 @@ REGISTRY ?= docker.io
 SERVICES = api task
 
 # Database migration commands
-.PHONY: db migrate migrate-up migrate-down migrate-status migrate-create migrate-reset migrate-version migrate-redo migrate-up-to migrate-down-to migrate-fix migrate-ci
+.PHONY: db migrate migrate-up migrate-down migrate-status migrate-create migrate-reset migrate-version migrate-redo migrate-up-to migrate-down-to migrate-fix migrate-ci gen-models
 
 # Run database migrations (simple alias for migrate-up)
 db:
@@ -64,6 +64,12 @@ migrate-ci:
 
 # Run database migrations (alias for migrate-up)
 migrate: migrate-up
+
+# Generate models from database schema
+gen-models:
+	@echo "Generating models from database schema..."
+	@mkdir -p internal/model/gen
+	@go run tools/gen/main.go
 
 # Build targets
 .PHONY: build build-api build-task build-migrate
