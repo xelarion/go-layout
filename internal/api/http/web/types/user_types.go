@@ -46,7 +46,7 @@ type ListUsersRespResult struct {
 
 // GetUserReq represents a request to get a specific user.
 type GetUserReq struct {
-	ID uint `uri:"id" binding:"required"`
+	ID uint `uri:"id" binding:"required" swaggerignore:"true"`
 }
 
 // GetUserResp represents a user object in responses.
@@ -61,7 +61,7 @@ type GetUserResp struct {
 }
 
 type GetUserFormDataReq struct {
-	ID uint `uri:"id" binding:"required"`
+	ID uint `uri:"id" binding:"required" swaggerignore:"true"`
 }
 
 // GetUserFormDataResp represents data needed for user forms (create/update).
@@ -74,7 +74,7 @@ type GetUserFormDataResp struct {
 
 // UpdateUserReq represents user update data.
 type UpdateUserReq struct {
-	ID       uint   `uri:"id" binding:"required"`
+	ID       uint   `uri:"id" binding:"required" swaggerignore:"true"`
 	Username string `json:"username" binding:"required,min=2,max=100"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"omitempty,min=6"`
@@ -87,7 +87,7 @@ type UpdateUserResp struct {
 
 // UpdateUserEnabledReq represents a request to update user enabled status.
 type UpdateUserEnabledReq struct {
-	ID      uint  `uri:"id" binding:"required"`
+	ID      uint  `uri:"id" binding:"required" swaggerignore:"true"`
 	Enabled *bool `json:"enabled" binding:"required"`
 }
 
@@ -97,7 +97,7 @@ type UpdateUserEnabledResp struct {
 
 // DeleteUserReq represents a request to delete a user.
 type DeleteUserReq struct {
-	ID uint `uri:"id" binding:"required"`
+	ID uint `uri:"id" binding:"required" swaggerignore:"true"`
 }
 
 // DeleteUserResp represents user delete response.

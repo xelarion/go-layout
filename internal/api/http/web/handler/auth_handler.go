@@ -24,7 +24,15 @@ func NewAuthHandler(authService *service.AuthService, logger *zap.Logger) *AuthH
 	}
 }
 
-// GetCaptcha generates and returns a captcha image.
+// GetCaptcha godoc
+//
+//	@Summary		Get Capt
+//	@Summary		Get Captcha
+//	@Description	Retrieves a single Captcha
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Router			/captcha [get]
 func (h *AuthHandler) GetCaptcha(c *gin.Context) {
 	// In a real application, you would use a captcha library to generate the image
 	// For this example, we'll use a mock implementation

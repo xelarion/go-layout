@@ -8,7 +8,8 @@ REGISTRY ?= docker.io
 SERVICES = web-api task
 
 # Database migration commands
-.PHONY: migrate migrate-up migrate-down migrate-status migrate-create migrate-reset migrate-version migrate-redo migrate-up-to migrate-down-to migrate-fix migrate-ci
+.PHONY: migrate migrate-up migrate-down migrate-status migrate-create migrate-reset
+.PHONY: migrate-version migrate-redo migrate-up-to migrate-down-to migrate-fix migrate-ci
 
 # Run database migrations (alias for migrate-up)
 migrate: migrate-up
@@ -69,7 +70,7 @@ gen-models:
 	@mkdir -p internal/model/gen
 	@go run tools/gen/main.go
 
-.PHONY: swagger-install swagger-gen swagger-web
+.PHONY: swagger-install swagger-gen swagger-web swagger-autocomment swagger-all
 
 # Swagger commands
 # Install Swagger tools
@@ -82,7 +83,16 @@ swagger-install:
 # Generate Swagger documentation for Web API
 swagger-web:
 	@echo "Generating Swagger documentation for Web API..."
-	cd internal/api/http/web && swag init -g swagger/doc.go -o swagger/docs
+	cd internal/api/http/web && swag init -g swagger/doc.go -o swagger/docs && swag fmt
+
+# Generate intelligent Swagger comments for handler methods
+swagger-autocomment:
+	@echo "Generating intelligent Swagger comments for handler methods..."
+	go run tools/swagger_autocomment/main.go -dir ./internal/api/http/web/handler
+
+# Generate all Swagger documentation (comments and docs)
+swagger-all: swagger-autocomment swagger-web
+	@echo "All Swagger documentation generated successfully"
 
 # Generate Swagger documentation for all APIs
 swagger-gen: swagger-web
