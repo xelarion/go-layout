@@ -2,15 +2,18 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 // Config holds configuration options for the Swagger comment generator.
@@ -47,11 +50,17 @@ type FileStats struct {
 }
 
 var (
-	// Regular expressions
+	// Regular expressions - compiled once for performance
 	pathParamRegex   = regexp.MustCompile(`\{([^}]+)\}`)
 	camelCaseRegex   = regexp.MustCompile(`([a-z0-9])([A-Z])`)
 	apiRouteRegex    = regexp.MustCompile(`(api|authorized)\.(GET|POST|PUT|PATCH|DELETE)\("([^"]+)", ([a-zA-Z0-9]+)\.([a-zA-Z0-9]+)\)`)
 	routerParamRegex = regexp.MustCompile(`:([^/]+)`)
+
+	// Slice of common prefixes for path determination
+	pathPrefixes = []string{"get-", "list-", "create-", "update-", "delete-", "handle-"}
+
+	// Common patterns for public endpoints
+	publicPatterns = []string{"Login", "Register", "Captcha", "Public"}
 )
 
 func main() {
@@ -108,12 +117,12 @@ func main() {
 	// Find all handler files
 	handlerFiles, err := findHandlerFiles(config.HandlerDir)
 	if err != nil {
-		fmt.Printf("Error walking directory: %v\n", err)
+		fmt.Printf("Error finding handler files: %v\n", err)
 		os.Exit(1)
 	}
 
 	if len(handlerFiles) == 0 {
-		fmt.Printf("No handler files found in %s\n", config.HandlerDir)
+		fmt.Println("No handler files found in", config.HandlerDir)
 		fmt.Println("Make sure the directory contains *_handler.go files")
 		os.Exit(1)
 	}
@@ -122,24 +131,64 @@ func main() {
 		fmt.Printf("Found %d handler files to process\n", len(handlerFiles))
 	}
 
-	// Process each handler file
-	for _, path := range handlerFiles {
-		if config.Verbose {
-			fmt.Printf("Processing file: %s\n", path)
-		}
+	// Process files
+	var wg sync.WaitGroup
+	results := make(chan fileResult, len(handlerFiles))
 
-		stats, err := processFile(path, config, routes)
-		if err != nil {
-			fmt.Printf("Error processing %s: %v\n", path, err)
+	// Process each handler file - limited concurrency
+	semaphore := make(chan struct{}, 4) // Limit to 4 concurrent file operations
+	for _, path := range handlerFiles {
+		wg.Add(1)
+		semaphore <- struct{}{}
+
+		go func(path string) {
+			defer wg.Done()
+			defer func() { <-semaphore }()
+
+			if config.Verbose {
+				fmt.Printf("Processing file: %s\n", path)
+			}
+
+			stats, err := processFile(path, config, routes)
+			results <- fileResult{path: path, stats: stats, err: err}
+		}(path)
+	}
+
+	// Close results channel when all goroutines complete
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	// Collect and process results
+	totalStats := FileStats{}
+	for result := range results {
+		if result.err != nil {
+			fmt.Printf("Error processing %s: %v\n", result.path, result.err)
 			continue
 		}
 
+		totalStats.TotalMethods += result.stats.TotalMethods
+		totalStats.HandlerMethods += result.stats.HandlerMethods
+		totalStats.AlreadyCommented += result.stats.AlreadyCommented
+		totalStats.NewlyCommented += result.stats.NewlyCommented
+
 		if config.Verbose {
-			printFileStats(path, stats)
+			printFileStats(result.path, result.stats)
 		}
 	}
 
 	fmt.Println("Swagger comment generation complete!")
+	fmt.Printf("Total methods: %d, Handler methods: %d, Already commented: %d, Newly commented: %d\n",
+		totalStats.TotalMethods, totalStats.HandlerMethods,
+		totalStats.AlreadyCommented, totalStats.NewlyCommented)
+}
+
+// fileResult holds the result of processing a file
+type fileResult struct {
+	path  string
+	stats FileStats
+	err   error
 }
 
 // dirExists checks if a directory exists
@@ -189,7 +238,7 @@ func printUsage() {
 
 // findHandlerFiles finds all handler files in the given directory
 func findHandlerFiles(dirPath string) ([]string, error) {
-	handlerFiles := []string{}
+	var handlerFiles []string
 
 	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -261,38 +310,12 @@ func processFile(filePath string, config Config, routes map[string]RouteInfo) (F
 		return stats, fmt.Errorf("parse error: %v", err)
 	}
 
-	// Get output path
-	outputPath := filepath.Join(config.OutputDir, filepath.Base(filePath))
-	if config.Verbose {
-		fmt.Printf("Output will be written to: %s\n", outputPath)
-	}
+	// Collect all handler methods that need comments
+	handlerFuncs := collectHandlerFunctions(node, &stats, config.Verbose)
 
-	// Collect all handler methods
-	handlerFuncs := []*ast.FuncDecl{}
-
-	// Iterate through all declarations in the file
-	for _, decl := range node.Decls {
-		if funcDecl, ok := decl.(*ast.FuncDecl); ok {
-			stats.TotalMethods++
-
-			// Check if it's a handler method
-			if isHandlerMethod(funcDecl, config.Verbose) {
-				stats.HandlerMethods++
-				handlerName := funcDecl.Name.Name
-
-				// Skip if already has swagger comment
-				if hasSwaggerComment(funcDecl) {
-					stats.AlreadyCommented++
-					if config.Verbose {
-						fmt.Printf("  Already has swagger comment: %s\n", handlerName)
-					}
-					continue
-				}
-
-				// Add to processing list
-				handlerFuncs = append(handlerFuncs, funcDecl)
-			}
-		}
+	// If no functions to update, return early
+	if len(handlerFuncs) == 0 {
+		return stats, nil
 	}
 
 	// Process functions in reverse order to avoid position changes
@@ -318,8 +341,45 @@ func processFile(filePath string, config Config, routes map[string]RouteInfo) (F
 	return stats, nil
 }
 
+// collectHandlerFunctions collects all handler functions that need Swagger comments
+func collectHandlerFunctions(node *ast.File, stats *FileStats, verbose bool) []*ast.FuncDecl {
+	var handlerFuncs []*ast.FuncDecl
+
+	// Iterate through all declarations in the file
+	for _, decl := range node.Decls {
+		funcDecl, ok := decl.(*ast.FuncDecl)
+		if !ok {
+			continue
+		}
+
+		stats.TotalMethods++
+
+		// Check if it's a handler method
+		if !isHandlerMethod(funcDecl) {
+			continue
+		}
+
+		stats.HandlerMethods++
+		handlerName := funcDecl.Name.Name
+
+		// Skip if already has swagger comment
+		if hasSwaggerComment(funcDecl) {
+			stats.AlreadyCommented++
+			if verbose {
+				fmt.Printf("  Already has swagger comment: %s\n", handlerName)
+			}
+			continue
+		}
+
+		// Add to processing list
+		handlerFuncs = append(handlerFuncs, funcDecl)
+	}
+
+	return handlerFuncs
+}
+
 // isHandlerMethod checks if a function declaration is a handler method
-func isHandlerMethod(funcDecl *ast.FuncDecl, verbose bool) bool {
+func isHandlerMethod(funcDecl *ast.FuncDecl) bool {
 	// Must have a receiver
 	if funcDecl.Recv == nil || len(funcDecl.Recv.List) == 0 {
 		return false
@@ -337,16 +397,7 @@ func isHandlerMethod(funcDecl *ast.FuncDecl, verbose bool) bool {
 	}
 
 	// Must have a context parameter
-	if !hasContextParameter(funcDecl) {
-		return false
-	}
-
-	// This is a handler method
-	if verbose {
-		fmt.Printf("Found handler method: %s with receiver %s\n", funcDecl.Name.Name, receiverType)
-	}
-
-	return true
+	return hasContextParameter(funcDecl)
 }
 
 // getReceiverType extracts the receiver type name from a function
@@ -410,9 +461,8 @@ func generateSwaggerComment(funcDecl *ast.FuncDecl, config Config, routes map[st
 	routeInfo, exists := routes[handlerName]
 
 	// Determine HTTP method and path
-	method := ""
-	path := ""
-	isSecured := false
+	var method, path string
+	var isSecured bool
 
 	if exists {
 		method = routeInfo.Method
@@ -420,54 +470,73 @@ func generateSwaggerComment(funcDecl *ast.FuncDecl, config Config, routes map[st
 		isSecured = routeInfo.IsSecured
 	} else {
 		// Fallback to function name analysis
-		method = strings.ToLower(determineHTTPMethod(handlerName))
+		method = determineHTTPMethod(handlerName)
 		path = determinePath(handlerName)
 	}
 
-	// Build the comment
+	// Build the comment - use a pre-sized StringBuilder for better performance
 	var comment strings.Builder
+	comment.Grow(500) // Pre-allocate for typical comment size
+
+	// Add basic info
 	comment.WriteString(fmt.Sprintf("// %s godoc\n", handlerName))
-	comment.WriteString(fmt.Sprintf("// @Summary %s\n", generateSummary(handlerName)))
-	comment.WriteString(fmt.Sprintf("// @Description %s\n", generateDescription(handlerName)))
-	comment.WriteString("// @Tags " + determineTagFromHandler(receiverType) + "\n")
-	comment.WriteString("// @Accept json\n")
-	comment.WriteString("// @Produce json\n")
+	comment.WriteString(fmt.Sprintf("// @Summary\t\t%s\n", generateSummary(handlerName)))
+	comment.WriteString(fmt.Sprintf("// @Description\t%s\n", generateDescription(handlerName)))
+	comment.WriteString("// @Tags\t\t\t" + determineTagFromHandler(receiverType) + "\n")
+	comment.WriteString("// @Accept\t\t\tjson\n")
+	comment.WriteString("// @Produce\t\tjson\n")
 
 	// Add parameters
-	params := determineParameters(handlerName, path, method)
-	for _, param := range params {
-		required := "false"
-		if param.Required {
-			required = "true"
-		}
-
-		comment.WriteString(fmt.Sprintf("// @Param %s %s %s %s \"%s\"\n",
-			param.Name, param.Location, param.Type, required, param.Name))
-	}
+	addParametersToComment(&comment, handlerName, path, method)
 
 	// Add response type - special case for List operations
 	statusCode := determineStatusCode(method)
 	if strings.HasPrefix(handlerName, "List") {
 		// List operations typically have paginated responses
-		comment.WriteString(fmt.Sprintf("// @Success %d {object} types.Response{data=types.%sResp} \"Success\"\n", statusCode, handlerName))
+		comment.WriteString(fmt.Sprintf("// @Success\t\t%d\t{object}\ttypes.Response{data=types.%sResp}\t\"Success\"\n", statusCode, handlerName))
 	} else {
-		comment.WriteString(fmt.Sprintf("// @Success %d {object} types.Response{data=types.%sResp} \"Success\"\n", statusCode, handlerName))
+		comment.WriteString(fmt.Sprintf("// @Success\t\t%d\t{object}\ttypes.Response{data=types.%sResp}\t\"Success\"\n", statusCode, handlerName))
 	}
 
 	// Add error responses
-	comment.WriteString("// @Failure 400 {object} types.Response \"Bad request\"\n")
-	comment.WriteString("// @Failure 401 {object} types.Response \"Unauthorized\"\n")
-	comment.WriteString("// @Failure 500 {object} types.Response \"Internal server error\"\n")
+	comment.WriteString("// @Failure\t\t400\t{object}\ttypes.Response\t\t\t\t\t\t\t\"Bad request\"\n")
+	comment.WriteString("// @Failure\t\t401\t{object}\ttypes.Response\t\t\t\t\t\t\t\"Unauthorized\"\n")
+	comment.WriteString("// @Failure\t\t500\t{object}\ttypes.Response\t\t\t\t\t\t\t\"Internal server error\"\n")
 
 	// Add security if applicable
 	if isSecured || (!exists && isLikelySecured(handlerName)) {
-		comment.WriteString(fmt.Sprintf("// @Security %s\n", config.SecurityScheme))
+		comment.WriteString(fmt.Sprintf("// @Security\t\t%s\n", config.SecurityScheme))
 	}
 
 	// Add router information
-	comment.WriteString(fmt.Sprintf("// @Router %s [%s]\n", path, method))
+	comment.WriteString(fmt.Sprintf("// @Router\t\t\t%s [%s]\n", path, method))
 
 	return comment.String()
+}
+
+// addParametersToComment adds parameter information to the comment
+func addParametersToComment(comment *strings.Builder, handlerName, path, method string) {
+	// Get path parameters
+	pathParams := pathParamRegex.FindAllStringSubmatch(path, -1)
+	for _, match := range pathParams {
+		if len(match) >= 2 {
+			comment.WriteString(fmt.Sprintf("// @Param\t\t\t%s\tpath\t\tstring\t\t\t\t\t\t\t\t\ttrue\t\"%s\"\n",
+				match[1], match[1]))
+		}
+	}
+
+	// Add request parameter
+	reqType := "types." + handlerName + "Req"
+	location := "body"
+	required := "true"
+
+	if method == "get" {
+		location = "query"
+		required = "false"
+	}
+
+	comment.WriteString(fmt.Sprintf("// @Param\t\t\treq\t%s\t\t%s\t\t\t\t\t\t\t\t\t%s\t\"req\"\n",
+		location, reqType, required))
 }
 
 // updateFileWithComment updates a file with a new Swagger comment
@@ -476,11 +545,21 @@ func updateFileWithComment(filePath string, fset *token.FileSet, funcDecl *ast.F
 	startPos := funcDecl.Pos()
 	startOffset := fset.Position(startPos).Offset
 
-	// Read file content
-	content, err := os.ReadFile(filePath)
+	// Create a temporary file
+	tempFile, err := os.CreateTemp(filepath.Dir(filePath), "swagger-comment-*.go")
 	if err != nil {
-		return fmt.Errorf("error reading file: %v", err)
+		return fmt.Errorf("error creating temporary file: %v", err)
 	}
+	defer os.Remove(tempFile.Name())
+
+	// Open the source file
+	src, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("error opening file: %v", err)
+	}
+	defer src.Close()
+
+	writer := bufio.NewWriter(tempFile)
 
 	// Determine where to insert comment
 	docStartOffset := startOffset
@@ -489,28 +568,60 @@ func updateFileWithComment(filePath string, fset *token.FileSet, funcDecl *ast.F
 		docStartOffset = fset.Position(docPos).Offset
 	}
 
-	// Create new content with comment
-	newContent := string(content[:docStartOffset]) + comment + string(content[startOffset:])
+	// Copy from start to doc position
+	if _, err = io.CopyN(writer, src, int64(docStartOffset)); err != nil {
+		return fmt.Errorf("error copying to temp file: %v", err)
+	}
 
-	// Write back to file
-	return os.WriteFile(filePath, []byte(newContent), 0644)
+	// Write the new comment
+	if _, err = writer.WriteString(comment); err != nil {
+		return fmt.Errorf("error writing comment: %v", err)
+	}
+
+	// Skip the old doc if it exists
+	if funcDecl.Doc != nil && len(funcDecl.Doc.List) > 0 {
+		if _, err = src.Seek(int64(startOffset), io.SeekStart); err != nil {
+			return fmt.Errorf("error seeking in file: %v", err)
+		}
+	}
+
+	// Copy the rest of the file
+	if _, err = io.Copy(writer, src); err != nil {
+		return fmt.Errorf("error copying rest of file: %v", err)
+	}
+
+	// Flush the writer
+	if err = writer.Flush(); err != nil {
+		return fmt.Errorf("error flushing writer: %v", err)
+	}
+
+	// Close the temp file
+	if err = tempFile.Close(); err != nil {
+		return fmt.Errorf("error closing temp file: %v", err)
+	}
+
+	// Replace the original file with the temp file
+	if err = os.Rename(tempFile.Name(), filePath); err != nil {
+		return fmt.Errorf("error replacing original file: %v", err)
+	}
+
+	return nil
 }
 
 // determineHTTPMethod determines the HTTP method based on the function name
 func determineHTTPMethod(handlerName string) string {
-	if strings.HasPrefix(handlerName, "Create") || strings.HasPrefix(handlerName, "Add") {
+	switch {
+	case strings.HasPrefix(handlerName, "Create") || strings.HasPrefix(handlerName, "Add"):
 		return "post"
-	} else if strings.HasPrefix(handlerName, "Get") || strings.HasPrefix(handlerName, "List") || strings.HasPrefix(handlerName, "Find") {
-		return "get"
-	} else if strings.HasPrefix(handlerName, "Update") || strings.HasPrefix(handlerName, "Modify") {
+	case strings.HasPrefix(handlerName, "Update") || strings.HasPrefix(handlerName, "Modify"):
 		return "put"
-	} else if strings.HasPrefix(handlerName, "Patch") || strings.HasPrefix(handlerName, "Partial") {
+	case strings.HasPrefix(handlerName, "Patch") || strings.HasPrefix(handlerName, "Partial"):
 		return "patch"
-	} else if strings.HasPrefix(handlerName, "Delete") || strings.HasPrefix(handlerName, "Remove") {
+	case strings.HasPrefix(handlerName, "Delete") || strings.HasPrefix(handlerName, "Remove"):
 		return "delete"
+	default:
+		return "get" // Default to GET for Get/List/Find methods
 	}
-
-	return "get" // Default
 }
 
 // determinePath determines the API path based on the function name
@@ -520,8 +631,7 @@ func determinePath(handlerName string) string {
 	path = strings.ToLower(path)
 
 	// Remove common prefixes
-	prefixes := []string{"get-", "list-", "create-", "update-", "delete-", "handle-"}
-	for _, prefix := range prefixes {
+	for _, prefix := range pathPrefixes {
 		path = strings.TrimPrefix(path, prefix)
 	}
 
@@ -560,68 +670,30 @@ func generateDescription(handlerName string) string {
 	desc := camelCaseRegex.ReplaceAllString(handlerName, "$1 $2")
 
 	// Add appropriate prefix based on handler type
-	prefix := ""
-	if strings.HasPrefix(handlerName, "Create") {
+	var prefix string
+	switch {
+	case strings.HasPrefix(handlerName, "Create"):
 		prefix = "Creates a new "
-	} else if strings.HasPrefix(handlerName, "Get") && !strings.HasPrefix(handlerName, "List") {
+	case strings.HasPrefix(handlerName, "Get") && !strings.HasPrefix(handlerName, "List"):
 		prefix = "Retrieves a single "
-	} else if strings.HasPrefix(handlerName, "List") {
+	case strings.HasPrefix(handlerName, "List"):
 		prefix = "Retrieves a list of "
-	} else if strings.HasPrefix(handlerName, "Update") {
+	case strings.HasPrefix(handlerName, "Update"):
 		prefix = "Updates an existing "
-	} else if strings.HasPrefix(handlerName, "Delete") {
+	case strings.HasPrefix(handlerName, "Delete"):
 		prefix = "Deletes an existing "
+	default:
+		return desc
 	}
 
-	if prefix != "" {
-		resourceName := strings.TrimPrefix(desc, strings.Split(desc, " ")[0]+" ")
-		return prefix + resourceName
-	}
-
-	return desc
+	resourceName := strings.TrimPrefix(desc, strings.Split(desc, " ")[0]+" ")
+	return prefix + resourceName
 }
 
 // determineTagFromHandler determines the Swagger tag from a handler name
 func determineTagFromHandler(handlerName string) string {
 	// Remove Handler suffix and convert to lowercase
 	return strings.ToLower(strings.TrimSuffix(handlerName, "Handler"))
-}
-
-// determineParameters determines the parameters for a handler method
-func determineParameters(handlerName string, path string, method string) []Parameter {
-	params := []Parameter{}
-
-	// Add path parameters
-	pathParams := pathParamRegex.FindAllStringSubmatch(path, -1)
-	for _, match := range pathParams {
-		if len(match) >= 2 {
-			params = append(params, Parameter{
-				Name:     match[1],
-				Type:     "string",
-				Location: "path",
-				Required: true,
-			})
-		}
-	}
-
-	// Add request parameter
-	reqType := "types." + handlerName + "Req"
-	location := "body"
-	required := true
-
-	if method == "get" {
-		location = "query"
-		required = false
-	}
-
-	params = append(params, Parameter{
-		Name:     "req",
-		Type:     reqType,
-		Location: location,
-		Required: required,
-	})
-
-	return params
 }
 
 // determineStatusCode determines the HTTP status code based on the method
@@ -638,9 +710,6 @@ func determineStatusCode(method string) int {
 
 // isLikelySecured determines if a handler is likely secured based on its name
 func isLikelySecured(handlerName string) bool {
-	// Common patterns for public endpoints
-	publicPatterns := []string{"Login", "Register", "Captcha", "Public"}
-
 	for _, pattern := range publicPatterns {
 		if strings.Contains(handlerName, pattern) {
 			return false
