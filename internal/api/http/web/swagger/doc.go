@@ -6,7 +6,7 @@ package swagger
 // @description     A scalable, high-performance, and high-availability web application template built with Go.
 
 // @host      localhost:8080
-// @BasePath  /
+// @BasePath  /api/web/v1
 
 // @securityDefinitions.apikey  BearerAuth
 // @in                          header

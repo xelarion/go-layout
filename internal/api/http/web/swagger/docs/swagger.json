@@ -7,9 +7,9 @@
         "version": "1.0"
     },
     "host": "localhost:8080",
-    "basePath": "/",
+    "basePath": "/api/web/v1",
     "paths": {
-        "/api/web/v1/users": {
+        "/users": {
             "get": {
                 "security": [
                     {

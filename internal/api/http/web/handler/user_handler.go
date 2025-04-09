@@ -38,7 +38,7 @@ func NewUserHandler(userService *service.UserService, logger *zap.Logger) *UserH
 // @Failure 400 {object} types.Response "Bad request"
 // @Failure 401 {object} types.Response "Unauthorized"
 // @Failure 500 {object} types.Response "Internal server error"
-// @Router /api/web/v1/users [post]
+// @Router /users [post]
 // @Security BearerAuth
 func (h *UserHandler) CreateUser(c *gin.Context) {
 	var req types.CreateUserReq
@@ -74,7 +74,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 // @Failure 400 {object} types.Response "Bad request"
 // @Failure 401 {object} types.Response "Unauthorized"
 // @Failure 500 {object} types.Response "Internal server error"
-// @Router /api/web/v1/users [get]
+// @Router /users [get]
 // @Security BearerAuth
 func (h *UserHandler) ListUsers(c *gin.Context) {
 	var req types.ListUsersReq

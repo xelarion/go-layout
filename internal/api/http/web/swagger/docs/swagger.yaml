@@ -1,4 +1,4 @@
-basePath: /
+basePath: /api/web/v1
 definitions:
   types.CreateUserReq:
     properties:
@@ -89,7 +89,7 @@ info:
   title: Web API
   version: "1.0"
 paths:
-  /api/web/v1/users:
+  /users:
     get:
       consumes:
       - application/json
