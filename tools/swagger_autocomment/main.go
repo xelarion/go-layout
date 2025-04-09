@@ -15,30 +15,47 @@ import (
 
 // Config holds configuration options for the Swagger comment generator.
 type Config struct {
-	HandlerDir     string
-	OutputDir      string
-	SecurityScheme string
-	RouterFile     string
-	Verbose        bool
+	HandlerDir     string // Directory containing handler files
+	OutputDir      string // Output directory for generated files
+	SecurityScheme string // Security scheme for Swagger docs
+	RouterFile     string // Router file to extract routes from
+	Verbose        bool   // Whether to output verbose logs
 }
 
 // RouteInfo stores information about an API route
 type RouteInfo struct {
-	Path      string
-	Method    string
-	Handler   string
-	IsSecured bool
+	Path      string // API path with parameter placeholders
+	Method    string // HTTP method (lowercase)
+	Handler   string // Handler function name
+	IsSecured bool   // Whether the route requires authentication
 }
 
-// Parameter represents a parameter extracted from a handler function.
+// Parameter represents a parameter for a handler function
 type Parameter struct {
-	Name     string
-	Type     string
-	Location string // path, query, body
-	Required bool
+	Name     string // Parameter name
+	Type     string // Parameter type
+	Location string // Parameter location (path, query, body)
+	Required bool   // Whether the parameter is required
 }
+
+// FileStats holds statistics for processed files
+type FileStats struct {
+	TotalMethods     int
+	HandlerMethods   int
+	AlreadyCommented int
+	NewlyCommented   int
+}
+
+var (
+	// Regular expressions
+	pathParamRegex   = regexp.MustCompile(`\{([^}]+)\}`)
+	camelCaseRegex   = regexp.MustCompile(`([a-z0-9])([A-Z])`)
+	apiRouteRegex    = regexp.MustCompile(`(api|authorized)\.(GET|POST|PUT|PATCH|DELETE)\("([^"]+)", ([a-zA-Z0-9]+)\.([a-zA-Z0-9]+)\)`)
+	routerParamRegex = regexp.MustCompile(`:([^/]+)`)
+)
 
 func main() {
+	// Initialize default configuration
 	config := Config{
 		HandlerDir:     "./internal/api/http/web/handler",
 		SecurityScheme: "BearerAuth",
@@ -46,11 +63,13 @@ func main() {
 		Verbose:        true,
 	}
 
+	// Parse command line flags
 	flag.StringVar(&config.HandlerDir, "dir", config.HandlerDir, "Directory containing handler files")
 	flag.StringVar(&config.OutputDir, "out", "", "Output directory (default: same as handler directory)")
 	flag.StringVar(&config.SecurityScheme, "security", config.SecurityScheme, "Security scheme name")
 	flag.StringVar(&config.RouterFile, "router", config.RouterFile, "Router file path")
 	flag.BoolVar(&config.Verbose, "v", config.Verbose, "Verbose output")
+
 	help := flag.Bool("help", false, "Print usage information")
 	h := flag.Bool("h", false, "Print usage information")
 
@@ -61,12 +80,13 @@ func main() {
 		return
 	}
 
+	// Use handler directory as output directory if not specified
 	if config.OutputDir == "" {
 		config.OutputDir = config.HandlerDir
 	}
 
-	// 检查目录是否存在
-	if _, err := os.Stat(config.HandlerDir); os.IsNotExist(err) {
+	// Validate handler directory
+	if !dirExists(config.HandlerDir) {
 		fmt.Printf("Error: Directory %s does not exist!\n", config.HandlerDir)
 		fmt.Println("Current working directory:", getCwd())
 		fmt.Println("Please provide a valid directory using the -dir flag")
@@ -75,33 +95,18 @@ func main() {
 
 	// Extract routes from router file
 	routes, err := extractRoutes(config.RouterFile)
-	if err != nil {
+	if err != nil && config.Verbose {
 		fmt.Printf("Warning: Could not extract routes from router file: %v\n", err)
 		fmt.Println("Will use function name analysis to determine routes.")
 	}
 
-	fmt.Printf("Processing handlers in %s\n", config.HandlerDir)
-	fmt.Printf("Output directory: %s\n", config.OutputDir)
-	fmt.Printf("Security Scheme: %s\n", config.SecurityScheme)
-	fmt.Printf("Router file: %s\n", config.RouterFile)
-	fmt.Printf("Verbose mode: %v\n", config.Verbose)
-	fmt.Printf("Extracted %d routes from router file\n", len(routes))
+	// Print configuration if verbose
+	if config.Verbose {
+		printConfig(config, len(routes))
+	}
 
-	// Process all handler files
-	handlerFiles := []string{}
-	err = filepath.Walk(config.HandlerDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() && strings.HasSuffix(path, "_handler.go") {
-			handlerFiles = append(handlerFiles, path)
-			if config.Verbose {
-				fmt.Printf("Found handler file: %s\n", path)
-			}
-		}
-		return nil
-	})
-
+	// Find all handler files
+	handlerFiles, err := findHandlerFiles(config.HandlerDir)
 	if err != nil {
 		fmt.Printf("Error walking directory: %v\n", err)
 		os.Exit(1)
@@ -113,21 +118,37 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("Found %d handler files to process\n", len(handlerFiles))
+	if config.Verbose {
+		fmt.Printf("Found %d handler files to process\n", len(handlerFiles))
+	}
 
-	// 处理每个文件
+	// Process each handler file
 	for _, path := range handlerFiles {
-		fmt.Printf("Processing file: %s\n", path)
-		err = processFile(path, config, routes)
+		if config.Verbose {
+			fmt.Printf("Processing file: %s\n", path)
+		}
+
+		stats, err := processFile(path, config, routes)
 		if err != nil {
 			fmt.Printf("Error processing %s: %v\n", path, err)
+			continue
+		}
+
+		if config.Verbose {
+			printFileStats(path, stats)
 		}
 	}
 
 	fmt.Println("Swagger comment generation complete!")
 }
 
-// 获取当前工作目录
+// dirExists checks if a directory exists
+func dirExists(path string) bool {
+	_, err := os.Stat(path)
+	return !os.IsNotExist(err)
+}
+
+// getCwd returns the current working directory
 func getCwd() string {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -136,7 +157,17 @@ func getCwd() string {
 	return cwd
 }
 
-// Print usage information
+// printConfig prints the configuration
+func printConfig(config Config, routesCount int) {
+	fmt.Printf("Processing handlers in %s\n", config.HandlerDir)
+	fmt.Printf("Output directory: %s\n", config.OutputDir)
+	fmt.Printf("Security Scheme: %s\n", config.SecurityScheme)
+	fmt.Printf("Router file: %s\n", config.RouterFile)
+	fmt.Printf("Verbose mode: %v\n", config.Verbose)
+	fmt.Printf("Extracted %d routes from router file\n", routesCount)
+}
+
+// printUsage prints usage information
 func printUsage() {
 	fmt.Println("Usage: go run tools/swagger_autocomment/main.go [options]")
 	fmt.Println()
@@ -156,7 +187,33 @@ func printUsage() {
 	fmt.Println("  go run tools/swagger_autocomment/main.go -dir ./internal/api/http/web/handler")
 }
 
-// Extract routes from router file
+// findHandlerFiles finds all handler files in the given directory
+func findHandlerFiles(dirPath string) ([]string, error) {
+	handlerFiles := []string{}
+
+	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && strings.HasSuffix(path, "_handler.go") {
+			handlerFiles = append(handlerFiles, path)
+		}
+		return nil
+	})
+
+	return handlerFiles, err
+}
+
+// printFileStats prints statistics for a processed file
+func printFileStats(filePath string, stats FileStats) {
+	fmt.Printf("File stats for %s:\n", filePath)
+	fmt.Printf("  Total methods: %d\n", stats.TotalMethods)
+	fmt.Printf("  Handler methods: %d\n", stats.HandlerMethods)
+	fmt.Printf("  Already commented: %d\n", stats.AlreadyCommented)
+	fmt.Printf("  Newly commented: %d\n", stats.NewlyCommented)
+}
+
+// extractRoutes extracts routes from the router file
 func extractRoutes(routerFile string) (map[string]RouteInfo, error) {
 	routes := make(map[string]RouteInfo)
 
@@ -166,14 +223,8 @@ func extractRoutes(routerFile string) (map[string]RouteInfo, error) {
 		return routes, fmt.Errorf("error reading router file: %v", err)
 	}
 
-	// Parse the content to extract routes
-	routerContent := string(content)
-
 	// Extract all route registrations
-	// Pattern: api.METHOD("/path", handler.HandlerFunc)
-	// or authorized.METHOD("/path", handler.HandlerFunc)
-	apiRegex := regexp.MustCompile(`(api|authorized)\.(GET|POST|PUT|PATCH|DELETE)\("([^"]+)", ([a-zA-Z0-9]+)\.([a-zA-Z0-9]+)\)`)
-	matches := apiRegex.FindAllStringSubmatch(routerContent, -1)
+	matches := apiRouteRegex.FindAllStringSubmatch(string(content), -1)
 
 	for _, match := range matches {
 		if len(match) < 6 {
@@ -185,8 +236,8 @@ func extractRoutes(routerFile string) (map[string]RouteInfo, error) {
 		path := match[3]    // Path
 		handler := match[5] // Handler function name
 
-		// 转换路径参数格式从 :id 到 {id}
-		convertedPath := convertPathParams(path)
+		// Convert path params from :id to {id}
+		convertedPath := routerParamRegex.ReplaceAllString(path, "{$1}")
 
 		routes[handler] = RouteInfo{
 			Path:      convertedPath,
@@ -199,61 +250,52 @@ func extractRoutes(routerFile string) (map[string]RouteInfo, error) {
 	return routes, nil
 }
 
-// 将路径参数从 :id 格式转换为 {id} 格式
-func convertPathParams(path string) string {
-	paramRegex := regexp.MustCompile(`:([^/]+)`)
-	return paramRegex.ReplaceAllString(path, "{$1}")
-}
+// processFile processes a single file to add Swagger comments
+func processFile(filePath string, config Config, routes map[string]RouteInfo) (FileStats, error) {
+	stats := FileStats{}
 
-// Process a single file to add Swagger comments
-func processFile(filePath string, config Config, routes map[string]RouteInfo) error {
+	// Parse the file
 	fset := token.NewFileSet()
 	node, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
 	if err != nil {
-		return fmt.Errorf("parse error: %v", err)
+		return stats, fmt.Errorf("parse error: %v", err)
 	}
 
-	// Make a copy of the file path for output
+	// Get output path
 	outputPath := filepath.Join(config.OutputDir, filepath.Base(filePath))
 	if config.Verbose {
 		fmt.Printf("Output will be written to: %s\n", outputPath)
 	}
 
-	// 计数器
-	totalMethods := 0
-	handlerMethods := 0
-	alreadyCommented := 0
-	newlyCommented := 0
-
-	// 收集所有需要处理的方法
+	// Collect all handler methods
 	handlerFuncs := []*ast.FuncDecl{}
 
 	// Iterate through all declarations in the file
 	for _, decl := range node.Decls {
 		if funcDecl, ok := decl.(*ast.FuncDecl); ok {
-			totalMethods++
+			stats.TotalMethods++
 
-			// 检查是否是处理函数
-			if isHandlerMethod(funcDecl, config) {
-				handlerMethods++
+			// Check if it's a handler method
+			if isHandlerMethod(funcDecl, config.Verbose) {
+				stats.HandlerMethods++
 				handlerName := funcDecl.Name.Name
 
 				// Skip if already has swagger comment
 				if hasSwaggerComment(funcDecl) {
-					alreadyCommented++
+					stats.AlreadyCommented++
 					if config.Verbose {
 						fmt.Printf("  Already has swagger comment: %s\n", handlerName)
 					}
 					continue
 				}
 
-				// 添加到处理列表
+				// Add to processing list
 				handlerFuncs = append(handlerFuncs, funcDecl)
 			}
 		}
 	}
 
-	// 从后向前处理函数，避免修改后的位置影响
+	// Process functions in reverse order to avoid position changes
 	for i := len(handlerFuncs) - 1; i >= 0; i-- {
 		funcDecl := handlerFuncs[i]
 		handlerName := funcDecl.Name.Name
@@ -262,80 +304,89 @@ func processFile(filePath string, config Config, routes map[string]RouteInfo) er
 		comment := generateSwaggerComment(funcDecl, config, routes)
 		if config.Verbose {
 			fmt.Printf("  Generated comment for %s\n", handlerName)
-			if config.Verbose {
-				fmt.Printf("  Comment content:\n%s\n", comment)
-			}
 		}
 
 		// Update the file with the new comment
-		updateFileWithComment(filePath, fset, funcDecl, comment)
-		newlyCommented++
+		if err := updateFileWithComment(filePath, fset, funcDecl, comment); err != nil {
+			fmt.Printf("  Error updating comment for %s: %v\n", handlerName, err)
+			continue
+		}
+
+		stats.NewlyCommented++
 	}
 
-	fmt.Printf("File stats for %s:\n", filePath)
-	fmt.Printf("  Total methods: %d\n", totalMethods)
-	fmt.Printf("  Handler methods: %d\n", handlerMethods)
-	fmt.Printf("  Already commented: %d\n", alreadyCommented)
-	fmt.Printf("  Newly commented: %d\n", newlyCommented)
-
-	return nil
+	return stats, nil
 }
 
-// Check if a function declaration is a handler method
-func isHandlerMethod(funcDecl *ast.FuncDecl, config Config) bool {
-	// Check if the function has a receiver
+// isHandlerMethod checks if a function declaration is a handler method
+func isHandlerMethod(funcDecl *ast.FuncDecl, verbose bool) bool {
+	// Must have a receiver
 	if funcDecl.Recv == nil || len(funcDecl.Recv.List) == 0 {
 		return false
 	}
 
-	// Check if the receiver name has "Handler" in it
-	receiverType := ""
-	if starExpr, ok := funcDecl.Recv.List[0].Type.(*ast.StarExpr); ok {
-		// For pointer receivers like *UserHandler
-		if ident, ok := starExpr.X.(*ast.Ident); ok {
-			receiverType = ident.Name
-		}
-	} else if ident, ok := funcDecl.Recv.List[0].Type.(*ast.Ident); ok {
-		// For value receivers like UserHandler
-		receiverType = ident.Name
-	}
-
-	isHandler := strings.Contains(receiverType, "Handler")
-	if !isHandler {
+	// Receiver name must contain "Handler"
+	receiverType := getReceiverType(funcDecl)
+	if !strings.Contains(receiverType, "Handler") {
 		return false
 	}
 
-	// Check if at least one parameter exists
+	// Must have at least one parameter
 	if funcDecl.Type.Params == nil || len(funcDecl.Type.Params.List) < 1 {
 		return false
 	}
 
-	// Check if one of the parameters is *gin.Context or similar context type
-	hasContextParam := false
+	// Must have a context parameter
+	if !hasContextParameter(funcDecl) {
+		return false
+	}
+
+	// This is a handler method
+	if verbose {
+		fmt.Printf("Found handler method: %s with receiver %s\n", funcDecl.Name.Name, receiverType)
+	}
+
+	return true
+}
+
+// getReceiverType extracts the receiver type name from a function
+func getReceiverType(funcDecl *ast.FuncDecl) string {
+	if funcDecl.Recv == nil || len(funcDecl.Recv.List) == 0 {
+		return ""
+	}
+
+	// Handle pointer receiver (*UserHandler)
+	if starExpr, ok := funcDecl.Recv.List[0].Type.(*ast.StarExpr); ok {
+		if ident, ok := starExpr.X.(*ast.Ident); ok {
+			return ident.Name
+		}
+	}
+
+	// Handle value receiver (UserHandler)
+	if ident, ok := funcDecl.Recv.List[0].Type.(*ast.Ident); ok {
+		return ident.Name
+	}
+
+	return ""
+}
+
+// hasContextParameter checks if a function has a context-like parameter
+func hasContextParameter(funcDecl *ast.FuncDecl) bool {
 	for _, param := range funcDecl.Type.Params.List {
-		// Check for *xxx.Context pattern
+		// Look for *xxx.Context parameter
 		if starExpr, ok := param.Type.(*ast.StarExpr); ok {
 			if selExpr, ok := starExpr.X.(*ast.SelectorExpr); ok {
 				if selExpr.Sel.Name == "Context" {
-					hasContextParam = true
-					break
+					return true
 				}
 			}
 		}
 	}
 
-	if !hasContextParam {
-		return false
-	}
-
-	// We've identified a handler method - it has a *Handler receiver and takes a context
-	if config.Verbose {
-		fmt.Printf("Found handler method: %s with receiver %s\n", funcDecl.Name.Name, receiverType)
-	}
-	return true
+	return false
 }
 
-// Check if a function already has Swagger comments
+// hasSwaggerComment checks if a function already has Swagger comments
 func hasSwaggerComment(funcDecl *ast.FuncDecl) bool {
 	if funcDecl.Doc == nil {
 		return false
@@ -350,9 +401,10 @@ func hasSwaggerComment(funcDecl *ast.FuncDecl) bool {
 	return false
 }
 
-// Generate a Swagger comment for a handler method
+// generateSwaggerComment generates a Swagger comment for a handler method
 func generateSwaggerComment(funcDecl *ast.FuncDecl, config Config, routes map[string]RouteInfo) string {
 	handlerName := funcDecl.Name.Name
+	receiverType := getReceiverType(funcDecl)
 
 	// Get route info from router file if available
 	routeInfo, exists := routes[handlerName]
@@ -372,20 +424,8 @@ func generateSwaggerComment(funcDecl *ast.FuncDecl, config Config, routes map[st
 		path = determinePath(handlerName)
 	}
 
-	// 获取处理器名称（用于生成tag）
-	receiverType := ""
-	if funcDecl.Recv != nil && len(funcDecl.Recv.List) > 0 {
-		if starExpr, ok := funcDecl.Recv.List[0].Type.(*ast.StarExpr); ok {
-			if ident, ok := starExpr.X.(*ast.Ident); ok {
-				receiverType = ident.Name
-			}
-		}
-	}
-
 	// Build the comment
 	var comment strings.Builder
-
-	// Summary and description
 	comment.WriteString(fmt.Sprintf("// %s godoc\n", handlerName))
 	comment.WriteString(fmt.Sprintf("// @Summary %s\n", generateSummary(handlerName)))
 	comment.WriteString(fmt.Sprintf("// @Description %s\n", generateDescription(handlerName)))
@@ -393,7 +433,7 @@ func generateSwaggerComment(funcDecl *ast.FuncDecl, config Config, routes map[st
 	comment.WriteString("// @Accept json\n")
 	comment.WriteString("// @Produce json\n")
 
-	// Parameters
+	// Add parameters
 	params := determineParameters(handlerName, path, method)
 	for _, param := range params {
 		required := "false"
@@ -405,101 +445,92 @@ func generateSwaggerComment(funcDecl *ast.FuncDecl, config Config, routes map[st
 			param.Name, param.Location, param.Type, required, param.Name))
 	}
 
-	// Response type based on handler name
-	responseType := "types." + handlerName + "Resp"
+	// Add response type - special case for List operations
 	statusCode := determineStatusCode(method)
-
-	// Success response - special case for List operations which often have pagination
 	if strings.HasPrefix(handlerName, "List") {
-		// List operations typically return a response with results array and pagination info
+		// List operations typically have paginated responses
 		comment.WriteString(fmt.Sprintf("// @Success %d {object} types.Response{data=types.%sResp} \"Success\"\n", statusCode, handlerName))
 	} else {
-		comment.WriteString(fmt.Sprintf("// @Success %d {object} types.Response{data=%s} \"Success\"\n", statusCode, responseType))
+		comment.WriteString(fmt.Sprintf("// @Success %d {object} types.Response{data=types.%sResp} \"Success\"\n", statusCode, handlerName))
 	}
 
-	// Error responses
+	// Add error responses
 	comment.WriteString("// @Failure 400 {object} types.Response \"Bad request\"\n")
 	comment.WriteString("// @Failure 401 {object} types.Response \"Unauthorized\"\n")
 	comment.WriteString("// @Failure 500 {object} types.Response \"Internal server error\"\n")
 
-	// Security
+	// Add security if applicable
 	if isSecured || (!exists && isLikelySecured(handlerName)) {
 		comment.WriteString(fmt.Sprintf("// @Security %s\n", config.SecurityScheme))
 	}
 
-	// Router
+	// Add router information
 	comment.WriteString(fmt.Sprintf("// @Router %s [%s]\n", path, method))
 
 	return comment.String()
 }
 
-// Update a file with a new comment
-func updateFileWithComment(filePath string, fset *token.FileSet, funcDecl *ast.FuncDecl, comment string) {
-	// 直接使用AST位置信息更精确地定位函数
+// updateFileWithComment updates a file with a new Swagger comment
+func updateFileWithComment(filePath string, fset *token.FileSet, funcDecl *ast.FuncDecl, comment string) error {
+	// Get function position
 	startPos := funcDecl.Pos()
 	startOffset := fset.Position(startPos).Offset
 
-	// 读取文件内容
+	// Read file content
 	content, err := os.ReadFile(filePath)
 	if err != nil {
-		fmt.Printf("Error reading file %s: %v\n", filePath, err)
-		return
+		return fmt.Errorf("error reading file: %v", err)
 	}
 
-	// 检查函数是否已有注释，如果有，需要替换
+	// Determine where to insert comment
 	docStartOffset := startOffset
 	if funcDecl.Doc != nil && len(funcDecl.Doc.List) > 0 {
 		docPos := funcDecl.Doc.Pos()
 		docStartOffset = fset.Position(docPos).Offset
 	}
 
-	// 构建新内容：前面的内容 + 新注释 + 函数本身
+	// Create new content with comment
 	newContent := string(content[:docStartOffset]) + comment + string(content[startOffset:])
 
-	// 写回文件
-	err = os.WriteFile(filePath, []byte(newContent), 0644)
-	if err != nil {
-		fmt.Printf("Error writing to file %s: %v\n", filePath, err)
-	}
+	// Write back to file
+	return os.WriteFile(filePath, []byte(newContent), 0644)
 }
 
-// Determine the HTTP method based on the function name
+// determineHTTPMethod determines the HTTP method based on the function name
 func determineHTTPMethod(handlerName string) string {
 	if strings.HasPrefix(handlerName, "Create") || strings.HasPrefix(handlerName, "Add") {
-		return "POST"
+		return "post"
 	} else if strings.HasPrefix(handlerName, "Get") || strings.HasPrefix(handlerName, "List") || strings.HasPrefix(handlerName, "Find") {
-		return "GET"
+		return "get"
 	} else if strings.HasPrefix(handlerName, "Update") || strings.HasPrefix(handlerName, "Modify") {
-		return "PUT"
+		return "put"
 	} else if strings.HasPrefix(handlerName, "Patch") || strings.HasPrefix(handlerName, "Partial") {
-		return "PATCH"
+		return "patch"
 	} else if strings.HasPrefix(handlerName, "Delete") || strings.HasPrefix(handlerName, "Remove") {
-		return "DELETE"
+		return "delete"
 	}
 
-	return "GET" // Default
+	return "get" // Default
 }
 
-// Determine the API path based on the function name
+// determinePath determines the API path based on the function name
 func determinePath(handlerName string) string {
-	// Convert camel case to kebab case for path
-	re := regexp.MustCompile(`([a-z0-9])([A-Z])`)
-	path := re.ReplaceAllString(handlerName, "$1-$2")
+	// Convert camel case to kebab case
+	path := camelCaseRegex.ReplaceAllString(handlerName, "$1-$2")
 	path = strings.ToLower(path)
 
 	// Remove common prefixes
-	path = strings.TrimPrefix(path, "get-")
-	path = strings.TrimPrefix(path, "list-")
-	path = strings.TrimPrefix(path, "create-")
-	path = strings.TrimPrefix(path, "update-")
-	path = strings.TrimPrefix(path, "delete-")
-	path = strings.TrimPrefix(path, "handle-")
+	prefixes := []string{"get-", "list-", "create-", "update-", "delete-", "handle-"}
+	for _, prefix := range prefixes {
+		path = strings.TrimPrefix(path, prefix)
+	}
 
 	// Add ID parameter for single-item operations
 	if strings.Contains(handlerName, "ById") ||
 		(strings.HasPrefix(handlerName, "Get") && !strings.HasPrefix(handlerName, "List")) ||
 		strings.HasPrefix(handlerName, "Update") ||
 		strings.HasPrefix(handlerName, "Delete") {
+
 		// Extract resource name
 		resourceName := path
 		if strings.Contains(resourceName, "-by-id") {
@@ -517,18 +548,18 @@ func determinePath(handlerName string) string {
 	return "/" + path
 }
 
-// Generate a summary for a handler method
+// generateSummary generates a summary for a handler method
 func generateSummary(handlerName string) string {
-	re := regexp.MustCompile(`([a-z0-9])([A-Z])`)
-	summary := re.ReplaceAllString(handlerName, "$1 $2")
-	return summary
+	// Convert camel case to space-separated words
+	return camelCaseRegex.ReplaceAllString(handlerName, "$1 $2")
 }
 
-// Generate a description for a handler method
+// generateDescription generates a description for a handler method
 func generateDescription(handlerName string) string {
-	re := regexp.MustCompile(`([a-z0-9])([A-Z])`)
-	desc := re.ReplaceAllString(handlerName, "$1 $2")
+	// Convert camel case to space-separated words
+	desc := camelCaseRegex.ReplaceAllString(handlerName, "$1 $2")
 
+	// Add appropriate prefix based on handler type
 	prefix := ""
 	if strings.HasPrefix(handlerName, "Create") {
 		prefix = "Creates a new "
@@ -550,37 +581,31 @@ func generateDescription(handlerName string) string {
 	return desc
 }
 
-// 从处理器名称确定tag
+// determineTagFromHandler determines the Swagger tag from a handler name
 func determineTagFromHandler(handlerName string) string {
-	// 移除Handler后缀
-	tag := strings.TrimSuffix(handlerName, "Handler")
-	return strings.ToLower(tag)
+	// Remove Handler suffix and convert to lowercase
+	return strings.ToLower(strings.TrimSuffix(handlerName, "Handler"))
 }
 
-// Determine parameters based on handler name, path and HTTP method
+// determineParameters determines the parameters for a handler method
 func determineParameters(handlerName string, path string, method string) []Parameter {
 	params := []Parameter{}
 
-	// 1. 处理路径参数 - 保留这些参数，因为Swagger需要知道URL路径中的参数
-	pathParamRegex := regexp.MustCompile(`\{([^}]+)\}`)
+	// Add path parameters
 	pathParams := pathParamRegex.FindAllStringSubmatch(path, -1)
-
 	for _, match := range pathParams {
 		if len(match) >= 2 {
-			paramName := match[1]
 			params = append(params, Parameter{
-				Name:     paramName,
-				Type:     "string", // 默认为string类型
+				Name:     match[1],
+				Type:     "string",
 				Location: "path",
-				Required: true, // 路径参数总是必需的
+				Required: true,
 			})
 		}
 	}
 
-	// 2. 添加请求结构体参数
+	// Add request parameter
 	reqType := "types." + handlerName + "Req"
-
-	// 根据HTTP方法确定参数位置
 	location := "body"
 	required := true
 
@@ -599,19 +624,21 @@ func determineParameters(handlerName string, path string, method string) []Param
 	return params
 }
 
-// Determine status code based on method
+// determineStatusCode determines the HTTP status code based on the method
 func determineStatusCode(method string) int {
-	if method == "post" {
+	switch method {
+	case "post":
 		return 201 // Created
-	} else if method == "delete" {
+	case "delete":
 		return 204 // No Content
+	default:
+		return 200 // OK
 	}
-	return 200 // OK
 }
 
-// Determine if a handler is likely secured based on its name
+// isLikelySecured determines if a handler is likely secured based on its name
 func isLikelySecured(handlerName string) bool {
-	// Most APIs except public ones like login, register, etc. are secured
+	// Common patterns for public endpoints
 	publicPatterns := []string{"Login", "Register", "Captcha", "Public"}
 
 	for _, pattern := range publicPatterns {
