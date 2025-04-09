@@ -1,4 +1,4 @@
-// Package types contains request and response types for the web API.
+// Package types contains sorting utilities for API requests.
 package types
 
 import (

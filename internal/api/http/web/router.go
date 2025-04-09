@@ -6,8 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/xelarion/go-layout/internal/api/web/handler"
-	"github.com/xelarion/go-layout/internal/service"
+	"github.com/xelarion/go-layout/internal/api/http/web/handler"
+	"github.com/xelarion/go-layout/internal/api/http/web/service"
 )
 
 // Router handles all routes for the Web API.
@@ -37,7 +37,7 @@ func (r *Router) SetupRoutes() {
 	authHandler := handler.NewAuthHandler(r.authService, r.logger)
 
 	// API routes
-	api := r.Engine.Group("/api/v1")
+	api := r.Engine.Group("/api/web/v1")
 
 	// Public routes
 	api.POST("/login", r.authMW.LoginHandler)

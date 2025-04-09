@@ -5,14 +5,13 @@ VERSION := $(shell git describe --tags --always --dirty)
 REGISTRY ?= docker.io
 
 # Service names
-SERVICES = api task
+SERVICES = web-api task
 
 # Database migration commands
-.PHONY: db migrate migrate-up migrate-down migrate-status migrate-create migrate-reset migrate-version migrate-redo migrate-up-to migrate-down-to migrate-fix migrate-ci gen-models
+.PHONY: migrate migrate-up migrate-down migrate-status migrate-create migrate-reset migrate-version migrate-redo migrate-up-to migrate-down-to migrate-fix migrate-ci
 
-# Run database migrations (simple alias for migrate-up)
-db:
-	go run cmd/migrate/main.go up
+# Run database migrations (alias for migrate-up)
+migrate: migrate-up
 
 # Apply all pending migrations
 migrate-up:
@@ -62,8 +61,7 @@ migrate-ci:
 	@echo "Preparing migrations for production deployment..."
 	go run cmd/migrate/main.go fix
 
-# Run database migrations (alias for migrate-up)
-migrate: migrate-up
+.PHONY: gen-models
 
 # Generate models from database schema
 gen-models:
@@ -71,21 +69,41 @@ gen-models:
 	@mkdir -p internal/model/gen
 	@go run tools/gen/main.go
 
+.PHONY: swagger-install swagger-gen swagger-web
+
+# Swagger commands
+# Install Swagger tools
+swagger-install:
+	@echo "Installing Swagger tools..."
+	go install github.com/swaggo/swag/cmd/swag@latest
+	go get -u github.com/swaggo/gin-swagger
+	go get -u github.com/swaggo/files
+
+# Generate Swagger documentation for Web API
+swagger-web:
+	@echo "Generating Swagger documentation for Web API..."
+	cd internal/api/http/web && swag init -g swagger/doc.go -o swagger/docs
+
+# Generate Swagger documentation for all APIs
+swagger-gen: swagger-web
+	@echo "Swagger documentation generated successfully"
+
+
 # Build targets
-.PHONY: build build-api build-task build-migrate
+.PHONY: build build-web-api build-task build-migrate
 
 # Build and push all Docker images
-build: build-api build-task build-migrate
+build: build-web-api build-task build-migrate
 	@echo "Build complete"
 
-# Build and push API Docker image
-build-api:
+# Build and push Web API Docker image
+build-web-api:
 	docker build \
-		--build-arg SERVICE=api \
+		--build-arg SERVICE=web-api \
 		--build-arg CONFIG_ENV=prod \
-		-t ${REGISTRY}/go-layout-api:${VERSION} .
+		-t ${REGISTRY}/go-layout-web-api:${VERSION} .
 
-	docker push ${REGISTRY}/go-layout-api:${VERSION}
+	docker push ${REGISTRY}/go-layout-web-api:${VERSION}
 
 # Build and push Task Docker image
 build-task:
@@ -122,7 +140,7 @@ deploy-single:
 	kubectl apply -f deploy/k3s/single/database.yaml
 	kubectl apply -f deploy/k3s/single/redis.yaml
 	kubectl apply -f deploy/k3s/single/rabbitmq.yaml
-	kubectl apply -f deploy/k3s/single/api-deployment.yaml
+	kubectl apply -f deploy/k3s/single/web-api-deployment.yaml
 	kubectl apply -f deploy/k3s/single/task-deployment.yaml
 	kubectl apply -f deploy/k3s/single/ingress.yaml
 
@@ -135,7 +153,7 @@ deploy-cluster:
 	kubectl apply -f deploy/k3s/cluster/database.yaml
 	kubectl apply -f deploy/k3s/cluster/redis.yaml
 	kubectl apply -f deploy/k3s/cluster/rabbitmq.yaml
-	kubectl apply -f deploy/k3s/cluster/api-deployment.yaml
+	kubectl apply -f deploy/k3s/cluster/web-api-deployment.yaml
 	kubectl apply -f deploy/k3s/cluster/task-deployment.yaml
 	kubectl apply -f deploy/k3s/cluster/ingress.yaml
 
@@ -184,7 +202,7 @@ deploy-all:
 
 # Clean up Docker images
 clean:
-	docker rmi ${REGISTRY}/go-layout-api:${VERSION} || true
+	docker rmi ${REGISTRY}/go-layout-web-api:${VERSION} || true
 	docker rmi ${REGISTRY}/go-layout-task:${VERSION} || true
 	docker rmi ${REGISTRY}/go-layout-migrate:${VERSION} || true
 

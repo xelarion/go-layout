@@ -18,7 +18,7 @@ servers:
     user: deploy
     k3s_version: v1.28.1+k3s1
     region: cn  # 使用 'cn' 表示中国区域（加速镜像）或 'global' 表示国际区域
-    
+
   - name: customer1
     host: server1.customer1.com
     user: deploy
@@ -73,7 +73,7 @@ make deploy-cluster
 
 ## 服务架构
 部署包括：
-1. API 服务：
+1. Web API 服务：
    - 单节点：1 个副本
    - 集群：3 个副本，具有 pod 反亲和性
    - 通过 Ingress 暴露
@@ -88,7 +88,7 @@ make deploy-cluster
    - RabbitMQ
 
 ## 资源需求
-### API 服务
+### Web API 服务
 - CPU：200m-500m
 - 内存：256Mi-512Mi
 
@@ -146,8 +146,8 @@ ssh <user>@<server-host> "sudo systemctl status k3s"
 ## 扩展
 要扩展服务：
 ```bash
-# 扩展 API 服务
-kubectl scale deployment api-deployment -n go-layout --replicas=<number>
+# 扩展 Web API 服务
+kubectl scale deployment web-api-deployment -n go-layout --replicas=<number>
 
 # 扩展 Task 服务
 kubectl scale deployment task-deployment -n go-layout --replicas=<number>

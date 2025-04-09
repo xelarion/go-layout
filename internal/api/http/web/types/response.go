@@ -1,4 +1,4 @@
-// Package types contains request and response types for the web API.
+// Package types contains standardized API response structures.
 package types
 
 // Common business status codes

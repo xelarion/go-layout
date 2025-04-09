@@ -14,7 +14,7 @@ RUN go mod download
 COPY . .
 
 # Build the application (parameterized with ARG)
-ARG SERVICE=api
+ARG SERVICE=web-api
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app ./cmd/${SERVICE}
 
 # Final stage
@@ -33,7 +33,7 @@ WORKDIR /app
 COPY --from=builder /app/app .
 
 # Copy configuration files
-ARG SERVICE=api
+ARG SERVICE=web-api
 ARG CONFIG_ENV=prod
 COPY --from=builder /app/config/${CONFIG_ENV}/.env /app/config/${CONFIG_ENV}/.env
 

@@ -1,0 +1,212 @@
+basePath: /
+definitions:
+  types.CreateUserReq:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      role:
+        enum:
+        - user
+        - admin
+        type: string
+      username:
+        maxLength: 100
+        minLength: 2
+        type: string
+    required:
+    - email
+    - password
+    - role
+    - username
+    type: object
+  types.CreateUserResp:
+    properties:
+      id:
+        type: integer
+    type: object
+  types.ListUsersResp:
+    properties:
+      page_info:
+        $ref: '#/definitions/types.PageResp'
+      results:
+        items:
+          $ref: '#/definitions/types.ListUsersRespResult'
+        type: array
+    type: object
+  types.ListUsersRespResult:
+    properties:
+      avatar:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      enabled:
+        type: boolean
+      id:
+        type: integer
+      role:
+        type: string
+      username:
+        type: string
+    type: object
+  types.PageResp:
+    properties:
+      page:
+        description: Current page number
+        type: integer
+      page_size:
+        description: Items per page
+        type: integer
+      total_count:
+        description: Total number of items
+        type: integer
+      total_pages:
+        description: Total number of pages
+        type: integer
+    type: object
+  types.Response:
+    properties:
+      code:
+        description: Business status code
+        type: integer
+      data:
+        description: Data payload
+      message:
+        description: Response message
+        type: string
+      meta:
+        description: Metadata like pagination info
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: A scalable, high-performance, and high-availability web application
+    template built with Go.
+  title: Web API
+  version: "1.0"
+paths:
+  /api/web/v1/users:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of users with optional filtering
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - default: id
+        description: Sort field
+        in: query
+        name: sort_field
+        type: string
+      - default: asc
+        description: Sort order (asc or desc)
+        enum:
+        - asc
+        - desc
+        in: query
+        name: sort_order
+        type: string
+      - description: Filter by username
+        in: query
+        name: username
+        type: string
+      - description: Filter by email
+        in: query
+        name: email
+        type: string
+      - description: Filter by role
+        in: query
+        name: role
+        type: string
+      - description: Filter by enabled status
+        in: query
+        name: enabled
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Users list
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ListUsersResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: List users
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Create a new user with the provided data
+      parameters:
+      - description: User data
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/types.CreateUserReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User created
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.CreateUserResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a new user
+      tags:
+      - users
+securityDefinitions:
+  BearerAuth:
+    description: Bearer token authentication
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

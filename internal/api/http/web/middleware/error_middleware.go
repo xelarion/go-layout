@@ -1,4 +1,4 @@
-// Package middleware contains HTTP middleware components.
+// Package middleware contains Web API middleware components.
 package middleware
 
 import (
@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/xelarion/go-layout/internal/api/web/types"
+	"github.com/xelarion/go-layout/internal/api/http/web/types"
 	"github.com/xelarion/go-layout/pkg/errs"
 )
 

@@ -1,4 +1,4 @@
-// Package middleware contains HTTP middleware functions for the application.
+// Package middleware contains Web API middleware components.
 package middleware
 
 import (
@@ -9,7 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/xelarion/go-layout/internal/api/web/types"
+	"github.com/xelarion/go-layout/internal/api/http/web/types"
 )
 
 // Timeout middleware sets a maximum duration for request processing.

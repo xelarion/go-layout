@@ -6,7 +6,7 @@ This document outlines the process for deploying the go-layout application to pr
 
 The go-layout application is designed for containerized deployment using Docker and Kubernetes (specifically k3s). The application consists of:
 
-- **API Service**: The main web API service
+- **Web API Service**: The main web API service
 - **Task Service**: Background task processing service
 - **Database Migrations**: Separate container for running database migrations
 
@@ -22,11 +22,11 @@ The go-layout application is designed for containerized deployment using Docker 
 All services are packaged as Docker containers. The following commands build and push the images:
 
 ```bash
-# Build and push all images (API, Task, Migrations)
+# Build and push all images (Web API, Task, Migrations)
 make build
 
 # Build and push individual services
-make build-api
+make build-web-api
 make build-task
 make build-migrate
 ```
@@ -60,7 +60,7 @@ make deploy-single
 ```
 
 This will deploy:
-- The API service
+- The Web API service
 - The Task service
 - Supporting services (if configured in the k3s manifests)
 - Ingress configuration for external access
@@ -131,8 +131,8 @@ The application provides health check endpoints that are used by Kubernetes to m
 The application is designed to be stateless and can be scaled horizontally by increasing the number of replicas:
 
 ```bash
-kubectl scale deployment/go-layout-api --replicas=3 -n go-layout
-kubectl scale deployment/go-layout-task --replicas=2 -n go-layout
+kubectl scale deployment/web-api-deployment --replicas=3 -n go-layout
+kubectl scale deployment/task-deployment --replicas=2 -n go-layout
 ```
 
 ## Rollback Procedure
@@ -143,8 +143,8 @@ To roll back to a previous version:
 2. Update the deployment with the previous version:
 
 ```bash
-kubectl set image deployment/go-layout-api go-layout-api=${REGISTRY}/go-layout-api:${PREVIOUS_VERSION} -n go-layout
-kubectl set image deployment/go-layout-task go-layout-task=${REGISTRY}/go-layout-task:${PREVIOUS_VERSION} -n go-layout
+kubectl set image deployment/web-api-deployment web-api=${REGISTRY}/go-layout-web-api:${PREVIOUS_VERSION} -n go-layout
+kubectl set image deployment/task-deployment task=${REGISTRY}/go-layout-task:${PREVIOUS_VERSION} -n go-layout
 ```
 
 ## Troubleshooting
@@ -152,14 +152,14 @@ kubectl set image deployment/go-layout-task go-layout-task=${REGISTRY}/go-layout
 ### Checking Logs
 
 ```bash
-# View API service logs
-kubectl logs -l app=go-layout,component=api -n go-layout
+# View Web API service logs
+kubectl logs -l app=web-api -n go-layout
 
 # View Task service logs
-kubectl logs -l app=go-layout,component=task -n go-layout
+kubectl logs -l app=task -n go-layout
 
 # View migration job logs
-kubectl logs -l app=go-layout,component=db-migrate -n go-layout
+kubectl logs -l app=db-migrate -n go-layout
 ```
 
 ### Checking Pod Status
@@ -253,7 +253,7 @@ All environment variables are managed through ConfigMaps and Secrets:
 
 The deployment consists of:
 
-1. API Service:
+1. Web API Service:
    - Single node: 1 replica
    - Cluster: 3 replicas with pod anti-affinity
    - Exposed via Ingress
@@ -269,7 +269,7 @@ The deployment consists of:
 
 ## Resource Requirements
 
-### API Service
+### Web API Service
 
 - CPU: 200m-500m
 - Memory: 256Mi-512Mi
@@ -341,7 +341,7 @@ ssh <user>@<server-host> "sudo systemctl status k3s"
 To scale services:
 
 ```bash
-# Scale API service
+# Scale Web API service
 kubectl scale deployment api-deployment -n go-layout --replicas=<number>
 
 # Scale Task service

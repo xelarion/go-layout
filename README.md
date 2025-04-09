@@ -32,10 +32,9 @@ A scalable, high-performance, and high-availability web application template bui
 
 ## Project Structure
 
-```go
-.
+```
 ├── cmd/                   # Application entry points
-│   ├── api/               # API server
+│   ├── web-api/           # Web API server
 │   ├── migrate/           # Database migration tool
 │   └── task/              # Task runner for scheduled, polling and queue tasks
 ├── config/                # Configuration files
@@ -52,16 +51,15 @@ A scalable, high-performance, and high-availability web application template bui
 ├── docs/                  # Documentation
 │   ├── deployment.md      # Detailed deployment guide
 │   ├── deployment-zh.md   # Deployment guide in Chinese
-│   ├── jwt-integration-guide.md    # JWT integration guide for frontend developers
-│   └── jwt-integration-guide-zh.md # JWT integration guide in Chinese
 ├── internal/              # Private application code
 │   ├── api/               # API-specific code
-│   │   ├── public/        # Public API handlers and routers
-│   │   └── web/           # Web API handlers and routers
-│   │       ├── handler/   # API request handlers
-│   │       ├── middleware/# HTTP middleware components
-│   │       ├── types/     # Request/response structures
-│   │       └── router.go  # Route definitions
+│   │   └── http/          # HTTP API code
+│   │       └── web/       # Web API handlers and routers
+│   │           ├── handler/   # API request handlers
+│   │           ├── middleware/# HTTP middleware components
+│   │           ├── types/     # Request/response structures
+│   │           ├── service/   # Web API services
+│   │           └── router.go  # Route definitions
 │   ├── enum/              # Enumeration constants
 │   ├── model/             # Domain models
 │   ├── repository/        # Data access layer
@@ -135,7 +133,10 @@ The application implements a JWT-based authentication system with the following 
 - **Stateless design**: No server-side session storage, perfect for horizontal scaling
 - **RESTful implementation**: Token passed via Authorization header
 
-For frontend developers integrating with the authentication system, refer to the [JWT Integration Guide](docs/jwt-integration-guide.md).
+Frontend applications can integrate with the authentication system through the endpoints:
+
+- `POST /api/web/v1/login` - For user authentication
+- `GET /api/web/v1/refresh_token` - For refreshing expired tokens
 
 ## API Response Format
 
@@ -204,7 +205,7 @@ Error responses maintain the same structure:
 5. Start the API server
 
    ```bash
-   go run cmd/api/main.go
+   go run cmd/web-api/main.go
    ```
 
 6. Start the Task runner with desired components (all optional flags)
@@ -249,19 +250,19 @@ make deploy-server SERVER=servername
 The API provides the following endpoints:
 
 - **Authentication**
-  - `POST /api/v1/login` - Login and get JWT token
-  - `GET /api/v1/refresh_token` - Refresh JWT token
-  - `GET /api/v1/captcha` - Get captcha for login
+  - `POST /api/web/v1/login` - Login and get JWT token
+  - `GET /api/web/v1/refresh_token` - Refresh JWT token
+  - `GET /api/web/v1/captcha` - Get captcha for login
 
 - **User Management**
-  - `GET /api/v1/profile` - Get current user profile (requires authentication)
-  - `PUT /api/v1/profile` - Update current user profile (requires authentication)
-  - `POST /api/v1/users` - Create new user (requires admin role)
-  - `GET /api/v1/users/:id` - Get user by ID (requires admin role)
-  - `PUT /api/v1/users/:id` - Update user (requires admin role)
-  - `PATCH /api/v1/users/:id/enabled` - Update user's enabled status (requires admin role)
-  - `DELETE /api/v1/users/:id` - Delete user (requires admin role)
-  - `GET /api/v1/users` - List users with pagination and filtering (requires admin role)
+  - `GET /api/web/v1/profile` - Get current user profile (requires authentication)
+  - `PUT /api/web/v1/profile` - Update current user profile (requires authentication)
+  - `POST /api/web/v1/users` - Create new user (requires admin role)
+  - `GET /api/web/v1/users/:id` - Get user by ID (requires admin role)
+  - `PUT /api/web/v1/users/:id` - Update user (requires admin role)
+  - `PATCH /api/web/v1/users/:id/enabled` - Update user's enabled status (requires admin role)
+  - `DELETE /api/web/v1/users/:id` - Delete user (requires admin role)
+  - `GET /api/web/v1/users` - List users with pagination and filtering (requires admin role)
 
 - **System**
   - `GET /health` - Health check endpoint

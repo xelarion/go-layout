@@ -109,7 +109,7 @@ func loadEnvFile() {
 	// Try to find .env.local or .env file in config directory
 	basePaths := []string{
 		"config", // When running from project root
-		".." + string(os.PathSeparator) + "config",                                   // When running from cmd/api
+		".." + string(os.PathSeparator) + "config",                                   // When running from cmd/xxx
 		".." + string(os.PathSeparator) + ".." + string(os.PathSeparator) + "config", // When running from a subdirectory
 	}
 

@@ -7,8 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/xelarion/go-layout/internal/api/web/types"
-	"github.com/xelarion/go-layout/internal/service"
+	"github.com/xelarion/go-layout/internal/api/http/web/service"
+	"github.com/xelarion/go-layout/internal/api/http/web/types"
 	"github.com/xelarion/go-layout/pkg/binding"
 	"github.com/xelarion/go-layout/pkg/errs"
 )
@@ -28,6 +28,18 @@ func NewUserHandler(userService *service.UserService, logger *zap.Logger) *UserH
 }
 
 // CreateUser handles requests to create a new user.
+// @Summary Create a new user
+// @Description Create a new user with the provided data
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param data body types.CreateUserReq true "User data"
+// @Success 201 {object} types.Response{data=types.CreateUserResp} "User created"
+// @Failure 400 {object} types.Response "Bad request"
+// @Failure 401 {object} types.Response "Unauthorized"
+// @Failure 500 {object} types.Response "Internal server error"
+// @Router /api/web/v1/users [post]
+// @Security BearerAuth
 func (h *UserHandler) CreateUser(c *gin.Context) {
 	var req types.CreateUserReq
 	if err := binding.Bind(c, &req, binding.JSON); err != nil {
@@ -45,6 +57,25 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 }
 
 // ListUsers handles requests to list users with pagination and filtering.
+// @Summary List users
+// @Description Get a paginated list of users with optional filtering
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param page query int false "Page number" default(1)
+// @Param page_size query int false "Page size" default(20)
+// @Param sort_field query string false "Sort field" default(id)
+// @Param sort_order query string false "Sort order (asc or desc)" Enums(asc,desc) default(asc)
+// @Param username query string false "Filter by username"
+// @Param email query string false "Filter by email"
+// @Param role query string false "Filter by role"
+// @Param enabled query bool false "Filter by enabled status"
+// @Success 200 {object} types.Response{data=types.ListUsersResp} "Users list"
+// @Failure 400 {object} types.Response "Bad request"
+// @Failure 401 {object} types.Response "Unauthorized"
+// @Failure 500 {object} types.Response "Internal server error"
+// @Router /api/web/v1/users [get]
+// @Security BearerAuth
 func (h *UserHandler) ListUsers(c *gin.Context) {
 	var req types.ListUsersReq
 	if err := binding.Bind(c, &req, binding.Query); err != nil {

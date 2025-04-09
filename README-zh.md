@@ -32,10 +32,9 @@
 
 ## 项目结构
 
-```go
-.
+```
 ├── cmd/                   # 应用程序入口点
-│   ├── api/               # API服务器
+│   ├── web-api/           # Web API服务器
 │   ├── migrate/           # 数据库迁移工具
 │   └── task/              # 用于定时、轮询和队列任务的任务运行器
 ├── config/                # 配置文件
@@ -52,16 +51,15 @@
 ├── docs/                  # 文档
 │   ├── deployment.md      # 详细部署指南（英文）
 │   ├── deployment-zh.md   # 详细部署指南（中文）
-│   ├── jwt-integration-guide.md    # JWT集成指南（英文版）
-│   └── jwt-integration-guide-zh.md # JWT集成指南（中文版）
 ├── internal/              # 私有应用代码
 │   ├── api/               # API特定代码
-│   │   ├── public/        # 公共API处理器和路由
-│   │   └── web/           # Web API处理器和路由
-│   │       ├── handler/   # API请求处理器
-│   │       ├── middleware/# HTTP中间件组件
-│   │       ├── types/     # 请求/响应结构
-│   │       └── router.go  # 路由定义
+│   │   └── http/          # HTTP API代码
+│   │       └── web/       # Web API处理器和路由
+│   │           ├── handler/   # API请求处理器
+│   │           ├── middleware/# HTTP中间件组件
+│   │           ├── types/     # 请求/响应结构
+│   │           ├── service/   # Web API服务
+│   │           └── router.go  # 路由定义
 │   ├── enum/              # 枚举常量
 │   ├── model/             # 领域模型
 │   ├── repository/        # 数据访问层
@@ -135,7 +133,10 @@
 - **无状态设计**：无服务器端会话存储，完美适用于水平扩展
 - **RESTful实现**：通过Authorization头传递令牌
 
-前端开发人员如需集成认证系统，请参阅[JWT集成指南](docs/jwt-integration-guide-zh.md)。
+前端应用程序可以通过以下端点与认证系统集成：
+
+- `POST /api/web/v1/login` - 用于用户认证
+- `GET /api/web/v1/refresh_token` - 用于刷新过期令牌
 
 ## API响应格式
 
@@ -204,7 +205,7 @@
 5. 启动API服务器
 
    ```bash
-   go run cmd/api/main.go
+   go run cmd/web-api/main.go
    ```
 
 6. 启动任务运行器，带有所需组件（所有标志都是可选的）
@@ -249,19 +250,19 @@ make deploy-server SERVER=servername
 API提供以下端点：
 
 - **认证**
-  - `POST /api/v1/login` - 登录并获取JWT令牌
-  - `GET /api/v1/refresh_token` - 刷新JWT令牌
-  - `GET /api/v1/captcha` - 获取登录验证码
+  - `POST /api/web/v1/login` - 登录并获取JWT令牌
+  - `GET /api/web/v1/refresh_token` - 刷新JWT令牌
+  - `GET /api/web/v1/captcha` - 获取登录验证码
 
 - **用户管理**
-  - `GET /api/v1/profile` - 获取当前用户个人资料（需要认证）
-  - `PUT /api/v1/profile` - 更新当前用户个人资料（需要认证）
-  - `POST /api/v1/users` - 创建新用户（需要管理员角色）
-  - `GET /api/v1/users/:id` - 通过ID获取用户（需要管理员角色）
-  - `PUT /api/v1/users/:id` - 更新用户（需要管理员角色）
-  - `PATCH /api/v1/users/:id/enabled` - 更新用户启用状态（需要管理员角色）
-  - `DELETE /api/v1/users/:id` - 删除用户（需要管理员角色）
-  - `GET /api/v1/users` - 带分页和筛选的用户列表（需要管理员角色）
+  - `GET /api/web/v1/profile` - 获取当前用户个人资料（需要认证）
+  - `PUT /api/web/v1/profile` - 更新当前用户个人资料（需要认证）
+  - `POST /api/web/v1/users` - 创建新用户（需要管理员角色）
+  - `GET /api/web/v1/users/:id` - 通过ID获取用户（需要管理员角色）
+  - `PUT /api/web/v1/users/:id` - 更新用户（需要管理员角色）
+  - `PATCH /api/web/v1/users/:id/enabled` - 更新用户启用状态（需要管理员角色）
+  - `DELETE /api/web/v1/users/:id` - 删除用户（需要管理员角色）
+  - `GET /api/web/v1/users` - 带分页和筛选的用户列表（需要管理员角色）
 
 - **系统**
   - `GET /health` - 健康检查端点

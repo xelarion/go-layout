@@ -7,8 +7,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/xelarion/go-layout/internal/api/web/types"
-	"github.com/xelarion/go-layout/internal/service"
+	"github.com/xelarion/go-layout/internal/api/http/web/service"
+	"github.com/xelarion/go-layout/internal/api/http/web/types"
 )
 
 type AuthHandler struct {

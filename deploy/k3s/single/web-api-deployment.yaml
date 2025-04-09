@@ -1,33 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: api-deployment
+  name: web-api-deployment
   namespace: go-layout
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
-      app: api
+      app: web-api
   template:
     metadata:
       labels:
-        app: api
+        app: web-api
     spec:
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchExpressions:
-                - key: app
-                  operator: In
-                  values:
-                  - api
-              topologyKey: "kubernetes.io/hostname"
       containers:
-      - name: api
-        image: ${REGISTRY}/go-layout-api:${TAG}
+      - name: web-api
+        image: ${REGISTRY}/go-layout-web-api:${TAG}
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
@@ -115,11 +103,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: api-service
+  name: web-api-service
   namespace: go-layout
 spec:
   selector:
-    app: api
+    app: web-api
   ports:
   - port: 80
     targetPort: 8080

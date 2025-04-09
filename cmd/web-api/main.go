@@ -1,4 +1,4 @@
-// Package main provides a command line program for the API service.
+// Package main provides a command line program for the Web API service.
 package main
 
 import (
@@ -32,13 +32,13 @@ func main() {
 	// Initialize the application
 	apiApp, err := initApp(cfg, zapLogger.Logger)
 	if err != nil {
-		zapLogger.Logger.Fatal("Failed to initialize application", zap.Error(err))
+		zapLogger.Logger.Fatal("Failed to initialize Web API application", zap.Error(err))
 	}
 
 	// Start the application with signal handling
 	ctx := context.Background()
 	if err := app.RunWithSignalHandling(ctx, apiApp, 10*time.Second); err != nil {
-		zapLogger.Logger.Error("Error during application lifecycle", zap.Error(err))
+		zapLogger.Logger.Error("Error during Web API application lifecycle", zap.Error(err))
 		os.Exit(1)
 	}
 }
