@@ -480,36 +480,32 @@ func generateSwaggerComment(funcDecl *ast.FuncDecl, config Config, routes map[st
 
 	// Add basic info
 	comment.WriteString(fmt.Sprintf("// %s godoc\n", handlerName))
-	comment.WriteString(fmt.Sprintf("// @Summary\t\t%s\n", generateSummary(handlerName)))
-	comment.WriteString(fmt.Sprintf("// @Description\t%s\n", generateDescription(handlerName)))
-	comment.WriteString("// @Tags\t\t\t" + determineTagFromHandler(receiverType) + "\n")
-	comment.WriteString("// @Accept\t\t\tjson\n")
-	comment.WriteString("// @Produce\t\tjson\n")
+	comment.WriteString(fmt.Sprintf("// @Summary %s\n", generateSummary(handlerName)))
+	comment.WriteString(fmt.Sprintf("// @Description %s\n", generateDescription(handlerName)))
+	comment.WriteString("// @Tags " + determineTagFromHandler(receiverType) + "\n")
+	comment.WriteString("// @Accept json\n")
+	comment.WriteString("// @Produce json\n")
 
 	// Add parameters
 	addParametersToComment(&comment, handlerName, path, method)
 
-	// Add response type - special case for List operations
+	// Add response type
 	statusCode := determineStatusCode(method)
-	if strings.HasPrefix(handlerName, "List") {
-		// List operations typically have paginated responses
-		comment.WriteString(fmt.Sprintf("// @Success\t\t%d\t{object}\ttypes.Response{data=types.%sResp}\t\"Success\"\n", statusCode, handlerName))
-	} else {
-		comment.WriteString(fmt.Sprintf("// @Success\t\t%d\t{object}\ttypes.Response{data=types.%sResp}\t\"Success\"\n", statusCode, handlerName))
-	}
+	comment.WriteString(fmt.Sprintf("// @Success %d {object} types.Response{data=types.%sResp} \"Success\"\n",
+		statusCode, handlerName))
 
 	// Add error responses
-	comment.WriteString("// @Failure\t\t400\t{object}\ttypes.Response\t\t\t\t\t\t\t\"Bad request\"\n")
-	comment.WriteString("// @Failure\t\t401\t{object}\ttypes.Response\t\t\t\t\t\t\t\"Unauthorized\"\n")
-	comment.WriteString("// @Failure\t\t500\t{object}\ttypes.Response\t\t\t\t\t\t\t\"Internal server error\"\n")
+	comment.WriteString("// @Failure 400 {object} types.Response \"Bad request\"\n")
+	comment.WriteString("// @Failure 401 {object} types.Response \"Unauthorized\"\n")
+	comment.WriteString("// @Failure 500 {object} types.Response \"Internal server error\"\n")
 
 	// Add security if applicable
 	if isSecured || (!exists && isLikelySecured(handlerName)) {
-		comment.WriteString(fmt.Sprintf("// @Security\t\t%s\n", config.SecurityScheme))
+		comment.WriteString(fmt.Sprintf("// @Security %s\n", config.SecurityScheme))
 	}
 
 	// Add router information
-	comment.WriteString(fmt.Sprintf("// @Router\t\t\t%s [%s]\n", path, method))
+	comment.WriteString(fmt.Sprintf("// @Router %s [%s]\n", path, method))
 
 	return comment.String()
 }
@@ -520,7 +516,7 @@ func addParametersToComment(comment *strings.Builder, handlerName, path, method 
 	pathParams := pathParamRegex.FindAllStringSubmatch(path, -1)
 	for _, match := range pathParams {
 		if len(match) >= 2 {
-			comment.WriteString(fmt.Sprintf("// @Param\t\t\t%s\tpath\t\tstring\t\t\t\t\t\t\t\t\ttrue\t\"%s\"\n",
+			comment.WriteString(fmt.Sprintf("// @Param %s path string true \"%s\"\n",
 				match[1], match[1]))
 		}
 	}
@@ -535,7 +531,7 @@ func addParametersToComment(comment *strings.Builder, handlerName, path, method 
 		required = "false"
 	}
 
-	comment.WriteString(fmt.Sprintf("// @Param\t\t\treq\t%s\t\t%s\t\t\t\t\t\t\t\t\t%s\t\"req\"\n",
+	comment.WriteString(fmt.Sprintf("// @Param req %s %s %s \"req\"\n",
 		location, reqType, required))
 }
 

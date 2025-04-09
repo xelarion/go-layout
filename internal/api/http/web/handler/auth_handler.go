@@ -25,18 +25,21 @@ func NewAuthHandler(authService *service.AuthService, logger *zap.Logger) *AuthH
 }
 
 // GetCaptcha godoc
-//
-//	@Summary		Get Capt
 //	@Summary		Get Captcha
 //	@Description	Retrieves a single Captcha
 //	@Tags			auth
 //	@Accept			json
 //	@Produce		json
+//	@Param			req	query		types.GetCaptchaReq							false	"req"
+//	@Success		200	{object}	types.Response{data=types.GetCaptchaResp}	"Success"
+//	@Failure		400	{object}	types.Response								"Bad request"
+//	@Failure		401	{object}	types.Response								"Unauthorized"
+//	@Failure		500	{object}	types.Response								"Internal server error"
 //	@Router			/captcha [get]
 func (h *AuthHandler) GetCaptcha(c *gin.Context) {
 	// In a real application, you would use a captcha library to generate the image
 	// For this example, we'll use a mock implementation
-	resp := types.CaptchaResp{
+	resp := types.GetCaptchaResp{
 		CaptchaID:  "sample-captcha-id",
 		CaptchaImg: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAoCAMAAAA...", // Mock base64 image
 	}

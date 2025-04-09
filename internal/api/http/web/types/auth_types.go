@@ -41,8 +41,11 @@ type RefreshResp struct {
 	TokenType string `json:"token_type"`
 }
 
-// CaptchaResp represents captcha data in responses.
-type CaptchaResp struct {
+type GetCaptchaReq struct {
+}
+
+// GetCaptchaResp represents captcha data in responses.
+type GetCaptchaResp struct {
 	CaptchaID  string `json:"captcha_id"`
 	CaptchaImg string `json:"captcha_img"` // Base64 encoded image
 }

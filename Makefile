@@ -30,7 +30,7 @@ migrate-status:
 migrate-reset:
 	go run cmd/migrate/main.go reset
 
-# Create a new migration file (requires NAME=<name>)
+# Create a new migration file (requires NAME=<n>)
 migrate-create:
 	@[ "${NAME}" ] || ( echo "Please provide NAME=<migration_name>"; exit 1 )
 	go run cmd/migrate/main.go create ${NAME} sql
@@ -70,9 +70,8 @@ gen-models:
 	@mkdir -p internal/model/gen
 	@go run tools/gen/main.go
 
-.PHONY: swagger-install swagger-gen swagger-web swagger-autocomment swagger-all
+.PHONY: swagger-install swagger-gen swagger-docs swagger-comment swagger-all
 
-# Swagger commands
 # Install Swagger tools
 swagger-install:
 	@echo "Installing Swagger tools..."
@@ -81,21 +80,21 @@ swagger-install:
 	go get -u github.com/swaggo/files
 
 # Generate Swagger documentation for Web API
-swagger-web:
+swagger-docs:
 	@echo "Generating Swagger documentation for Web API..."
 	cd internal/api/http/web && swag init -g swagger/doc.go -o swagger/docs && swag fmt
 
 # Generate intelligent Swagger comments for handler methods
-swagger-autocomment:
+swagger-comment:
 	@echo "Generating intelligent Swagger comments for handler methods..."
 	go run tools/swagger_autocomment/main.go -dir ./internal/api/http/web/handler
 
 # Generate all Swagger documentation (comments and docs)
-swagger-all: swagger-autocomment swagger-web
+swagger-all: swagger-comment swagger-docs
 	@echo "All Swagger documentation generated successfully"
 
-# Generate Swagger documentation for all APIs
-swagger-gen: swagger-web
+# Generate Swagger documentation for all APIs (alias for swagger-docs)
+swagger-gen: swagger-docs
 	@echo "Swagger documentation generated successfully"
 
 
@@ -112,7 +111,6 @@ build-web-api:
 		--build-arg SERVICE=web-api \
 		--build-arg CONFIG_ENV=prod \
 		-t ${REGISTRY}/go-layout-web-api:${VERSION} .
-
 	docker push ${REGISTRY}/go-layout-web-api:${VERSION}
 
 # Build and push Task Docker image
@@ -121,7 +119,6 @@ build-task:
 		--build-arg SERVICE=task \
 		--build-arg CONFIG_ENV=prod \
 		-t ${REGISTRY}/go-layout-task:${VERSION} .
-
 	docker push ${REGISTRY}/go-layout-task:${VERSION}
 
 # Build and push Migration Docker image
@@ -132,7 +129,6 @@ build-migrate:
 		-f Dockerfile.migrate \
 		--build-arg CONFIG_ENV=prod \
 		-t ${REGISTRY}/go-layout-migrate:${VERSION} .
-
 	docker push ${REGISTRY}/go-layout-migrate:${VERSION}
 
 # Deploy targets

@@ -28,7 +28,44 @@ const docTemplate = `{
                     "auth"
                 ],
                 "summary": "Get Captcha",
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/types.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/types.GetCaptchaResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    }
+                }
             }
         },
         "/profile": {
@@ -745,6 +782,18 @@ const docTemplate = `{
         },
         "types.DeleteUserResp": {
             "type": "object"
+        },
+        "types.GetCaptchaResp": {
+            "type": "object",
+            "properties": {
+                "captcha_id": {
+                    "type": "string"
+                },
+                "captcha_img": {
+                    "description": "Base64 encoded image",
+                    "type": "string"
+                }
+            }
         },
         "types.GetProfileResp": {
             "type": "object",

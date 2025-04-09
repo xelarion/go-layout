@@ -31,6 +31,14 @@ definitions:
     type: object
   types.DeleteUserResp:
     type: object
+  types.GetCaptchaResp:
+    properties:
+      captcha_id:
+        type: string
+      captcha_img:
+        description: Base64 encoded image
+        type: string
+    type: object
   types.GetProfileResp:
     properties:
       avatar:
@@ -195,7 +203,28 @@ paths:
       description: Retrieves a single Captcha
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetCaptchaResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
       summary: Get Captcha
       tags:
       - auth
