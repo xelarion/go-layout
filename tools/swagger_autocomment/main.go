@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 )
@@ -32,13 +33,19 @@ type Config struct {
 
 // NewDefaultConfig creates a new configuration with default values
 func NewDefaultConfig() *Config {
+	// Use CPU core count for concurrency, with minimum of 2
+	cpuCount := runtime.NumCPU()
+	if cpuCount < 2 {
+		cpuCount = 2
+	}
+
 	return &Config{
 		HandlerDir:     "./internal/api/http/web/handler",
 		SecurityScheme: "BearerAuth",
 		RouterFile:     "./internal/api/http/web/router.go",
 		TypesPaths:     []string{"./internal/api/http/web/types/*.go", "./pkg/types/*.go"},
 		HandlerPattern: "*_handler.go",
-		Concurrency:    4,
+		Concurrency:    cpuCount,
 		ApiPrefix:      "",
 		Verbose:        true,
 	}
@@ -61,8 +68,21 @@ func (cfg *Config) SetupFlags() {
 	defaultTypesPaths := strings.Join(cfg.TypesPaths, ",")
 	flag.StringVar(&typesPaths, "types", defaultTypesPaths, "Comma-separated list of glob patterns for type definition files")
 
-	// Parse the types paths after flags are parsed
+	// Add help flags
+	help := flag.Bool("help", false, "Print usage information")
+	h := flag.Bool("h", false, "Print usage information")
+
+	// Override the default usage function
+	flag.Usage = printUsage
+
+	// Parse the flags
 	flag.Parse()
+
+	// Check if help was requested
+	if *help || *h {
+		printUsage()
+		os.Exit(0)
+	}
 
 	if typesPaths != "" {
 		cfg.TypesPaths = strings.Split(typesPaths, ",")
@@ -330,6 +350,11 @@ func NewSwaggerGenerator(config *Config) (*SwaggerGenerator, error) {
 func (sg *SwaggerGenerator) Run() (FileStats, error) {
 	totalStats := FileStats{}
 
+	// Print configuration if verbose
+	if sg.config.Verbose {
+		printConfig(sg.config, len(sg.routes))
+	}
+
 	// Find all handler files
 	handlerFiles, err := findHandlerFiles(sg.config.HandlerDir, sg.config.HandlerPattern)
 	if err != nil {
@@ -420,13 +445,22 @@ func (wp *WorkerPool) Close() {
 // ProcessResults processes results from the result channel and returns total stats
 func (wp *WorkerPool) ProcessResults() FileStats {
 	totalStats := FileStats{}
+	successCount := 0
+	errorCount := 0
+
+	if wp.config.Verbose {
+		fmt.Printf("Processing files with %d workers...\n", wp.concurrency)
+		fmt.Println()
+	}
 
 	for result := range wp.resultChan {
 		if result.err != nil {
+			errorCount++
 			fmt.Printf("Error processing %s: %v\n", result.path, result.err)
 			continue
 		}
 
+		successCount++
 		totalStats.TotalMethods += result.stats.TotalMethods
 		totalStats.HandlerMethods += result.stats.HandlerMethods
 		totalStats.AlreadyCommented += result.stats.AlreadyCommented
@@ -434,7 +468,14 @@ func (wp *WorkerPool) ProcessResults() FileStats {
 
 		if wp.config.Verbose {
 			printFileStats(result.path, result.stats)
+			fmt.Printf("Progress: %d files processed (%d successful, %d failed)\n",
+				successCount+errorCount, successCount, errorCount)
+			fmt.Println()
 		}
+	}
+
+	if errorCount > 0 {
+		fmt.Printf("Completed with %d errors and %d successful files\n", errorCount, successCount)
 	}
 
 	return totalStats
@@ -446,16 +487,6 @@ func main() {
 
 	// Parse command line flags
 	config.SetupFlags()
-
-	help := flag.Bool("help", false, "Print usage information")
-	h := flag.Bool("h", false, "Print usage information")
-
-	flag.Parse()
-
-	if *help || *h {
-		printUsage()
-		return
-	}
 
 	// Validate handler directory
 	if !dirExists(config.HandlerDir) {
@@ -479,10 +510,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("Swagger comment generation complete!")
-	fmt.Printf("Total methods: %d, Handler methods: %d, Already commented: %d, Newly commented: %d\n",
-		totalStats.TotalMethods, totalStats.HandlerMethods,
-		totalStats.AlreadyCommented, totalStats.NewlyCommented)
+	// Calculate overall percentage
+	var totalCoverage float64
+	if totalStats.HandlerMethods > 0 {
+		totalCoverage = float64(totalStats.AlreadyCommented+totalStats.NewlyCommented) / float64(totalStats.HandlerMethods) * 100
+	}
+
+	// Print summary
+	fmt.Println("======================================")
+	fmt.Println("Swagger Comment Generation Complete!")
+	fmt.Println("======================================")
+	fmt.Printf("Total methods examined:  %d\n", totalStats.TotalMethods)
+	fmt.Printf("Handler methods found:   %d\n", totalStats.HandlerMethods)
+	fmt.Printf("Already commented:       %d\n", totalStats.AlreadyCommented)
+	fmt.Printf("New comments added:      %d\n", totalStats.NewlyCommented)
+	fmt.Printf("Total documentation:     %d/%d (%.1f%%)\n",
+		totalStats.AlreadyCommented+totalStats.NewlyCommented,
+		totalStats.HandlerMethods,
+		totalCoverage)
 }
 
 // fileResult holds the result of processing a file
@@ -508,33 +553,102 @@ func getCwd() string {
 }
 
 // printConfig prints the configuration
-func printConfig(config Config, routesCount int) {
-	fmt.Printf("Processing handlers in %s\n", config.HandlerDir)
-	fmt.Printf("Output directory: %s\n", config.OutputDir)
-	fmt.Printf("Security Scheme: %s\n", config.SecurityScheme)
-	fmt.Printf("Router file: %s\n", config.RouterFile)
-	fmt.Printf("Verbose mode: %v\n", config.Verbose)
-	fmt.Printf("Extracted %d routes from router file\n", routesCount)
+func printConfig(config *Config, routesCount int) {
+	fmt.Println("Configuration:")
+	fmt.Printf("  Handler directory: %s\n", config.HandlerDir)
+	fmt.Printf("  Output directory: %s\n", config.OutputDir)
+	fmt.Printf("  Router file: %s\n", config.RouterFile)
+	fmt.Printf("  Handler pattern: %s\n", config.HandlerPattern)
+	fmt.Printf("  API prefix: %s\n", config.ApiPrefix)
+	fmt.Printf("  Security scheme: %s\n", config.SecurityScheme)
+	fmt.Printf("  Concurrency: %d\n", config.Concurrency)
+	fmt.Printf("  Type paths: %s\n", strings.Join(config.TypesPaths, ", "))
+	if config.ProjectName != "" {
+		fmt.Printf("  Project name: %s\n", config.ProjectName)
+	}
+	fmt.Printf("  Extracted %d routes from router file\n", routesCount)
+	fmt.Println()
 }
 
 // printUsage prints usage information
 func printUsage() {
-	fmt.Println("Usage: go run tools/swagger_autocomment/main.go [options]")
+	fmt.Println("Swagger Autocomment Tool")
+	fmt.Println("======================")
+	fmt.Println("Automatically generates intelligent Swagger comments for handler methods.")
+	fmt.Println("Extracts parameter types from request structs when available.")
+	fmt.Println()
+	fmt.Println("Usage:")
+	fmt.Println("  go run tools/swagger_autocomment/main.go [options]")
 	fmt.Println()
 	fmt.Println("Options:")
-	fmt.Println("  -dir <path>       Directory containing handler files")
-	fmt.Println("                    Default: ./internal/api/http/web/handler")
-	fmt.Println("  -out <path>       Output directory")
-	fmt.Println("                    Default: same as -dir")
-	fmt.Println("  -security <name>  Security scheme name")
-	fmt.Println("                    Default: BearerAuth")
-	fmt.Println("  -router <path>    Router file path")
-	fmt.Println("                    Default: ./internal/api/http/web/router.go")
-	fmt.Println("  -v                Verbose output")
-	fmt.Println("  -help, -h         Print this help message")
+	fmt.Println("  -dir string")
+	fmt.Println("        Directory containing handler files")
+	fmt.Println("        (default: \"./internal/api/http/web/handler\")")
 	fmt.Println()
-	fmt.Println("Example:")
-	fmt.Println("  go run tools/swagger_autocomment/main.go -dir ./internal/api/http/web/handler")
+	fmt.Println("  -out string")
+	fmt.Println("        Output directory")
+	fmt.Println("        (default: same as handler directory)")
+	fmt.Println()
+	fmt.Println("  -router string")
+	fmt.Println("        Router file path")
+	fmt.Println("        (default: \"./internal/api/http/web/router.go\")")
+	fmt.Println()
+	fmt.Println("  -security string")
+	fmt.Println("        Security scheme name")
+	fmt.Println("        (default: \"BearerAuth\")")
+	fmt.Println()
+	fmt.Println("  -pattern string")
+	fmt.Println("        Pattern to match handler files")
+	fmt.Println("        (default: \"*_handler.go\")")
+	fmt.Println()
+	fmt.Println("  -types string")
+	fmt.Println("        Comma-separated list of glob patterns for type definition files")
+	fmt.Println("        (default: \"./internal/api/http/web/types/*.go,./pkg/types/*.go\")")
+	fmt.Println()
+	fmt.Println("  -prefix string")
+	fmt.Println("        API prefix for paths")
+	fmt.Println("        (default: \"\")")
+	fmt.Println()
+	fmt.Println("  -concurrency int")
+	fmt.Println("        Number of concurrent workers")
+	fmt.Printf("        (default: %d - CPU core count)\n", runtime.NumCPU())
+	fmt.Println()
+	fmt.Println("  -project string")
+	fmt.Println("        Project name for documentation")
+	fmt.Println("        (default: \"\")")
+	fmt.Println()
+	fmt.Println("  -v    Verbose output")
+	fmt.Println("        (default: true)")
+	fmt.Println()
+	fmt.Println("  -h, -help")
+	fmt.Println("        Print this help message")
+	fmt.Println()
+	fmt.Println("Examples:")
+	fmt.Println("  # Use default configuration")
+	fmt.Println("  go run tools/swagger_autocomment/main.go")
+	fmt.Println()
+	fmt.Println("  # Process custom directory")
+	fmt.Println("  go run tools/swagger_autocomment/main.go -dir ./internal/api/http/wx-api/handler")
+	fmt.Println()
+	fmt.Println("  # Process custom API with custom type directories")
+	fmt.Println("  go run tools/swagger_autocomment/main.go \\")
+	fmt.Println("    -dir ./internal/api/http/wx-api/handler \\")
+	fmt.Println("    -router ./internal/api/http/wx-api/router.go \\")
+	fmt.Println("    -types \"./internal/api/http/wx-api/types/*.go,./pkg/types/*.go\" \\")
+	fmt.Println("    -prefix \"/wx-api\" \\")
+	fmt.Println("    -concurrency 8")
+	fmt.Println()
+	fmt.Println("Makefile Integration:")
+	fmt.Println("  # Add to your Makefile:")
+	fmt.Println("  swagger-comments:")
+	fmt.Println("  \tgo run tools/swagger_autocomment/main.go")
+	fmt.Println()
+	fmt.Println("  swagger-wx-comments:")
+	fmt.Println("  \tgo run tools/swagger_autocomment/main.go \\")
+	fmt.Println("  \t  -dir ./internal/api/http/wx-api/handler \\")
+	fmt.Println("  \t  -router ./internal/api/http/wx-api/router.go \\")
+	fmt.Println("  \t  -types \"./internal/api/http/wx-api/types/*.go,./pkg/types/*.go\" \\")
+	fmt.Println("  \t  -prefix \"/wx-api\"")
 }
 
 // findHandlerFiles finds all handler files in the given directory
@@ -561,11 +675,20 @@ func findHandlerFiles(dirPath string, pattern string) ([]string, error) {
 
 // printFileStats prints statistics for a processed file
 func printFileStats(filePath string, stats FileStats) {
-	fmt.Printf("File stats for %s:\n", filePath)
-	fmt.Printf("  Total methods: %d\n", stats.TotalMethods)
-	fmt.Printf("  Handler methods: %d\n", stats.HandlerMethods)
+	filename := filepath.Base(filePath)
+	fmt.Printf("File: %s\n", filename)
+	fmt.Printf("  Total methods examined: %d\n", stats.TotalMethods)
+	fmt.Printf("  Handler methods found: %d\n", stats.HandlerMethods)
 	fmt.Printf("  Already commented: %d\n", stats.AlreadyCommented)
-	fmt.Printf("  Newly commented: %d\n", stats.NewlyCommented)
+	fmt.Printf("  New comments added: %d\n", stats.NewlyCommented)
+
+	// Calculate percentage
+	var commentedPercent float64
+	if stats.HandlerMethods > 0 {
+		commentedPercent = float64(stats.AlreadyCommented+stats.NewlyCommented) / float64(stats.HandlerMethods) * 100
+	}
+
+	fmt.Printf("  Total documentation coverage: %.1f%%\n", commentedPercent)
 }
 
 // extractRoutes extracts routes from the router file
