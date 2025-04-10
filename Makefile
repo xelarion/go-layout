@@ -82,10 +82,10 @@ swagger-install:
 	go get -u github.com/swaggo/gin-swagger
 	go get -u github.com/swaggo/files
 
-# Generate intelligent Swagger comments for API handler methods
+# Generate intelligent Swagger comments for API handler methods, example: make swagger-comment ARGS="-silent"
 swagger-comment:
 	@echo "Generating intelligent Swagger comments for Web API handler methods..."
-	go run tools/swagger_autocomment/main.go -dir ./internal/api/http/web/handler
+	go run tools/swagger_autocomment/main.go $(ARGS)
 
 # Generate Swagger documentation for Web API
 swagger-docs:

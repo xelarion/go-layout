@@ -61,14 +61,14 @@ func (cfg *Config) SetupFlags() {
 	flag.StringVar(&cfg.OutputDir, "output", cfg.OutputDir, "Output directory (default: same as handler directory)")
 	flag.StringVar(&cfg.SecurityScheme, "security", cfg.SecurityScheme, "Security scheme name")
 	flag.StringVar(&cfg.RouterFile, "router", cfg.RouterFile, "Router file path")
-	flag.StringVar(&cfg.HandlerPattern, "pattern", cfg.HandlerPattern, "Pattern to match handler files")
-	flag.StringVar(&cfg.ApiPrefix, "prefix", cfg.ApiPrefix, "API prefix for paths")
+	flag.StringVar(&cfg.HandlerPattern, "handler-pattern", cfg.HandlerPattern, "Pattern to match handler files")
+	flag.StringVar(&cfg.ApiPrefix, "api-prefix", cfg.ApiPrefix, "API prefix for paths")
 	flag.StringVar(&cfg.ProjectName, "project", cfg.ProjectName, "Project name for documentation")
 	flag.IntVar(&cfg.Concurrency, "concurrency", cfg.Concurrency, "Number of concurrent workers")
 	flag.BoolVar(&cfg.Verbose, "verbose", cfg.Verbose, "Enable verbose output")
 
 	// Add quiet flag that sets verbose to false when used
-	quiet := flag.Bool("quiet", false, "Quiet mode (minimal output)")
+	silent := flag.Bool("silent", false, "Silent mode (no output except errors)")
 
 	// Allow comma-separated list of types paths
 	var typesPaths string
@@ -102,26 +102,26 @@ func (cfg *Config) SetupFlags() {
 		fmt.Println("    -handlers ./internal/api/http/wx-api/handler \\")
 		fmt.Println("    -router ./internal/api/http/wx-api/router.go \\")
 		fmt.Println("    -types \"./internal/api/http/wx-api/types/*.go,./pkg/types/*.go\" \\")
-		fmt.Println("    -prefix \"/wx-api\" \\")
+		fmt.Println("    -api-prefix \"/wx-api\" \\")
 		fmt.Println("    -concurrency 8")
 		fmt.Println()
-		fmt.Println("  # Run in quiet mode (minimal output)")
-		fmt.Println("  go run tools/swagger_autocomment/main.go -quiet")
+		fmt.Println("  # Run in silent mode (minimal output)")
+		fmt.Println("  go run tools/swagger_autocomment/main.go -silent")
 		fmt.Println()
 		fmt.Println("Makefile Integration:")
 		fmt.Println("  # Add to your Makefile:")
-		fmt.Println("  swagger-comments:")
-		fmt.Println("  \tgo run tools/swagger_autocomment/main.go $(QUIET)")
+		fmt.Println("  swagger-comment:")
+		fmt.Println("  \tgo run tools/swagger_autocomment/main.go $(ARGS)")
 		fmt.Println()
-		fmt.Println("  swagger-wx-comments:")
+		fmt.Println("  swagger-wx-comment:")
 		fmt.Println("  \tgo run tools/swagger_autocomment/main.go \\")
 		fmt.Println("  \t  -handlers ./internal/api/http/wx-api/handler \\")
 		fmt.Println("  \t  -router ./internal/api/http/wx-api/router.go \\")
 		fmt.Println("  \t  -types \"./internal/api/http/wx-api/types/*.go,./pkg/types/*.go\" \\")
-		fmt.Println("  \t  -prefix \"/wx-api\" $(QUIET)")
+		fmt.Println("  \t  -api-prefix \"/wx-api\" $(ARGS)")
 		fmt.Println()
-		fmt.Println("  # To run in quiet mode:")
-		fmt.Println("  make swagger-comments QUIET=\"-quiet\"")
+		fmt.Println("  # To run in silent mode:")
+		fmt.Println("  make swagger-comment ARGS=\"-silent\"")
 	}
 
 	// Parse the flags
@@ -145,7 +145,7 @@ func (cfg *Config) SetupFlags() {
 	}
 
 	// If quiet mode is set, it overrides verbose
-	if *quiet {
+	if *silent {
 		cfg.Verbose = false
 	}
 }
