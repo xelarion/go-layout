@@ -27,6 +27,7 @@ func NewUserHandler(userService *service.UserService, logger *zap.Logger) *UserH
 }
 
 // CreateUser godoc
+//
 //	@ID				CreateUser
 //	@Summary		Create User
 //	@Description	Creates a new User
@@ -57,6 +58,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 }
 
 // ListUsers godoc
+//
 //	@ID				ListUsers
 //	@Summary		List Users
 //	@Description	Retrieves a list of Users
@@ -87,6 +89,7 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 }
 
 // GetUser godoc
+//
 //	@ID				GetUser
 //	@Summary		Get User
 //	@Description	Retrieves a single User
@@ -123,6 +126,7 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 }
 
 // GetUserFormData godoc
+//
 //	@ID				GetUserFormData
 //	@Summary		Get User Form Data
 //	@Description	Retrieves a single User Form Data
@@ -154,6 +158,7 @@ func (h *UserHandler) GetUserFormData(c *gin.Context) {
 }
 
 // UpdateUser godoc
+//
 //	@ID				UpdateUser
 //	@Summary		Update User
 //	@Description	Updates an existing User
@@ -185,6 +190,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 }
 
 // UpdateUserEnabled godoc
+//
 //	@ID				UpdateUserEnabled
 //	@Summary		Update User Enabled
 //	@Description	Updates an existing User Enabled
@@ -216,6 +222,7 @@ func (h *UserHandler) UpdateUserEnabled(c *gin.Context) {
 }
 
 // DeleteUser godoc
+//
 //	@ID				DeleteUser
 //	@Summary		Delete User
 //	@Description	Deletes an existing User

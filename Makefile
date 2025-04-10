@@ -86,11 +86,12 @@ swagger-install:
 swagger-comment:
 	@echo "Generating intelligent Swagger comments for Web API handler methods..."
 	go run tools/swagger_autocomment/main.go $(ARGS)
+	cd internal/api/http/web && swag fmt -g swagger/doc.go --exclude middleware/,service/,types/
 
 # Generate Swagger documentation for Web API
 swagger-docs:
 	@echo "Generating Swagger documentation for Web API..."
-	cd internal/api/http/web && swag init -g swagger/doc.go -o swagger/docs && swag fmt
+	cd internal/api/http/web && swag init -g swagger/doc.go -o swagger/docs
 
 # Generate all Swagger documentation (comments and docs)
 swagger-all: swagger-comment swagger-docs
