@@ -7,12 +7,11 @@ REGISTRY ?= docker.io
 # Service names
 SERVICES = web-api task
 
+#
 # Database migration commands
+#
 .PHONY: migrate migrate-up migrate-down migrate-status migrate-create migrate-reset
-.PHONY: migrate-version migrate-redo migrate-up-to migrate-down-to migrate-fix migrate-ci
-
-# Run database migrations (alias for migrate-up)
-migrate: migrate-up
+.PHONY: migrate-version migrate-redo migrate-up-to migrate-down-to migrate-fix
 
 # Apply all pending migrations
 migrate-up:
@@ -57,11 +56,12 @@ migrate-down-to:
 migrate-fix:
 	go run cmd/migrate/main.go fix
 
-# Prepare migrations for CI/production by fixing versioning
-migrate-ci:
-	@echo "Preparing migrations for production deployment..."
-	go run cmd/migrate/main.go fix
+# Run database migrations (shorthand for migrate-up)
+migrate: migrate-up
 
+#
+# Code generation
+#
 .PHONY: gen-models
 
 # Generate models from database schema
@@ -70,7 +70,10 @@ gen-models:
 	@mkdir -p internal/model/gen
 	@go run tools/gen/main.go
 
-.PHONY: swagger-install swagger-gen swagger-docs swagger-comment swagger-all
+#
+# API documentation
+#
+.PHONY: swagger-install swagger-comment swagger-docs swagger-all
 
 # Install Swagger tools
 swagger-install:
@@ -79,31 +82,24 @@ swagger-install:
 	go get -u github.com/swaggo/gin-swagger
 	go get -u github.com/swaggo/files
 
+# Generate intelligent Swagger comments for API handler methods
+swagger-comment:
+	@echo "Generating intelligent Swagger comments for Web API handler methods..."
+	go run tools/swagger_autocomment/main.go -dir ./internal/api/http/web/handler
+
 # Generate Swagger documentation for Web API
 swagger-docs:
 	@echo "Generating Swagger documentation for Web API..."
 	cd internal/api/http/web && swag init -g swagger/doc.go -o swagger/docs && swag fmt
 
-# Generate intelligent Swagger comments for handler methods
-swagger-comment:
-	@echo "Generating intelligent Swagger comments for handler methods..."
-	go run tools/swagger_autocomment/main.go -dir ./internal/api/http/web/handler
-
 # Generate all Swagger documentation (comments and docs)
 swagger-all: swagger-comment swagger-docs
 	@echo "All Swagger documentation generated successfully"
 
-# Generate Swagger documentation for all APIs (alias for swagger-docs)
-swagger-gen: swagger-docs
-	@echo "Swagger documentation generated successfully"
-
-
-# Build targets
+#
+# Build commands
+#
 .PHONY: build build-web-api build-task build-migrate
-
-# Build and push all Docker images
-build: build-web-api build-task build-migrate
-	@echo "Build complete"
 
 # Build and push Web API Docker image
 build-web-api:
@@ -131,11 +127,30 @@ build-migrate:
 		-t ${REGISTRY}/go-layout-migrate:${VERSION} .
 	docker push ${REGISTRY}/go-layout-migrate:${VERSION}
 
-# Deploy targets
-.PHONY: deploy deploy-single deploy-cluster deploy-server deploy-all deploy-with-preload preload-images deploy-migrate deploy-migrate-cluster
+# Build and push all Docker images
+build: build-web-api build-task build-migrate
+	@echo "Build complete"
 
-# Deploy to single node k3s (default)
-deploy: deploy-single
+#
+# Deploy commands
+#
+.PHONY: deploy deploy-single deploy-cluster deploy-migrate deploy-migrate-cluster deploy-k3s
+
+# Run migrations on single node k3s
+deploy-migrate:
+	@echo "Running database migrations..."
+	cat deploy/k3s/single/migrate-job.yaml | \
+		sed "s|\${REGISTRY}|${REGISTRY}|g" | \
+		sed "s|\${VERSION}|${VERSION}|g" | \
+		kubectl apply -f -
+
+# Run migrations on k3s cluster
+deploy-migrate-cluster:
+	@echo "Running database migrations in cluster..."
+	cat deploy/k3s/cluster/migrate-job.yaml | \
+		sed "s|\${REGISTRY}|${REGISTRY}|g" | \
+		sed "s|\${VERSION}|${VERSION}|g" | \
+		kubectl apply -f -
 
 # Deploy to single node k3s
 deploy-single:
@@ -163,48 +178,18 @@ deploy-cluster:
 	kubectl apply -f deploy/k3s/cluster/task-deployment.yaml
 	kubectl apply -f deploy/k3s/cluster/ingress.yaml
 
-# Run migrations on single node k3s
-deploy-migrate:
-	@echo "Running database migrations..."
-	cat deploy/k3s/single/migrate-job.yaml | \
-		sed "s|\${REGISTRY}|${REGISTRY}|g" | \
-		sed "s|\${VERSION}|${VERSION}|g" | \
-		kubectl apply -f -
+# Deploy to k3s using the script
+deploy-k3s:
+	@echo "Deploying to k3s using script..."
+	./deploy/scripts/deploy-k3s.sh
 
-# Run migrations on k3s cluster
-deploy-migrate-cluster:
-	@echo "Running database migrations in cluster..."
-	cat deploy/k3s/cluster/migrate-job.yaml | \
-		sed "s|\${REGISTRY}|${REGISTRY}|g" | \
-		sed "s|\${VERSION}|${VERSION}|g" | \
-		kubectl apply -f -
+# Default deploy target (single node)
+deploy: deploy-single
 
-# Deploy to specific server (requires SERVER=<server_name>)
-deploy-server:
-	@[ "${SERVER}" ] || ( echo "Please provide SERVER=<server_name>"; exit 1 )
-	@echo "Deploying to server: ${SERVER}"
-	./deploy/scripts/deploy-server.sh ${SERVER}
-
-# Preload essential K3s images on the server (requires SERVER=<server_name>)
-preload-images:
-	@[ "${SERVER}" ] || ( echo "Please provide SERVER=<server_name>"; exit 1 )
-	@echo "Preloading images for server: ${SERVER}"
-	./deploy/scripts/preload-k3s-images.sh ${SERVER}
-
-# Deploy to specific server with preloaded images (requires SERVER=<server_name>)
-deploy-with-preload:
-	@[ "${SERVER}" ] || ( echo "Please provide SERVER=<server_name>"; exit 1 )
-	@echo "Preloading images and deploying to server: ${SERVER}"
-	./deploy/scripts/preload-k3s-images.sh ${SERVER}
-	./deploy/scripts/deploy-server.sh ${SERVER}
-
-# Deploy to all servers
-deploy-all:
-	@echo "Deploying to all servers..."
-	./deploy/scripts/deploy-all.sh
-
-# Clean targets
-.PHONY: clean
+#
+# Utility commands
+#
+.PHONY: clean help
 
 # Clean up Docker images
 clean:

@@ -81,6 +81,9 @@ A scalable, high-performance, and high-availability web application template bui
 │   ├── mq/                # Message queue
 │   ├── server/            # HTTP server
 │   └── utils/             # Utility functions
+├── tools/                 # Development tools
+│   ├── gen/               # Code generation tools
+│   └── swagger_autocomment/ # Swagger comment generation tool
 └── scripts/               # Scripts for automation
 ```
 
@@ -124,44 +127,6 @@ The application includes a robust task system with three types of task execution
 
 Each task type follows a consistent registration and execution pattern, making it easy to add new tasks while ensuring proper lifecycle management and error handling.
 
-## Authentication System
-
-The application implements a JWT-based authentication system with the following features:
-
-- **Short-lived tokens**: By default, access tokens expire after 30 minutes for enhanced security
-- **Token refresh**: Supports token refresh within a configurable time window (default 7 days)
-- **Stateless design**: No server-side session storage, perfect for horizontal scaling
-- **RESTful implementation**: Token passed via Authorization header
-
-Frontend applications can integrate with the authentication system through the endpoints:
-
-- `POST /api/web/v1/login` - For user authentication
-- `GET /api/web/v1/refresh_token` - For refreshing expired tokens
-
-## API Response Format
-
-All API responses follow a consistent structure:
-
-```json
-{
-  "code": 200,           // HTTP status code
-  "message": "Success",  // Human-readable message
-  "data": {},            // Response payload (when successful)
-  "meta": {}             // Additional metadata (e.g., pagination)
-}
-```
-
-Error responses maintain the same structure:
-
-```json
-{
-  "code": 400,                 // Error code
-  "message": "Validation error", // Error message
-  "data": null,                // No data on error
-  "meta": null                 // No metadata on error
-}
-```
-
 ## Getting Started
 
 ### Prerequisites
@@ -191,24 +156,37 @@ Error responses maintain the same structure:
 4. Run database migrations
 
    ```bash
-   # Simplest approach with default options
-   make db
-
-   # Alternative commands
+   # Apply all pending migrations
    make migrate
+
+   # Check migration status
+   make migrate-status
 
    # Or using the CLI directly with more options
    go run cmd/migrate/main.go up
    go run cmd/migrate/main.go -dir=db/migrations -verbose status
    ```
 
-5. Start the API server
+5. Generate API documentation (optional)
+
+   ```bash
+   # First generate Swagger comments for handlers
+   make swagger-comment
+
+   # Then generate Swagger documentation
+   make swagger-docs
+
+   # Or run both with one command
+   make swagger-all
+   ```
+
+6. Start the API server
 
    ```bash
    go run cmd/web-api/main.go
    ```
 
-6. Start the Task runner with desired components (all optional flags)
+7. Start the Task runner with desired components (all optional flags)
 
    ```bash
    go run cmd/task/main.go --scheduler --poller --queue
@@ -216,10 +194,16 @@ Error responses maintain the same structure:
 
 ### Docker Deployment
 
-1. Build the Docker image
+1. Build the Docker images
 
    ```bash
-   docker build -t go-layout .
+   # Build all services
+   make build
+
+   # Or build individual services
+   make build-web-api
+   make build-task
+   make build-migrate
    ```
 
 2. Run with Docker Compose
@@ -235,14 +219,17 @@ For detailed production deployment instructions, refer to our [Deployment Guide]
 The project includes configuration for deploying to both single-node and multi-node k3s clusters:
 
 ```bash
+# Run migrations first (important to do this before deploying services)
+make deploy-migrate
+
 # Deploy to a single node k3s environment
 make deploy-single
 
 # Deploy to a k3s cluster environment
 make deploy-cluster
 
-# Deploy to a specific server (defined in deploy/config/servers.yaml)
-make deploy-server SERVER=servername
+# Deploy using the k3s deployment script
+make deploy-k3s
 ```
 
 ## API Endpoints
@@ -351,60 +338,4 @@ The migration job runs as a Kubernetes job with `restartPolicy: Never` and `back
 ```bash
 kubectl get jobs -n go-layout
 kubectl logs job/db-migrate -n go-layout
-```
-
-### CI/CD Integration
-
-For CI/CD pipelines, use the `migrate-ci` command to prepare migrations for production:
-
-```bash
-# Convert timestamp versioning to sequential for production deployment
-make migrate-ci
-```
-
-This should be run in your CI pipeline before building the migration image. The `build-migrate` command also automatically runs `migrate-fix` to ensure sequential versioning in production.
-
-### Migration Files
-
-Migration files follow the Goose naming convention:
-
-```
-{version}_{description}.sql
-```
-
-Each migration file contains two sections:
-- `-- +goose Up`: Commands executed when migrating up
-- `-- +goose Down`: Commands executed when rolling back the migration
-
-Example migration file:
-
-```sql
--- +goose Up
--- +goose StatementBegin
-CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-);
--- +goose StatementEnd
-
--- +goose Down
--- +goose StatementBegin
-DROP TABLE IF EXISTS users;
--- +goose StatementEnd
-```
-
-### Using Docker for Migrations
-
-The project includes a dedicated `Dockerfile.migrate` for containerizing the migration tool. This container has an entrypoint configured to run the migration tool and defaults to showing the migration status. In Kubernetes jobs, we override this to run `up` command.
-
-```bash
-# Run a migration container locally (shows status by default)
-docker run go-layout-migrate
-
-# Run specific migration commands
-docker run go-layout-migrate up
-docker run go-layout-migrate down
 ```

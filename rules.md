@@ -67,7 +67,7 @@
     - `code`: HTTP status code
     - `message`: Human-readable message
     - `data`: The response payload (when successful)
-    - `meta`: Additional metadata (e.g., pagination information)
+    - `meta`: Additional metadata
 
 ---
 
