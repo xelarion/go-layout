@@ -53,15 +53,22 @@ func NewDefaultConfig() *Config {
 
 // SetupFlags sets up command line flags for the configuration
 func (cfg *Config) SetupFlags() {
-	flag.StringVar(&cfg.HandlerDir, "dir", cfg.HandlerDir, "Directory containing handler files")
-	flag.StringVar(&cfg.OutputDir, "out", cfg.OutputDir, "Output directory (default: same as handler directory)")
+	// Save original usage function
+	originalUsage := flag.Usage
+
+	// Set up flag variables with more descriptive names
+	flag.StringVar(&cfg.HandlerDir, "handlers", cfg.HandlerDir, "Directory containing handler files")
+	flag.StringVar(&cfg.OutputDir, "output", cfg.OutputDir, "Output directory (default: same as handler directory)")
 	flag.StringVar(&cfg.SecurityScheme, "security", cfg.SecurityScheme, "Security scheme name")
 	flag.StringVar(&cfg.RouterFile, "router", cfg.RouterFile, "Router file path")
 	flag.StringVar(&cfg.HandlerPattern, "pattern", cfg.HandlerPattern, "Pattern to match handler files")
 	flag.StringVar(&cfg.ApiPrefix, "prefix", cfg.ApiPrefix, "API prefix for paths")
 	flag.StringVar(&cfg.ProjectName, "project", cfg.ProjectName, "Project name for documentation")
 	flag.IntVar(&cfg.Concurrency, "concurrency", cfg.Concurrency, "Number of concurrent workers")
-	flag.BoolVar(&cfg.Verbose, "v", cfg.Verbose, "Verbose output")
+	flag.BoolVar(&cfg.Verbose, "verbose", cfg.Verbose, "Enable verbose output")
+
+	// Add quiet flag that sets verbose to false when used
+	quiet := flag.Bool("quiet", false, "Quiet mode (minimal output)")
 
 	// Allow comma-separated list of types paths
 	var typesPaths string
@@ -69,21 +76,65 @@ func (cfg *Config) SetupFlags() {
 	flag.StringVar(&typesPaths, "types", defaultTypesPaths, "Comma-separated list of glob patterns for type definition files")
 
 	// Add help flags
-	help := flag.Bool("help", false, "Print usage information")
-	h := flag.Bool("h", false, "Print usage information")
+	help := flag.Bool("help", false, "Print detailed usage information")
+	h := flag.Bool("h", false, "Print detailed usage information")
 
-	// Override the default usage function
-	flag.Usage = printUsage
+	// Override default usage to include examples and detailed explanation
+	flag.Usage = func() {
+		// First, show the standard Go flag help
+		originalUsage()
+
+		// Then, add our custom examples and additional information
+		fmt.Println()
+		fmt.Println("Description:")
+		fmt.Println("  Automatically generates intelligent Swagger comments for handler methods.")
+		fmt.Println("  Extracts parameter types from request structs when available.")
+		fmt.Println()
+		fmt.Println("Examples:")
+		fmt.Println("  # Use default configuration")
+		fmt.Println("  go run tools/swagger_autocomment/main.go")
+		fmt.Println()
+		fmt.Println("  # Process custom directory")
+		fmt.Println("  go run tools/swagger_autocomment/main.go -handlers ./internal/api/http/wx-api/handler")
+		fmt.Println()
+		fmt.Println("  # Process custom API with custom type directories")
+		fmt.Println("  go run tools/swagger_autocomment/main.go \\")
+		fmt.Println("    -handlers ./internal/api/http/wx-api/handler \\")
+		fmt.Println("    -router ./internal/api/http/wx-api/router.go \\")
+		fmt.Println("    -types \"./internal/api/http/wx-api/types/*.go,./pkg/types/*.go\" \\")
+		fmt.Println("    -prefix \"/wx-api\" \\")
+		fmt.Println("    -concurrency 8")
+		fmt.Println()
+		fmt.Println("  # Run in quiet mode (minimal output)")
+		fmt.Println("  go run tools/swagger_autocomment/main.go -quiet")
+		fmt.Println()
+		fmt.Println("Makefile Integration:")
+		fmt.Println("  # Add to your Makefile:")
+		fmt.Println("  swagger-comments:")
+		fmt.Println("  \tgo run tools/swagger_autocomment/main.go $(QUIET)")
+		fmt.Println()
+		fmt.Println("  swagger-wx-comments:")
+		fmt.Println("  \tgo run tools/swagger_autocomment/main.go \\")
+		fmt.Println("  \t  -handlers ./internal/api/http/wx-api/handler \\")
+		fmt.Println("  \t  -router ./internal/api/http/wx-api/router.go \\")
+		fmt.Println("  \t  -types \"./internal/api/http/wx-api/types/*.go,./pkg/types/*.go\" \\")
+		fmt.Println("  \t  -prefix \"/wx-api\" $(QUIET)")
+		fmt.Println()
+		fmt.Println("  # To run in quiet mode:")
+		fmt.Println("  make swagger-comments QUIET=\"-quiet\"")
+	}
 
 	// Parse the flags
 	flag.Parse()
 
 	// Check if help was requested
 	if *help || *h {
-		printUsage()
+		// Call the now-enhanced usage function
+		flag.Usage()
 		os.Exit(0)
 	}
 
+	// Process types paths after flags are parsed
 	if typesPaths != "" {
 		cfg.TypesPaths = strings.Split(typesPaths, ",")
 	}
@@ -91,6 +142,11 @@ func (cfg *Config) SetupFlags() {
 	// Use handler directory as output directory if not specified
 	if cfg.OutputDir == "" {
 		cfg.OutputDir = cfg.HandlerDir
+	}
+
+	// If quiet mode is set, it overrides verbose
+	if *quiet {
+		cfg.Verbose = false
 	}
 }
 
@@ -492,7 +548,7 @@ func main() {
 	if !dirExists(config.HandlerDir) {
 		fmt.Printf("Error: Directory %s does not exist!\n", config.HandlerDir)
 		fmt.Println("Current working directory:", getCwd())
-		fmt.Println("Please provide a valid directory using the -dir flag")
+		fmt.Println("Please provide a valid directory using the -handlers flag")
 		os.Exit(1)
 	}
 
@@ -516,7 +572,6 @@ func main() {
 		totalCoverage = float64(totalStats.AlreadyCommented+totalStats.NewlyCommented) / float64(totalStats.HandlerMethods) * 100
 	}
 
-	// Print summary
 	fmt.Println("======================================")
 	fmt.Println("Swagger Comment Generation Complete!")
 	fmt.Println("======================================")
@@ -568,87 +623,6 @@ func printConfig(config *Config, routesCount int) {
 	}
 	fmt.Printf("  Extracted %d routes from router file\n", routesCount)
 	fmt.Println()
-}
-
-// printUsage prints usage information
-func printUsage() {
-	fmt.Println("Swagger Autocomment Tool")
-	fmt.Println("======================")
-	fmt.Println("Automatically generates intelligent Swagger comments for handler methods.")
-	fmt.Println("Extracts parameter types from request structs when available.")
-	fmt.Println()
-	fmt.Println("Usage:")
-	fmt.Println("  go run tools/swagger_autocomment/main.go [options]")
-	fmt.Println()
-	fmt.Println("Options:")
-	fmt.Println("  -dir string")
-	fmt.Println("        Directory containing handler files")
-	fmt.Println("        (default: \"./internal/api/http/web/handler\")")
-	fmt.Println()
-	fmt.Println("  -out string")
-	fmt.Println("        Output directory")
-	fmt.Println("        (default: same as handler directory)")
-	fmt.Println()
-	fmt.Println("  -router string")
-	fmt.Println("        Router file path")
-	fmt.Println("        (default: \"./internal/api/http/web/router.go\")")
-	fmt.Println()
-	fmt.Println("  -security string")
-	fmt.Println("        Security scheme name")
-	fmt.Println("        (default: \"BearerAuth\")")
-	fmt.Println()
-	fmt.Println("  -pattern string")
-	fmt.Println("        Pattern to match handler files")
-	fmt.Println("        (default: \"*_handler.go\")")
-	fmt.Println()
-	fmt.Println("  -types string")
-	fmt.Println("        Comma-separated list of glob patterns for type definition files")
-	fmt.Println("        (default: \"./internal/api/http/web/types/*.go,./pkg/types/*.go\")")
-	fmt.Println()
-	fmt.Println("  -prefix string")
-	fmt.Println("        API prefix for paths")
-	fmt.Println("        (default: \"\")")
-	fmt.Println()
-	fmt.Println("  -concurrency int")
-	fmt.Println("        Number of concurrent workers")
-	fmt.Printf("        (default: %d - CPU core count)\n", runtime.NumCPU())
-	fmt.Println()
-	fmt.Println("  -project string")
-	fmt.Println("        Project name for documentation")
-	fmt.Println("        (default: \"\")")
-	fmt.Println()
-	fmt.Println("  -v    Verbose output")
-	fmt.Println("        (default: true)")
-	fmt.Println()
-	fmt.Println("  -h, -help")
-	fmt.Println("        Print this help message")
-	fmt.Println()
-	fmt.Println("Examples:")
-	fmt.Println("  # Use default configuration")
-	fmt.Println("  go run tools/swagger_autocomment/main.go")
-	fmt.Println()
-	fmt.Println("  # Process custom directory")
-	fmt.Println("  go run tools/swagger_autocomment/main.go -dir ./internal/api/http/wx-api/handler")
-	fmt.Println()
-	fmt.Println("  # Process custom API with custom type directories")
-	fmt.Println("  go run tools/swagger_autocomment/main.go \\")
-	fmt.Println("    -dir ./internal/api/http/wx-api/handler \\")
-	fmt.Println("    -router ./internal/api/http/wx-api/router.go \\")
-	fmt.Println("    -types \"./internal/api/http/wx-api/types/*.go,./pkg/types/*.go\" \\")
-	fmt.Println("    -prefix \"/wx-api\" \\")
-	fmt.Println("    -concurrency 8")
-	fmt.Println()
-	fmt.Println("Makefile Integration:")
-	fmt.Println("  # Add to your Makefile:")
-	fmt.Println("  swagger-comments:")
-	fmt.Println("  \tgo run tools/swagger_autocomment/main.go")
-	fmt.Println()
-	fmt.Println("  swagger-wx-comments:")
-	fmt.Println("  \tgo run tools/swagger_autocomment/main.go \\")
-	fmt.Println("  \t  -dir ./internal/api/http/wx-api/handler \\")
-	fmt.Println("  \t  -router ./internal/api/http/wx-api/router.go \\")
-	fmt.Println("  \t  -types \"./internal/api/http/wx-api/types/*.go,./pkg/types/*.go\" \\")
-	fmt.Println("  \t  -prefix \"/wx-api\"")
 }
 
 // findHandlerFiles finds all handler files in the given directory
