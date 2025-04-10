@@ -11,29 +11,32 @@ import (
 
 // Router handles all routes.
 type Router struct {
-	Engine      *gin.Engine
-	logger      *zap.Logger
-	userService *service.UserService
-	authService *service.AuthService
-	authMW      *jwt.GinJWTMiddleware
+	Engine            *gin.Engine
+	logger            *zap.Logger
+	authMW            *jwt.GinJWTMiddleware
+	authService       *service.AuthService
+	userService       *service.UserService
+	departmentService *service.DepartmentService
 }
 
 // NewRouter creates a new router.
-func NewRouter(engine *gin.Engine, userService *service.UserService, authService *service.AuthService, authMiddleware *jwt.GinJWTMiddleware, logger *zap.Logger) *Router {
+func NewRouter(engine *gin.Engine, authService *service.AuthService, userService *service.UserService, departmentService *service.DepartmentService, authMiddleware *jwt.GinJWTMiddleware, logger *zap.Logger) *Router {
 	return &Router{
-		Engine:      engine,
-		logger:      logger.Named("web_router"),
-		userService: userService,
-		authService: authService,
-		authMW:      authMiddleware,
+		Engine:            engine,
+		logger:            logger.Named("web_router"),
+		authMW:            authMiddleware,
+		authService:       authService,
+		userService:       userService,
+		departmentService: departmentService,
 	}
 }
 
 // SetupRoutes configures all routes.
 func (r *Router) SetupRoutes() {
 	// Initialize handlers
-	userHandler := handler.NewUserHandler(r.userService, r.logger)
 	authHandler := handler.NewAuthHandler(r.authService, r.authMW, r.logger)
+	userHandler := handler.NewUserHandler(r.userService, r.logger)
+	departmentHandler := handler.NewDepartmentHandler(r.departmentService, r.logger)
 
 	// API routes
 	api := r.Engine.Group("/api/web/v1")
@@ -62,4 +65,13 @@ func (r *Router) SetupRoutes() {
 	authorized.PUT("/users/:id", userHandler.UpdateUser)
 	authorized.PATCH("/users/:id/enabled", userHandler.UpdateUserEnabled)
 	authorized.DELETE("/users/:id", userHandler.DeleteUser)
+
+	// Department management routes
+	authorized.POST("/departments", departmentHandler.CreateDepartment)
+	authorized.GET("/departments", departmentHandler.ListDepartments)
+	authorized.GET("/departments/:id", departmentHandler.GetDepartment)
+	authorized.GET("/departments/:id/form", departmentHandler.GetDepartmentFormData)
+	authorized.PUT("/departments/:id", departmentHandler.UpdateDepartment)
+	authorized.PATCH("/departments/:id/enabled", departmentHandler.UpdateDepartmentEnabled)
+	authorized.DELETE("/departments/:id", departmentHandler.DeleteDepartment)
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/xelarion/go-layout/pkg/errs"
 )
 
-// UserRepository is a PostgreSQL implementation of the user repository.
+// UserRepository is an implementation of the user repository.
 type UserRepository struct {
 	db  *gorm.DB
 	rds *redis.Client

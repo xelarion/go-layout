@@ -49,6 +49,13 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 	// Initialize services (without JWT dependency)
 	userService := service.NewUserService(userUseCase)
 
+	// Initialize department repository
+	departmentRepo := repository.NewDepartmentRepository(db.DB, redis.Client)
+	// Initialize department usecase
+	departmentUseCase := usecase.NewDepartmentUseCase(departmentRepo)
+	// Initialize department service
+	departmentService := service.NewDepartmentService(departmentUseCase)
+
 	// Initialize auth middleware
 	authMiddleware, err := middleware.NewAuthMiddleware(&cfg.JWT, userUseCase, logger)
 	if err != nil {
@@ -75,7 +82,7 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 	authService := service.NewAuthService(userUseCase, logger)
 
 	// Register API routes
-	webRouter := web.NewRouter(httpServer.Router(), userService, authService, authMiddleware, logger)
+	webRouter := web.NewRouter(httpServer.Router(), authService, userService, departmentService, authMiddleware, logger)
 	webRouter.SetupRoutes()
 
 	// Register Swagger documentation routes (when swag is installed)

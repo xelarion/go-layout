@@ -6,7 +6,7 @@ import "time"
 
 // CreateUserReq represents user creation request.
 type CreateUserReq struct {
-	Username string `json:"username" binding:"required,min=2,max=100"`
+	Username string `json:"username" binding:"required,min=1,max=100"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
 	Role     string `json:"role" binding:"required,oneof=user admin"`
@@ -74,7 +74,7 @@ type GetUserFormDataResp struct {
 // UpdateUserReq represents user update data.
 type UpdateUserReq struct {
 	ID       uint   `uri:"id" binding:"required" swaggerignore:"true"`
-	Username string `json:"username" binding:"required,min=2,max=100"`
+	Username string `json:"username" binding:"required,min=1,max=100"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"omitempty,min=6"`
 	Role     string `json:"role" binding:"required,oneof=user admin"`

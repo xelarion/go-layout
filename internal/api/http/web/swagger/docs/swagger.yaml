@@ -1,5 +1,24 @@
 basePath: /api/web/v1
 definitions:
+  types.CreateDepartmentReq:
+    properties:
+      description:
+        type: string
+      enabled:
+        type: boolean
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - description
+    - name
+    type: object
+  types.CreateDepartmentResp:
+    properties:
+      id:
+        type: integer
+    type: object
   types.CreateUserReq:
     properties:
       email:
@@ -14,7 +33,7 @@ definitions:
         type: string
       username:
         maxLength: 100
-        minLength: 2
+        minLength: 1
         type: string
     required:
     - email
@@ -26,6 +45,10 @@ definitions:
     properties:
       id:
         type: integer
+    type: object
+  types.DeleteDepartmentReq:
+    type: object
+  types.DeleteDepartmentResp:
     type: object
   types.DeleteUserReq:
     type: object
@@ -40,6 +63,28 @@ definitions:
           type: string
         type: array
       role_slug:
+        type: string
+    type: object
+  types.GetDepartmentFormDataResp:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  types.GetDepartmentResp:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      enabled:
+        type: boolean
+      id:
+        type: integer
+      name:
         type: string
     type: object
   types.GetProfileResp:
@@ -98,6 +143,28 @@ definitions:
       role:
         type: string
       username:
+        type: string
+    type: object
+  types.ListDepartmentsResp:
+    properties:
+      page_info:
+        $ref: '#/definitions/types.PageResp'
+      results:
+        items:
+          $ref: '#/definitions/types.ListDepartmentsRespResult'
+        type: array
+    type: object
+  types.ListDepartmentsRespResult:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      enabled:
+        type: boolean
+      id:
+        type: integer
+      name:
         type: string
     type: object
   types.ListUsersResp:
@@ -227,6 +294,32 @@ definitions:
       meta:
         description: Additional metadata
     type: object
+  types.UpdateDepartmentEnabledReq:
+    properties:
+      enabled:
+        type: boolean
+    required:
+    - enabled
+    type: object
+  types.UpdateDepartmentEnabledResp:
+    type: object
+  types.UpdateDepartmentReq:
+    properties:
+      description:
+        type: string
+      enabled:
+        type: boolean
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - description
+    - enabled
+    - name
+    type: object
+  types.UpdateDepartmentResp:
+    type: object
   types.UpdateProfileReq:
     properties:
       avatar:
@@ -266,7 +359,7 @@ definitions:
         type: string
       username:
         maxLength: 100
-        minLength: 2
+        minLength: 1
         type: string
     required:
     - email
@@ -368,6 +461,335 @@ paths:
       summary: New Captcha
       tags:
       - auth
+  /departments:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of Departments
+      operationId: ListDepartments
+      parameters:
+      - in: query
+        name: enabled
+        type: boolean
+      - in: query
+        maxLength: 100
+        name: name
+        type: string
+      - description: Current page number (1-based)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        maximum: 100
+        minimum: 1
+        name: page_size
+        type: integer
+      - description: Field to sort by, can include table prefix (e.g. "users.id")
+        in: query
+        name: sort_field
+        type: string
+      - description: 'Sort direction: asc or desc'
+        enum:
+        - asc
+        - desc
+        - ASC
+        - DESC
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ListDepartmentsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: List Departments
+      tags:
+      - department
+    post:
+      consumes:
+      - application/json
+      description: Creates a new Department
+      operationId: CreateDepartment
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.CreateDepartmentReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.CreateDepartmentResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Department
+      tags:
+      - department
+  /departments/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes an existing Department
+      operationId: DeleteDepartment
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.DeleteDepartmentReq'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.DeleteDepartmentResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Department
+      tags:
+      - department
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Department
+      operationId: GetDepartment
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetDepartmentResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Department
+      tags:
+      - department
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing Department
+      operationId: UpdateDepartment
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateDepartmentReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UpdateDepartmentResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Department
+      tags:
+      - department
+  /departments/{id}/enabled:
+    patch:
+      consumes:
+      - application/json
+      description: Updates an existing Department Enabled
+      operationId: UpdateDepartmentEnabled
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateDepartmentEnabledReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UpdateDepartmentEnabledResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Department Enabled
+      tags:
+      - department
+  /departments/{id}/form:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Department Form Data
+      operationId: GetDepartmentFormData
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetDepartmentFormDataResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Department Form Data
+      tags:
+      - department
   /login:
     post:
       consumes:
