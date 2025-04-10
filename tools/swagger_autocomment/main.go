@@ -18,11 +18,60 @@ import (
 
 // Config holds configuration options for the Swagger comment generator.
 type Config struct {
-	HandlerDir     string // Directory containing handler files
-	OutputDir      string // Output directory for generated files
-	SecurityScheme string // Security scheme for Swagger docs
-	RouterFile     string // Router file to extract routes from
-	Verbose        bool   // Whether to output verbose logs
+	HandlerDir     string   // Directory containing handler files
+	OutputDir      string   // Output directory for generated files
+	SecurityScheme string   // Security scheme for Swagger docs
+	RouterFile     string   // Router file to extract routes from
+	TypesPaths     []string // Paths to search for type definitions
+	HandlerPattern string   // Pattern to match handler files
+	Verbose        bool     // Whether to output verbose logs
+	Concurrency    int      // Number of concurrent workers
+	ApiPrefix      string   // API prefix for paths
+	ProjectName    string   // Project name for documentation
+}
+
+// NewDefaultConfig creates a new configuration with default values
+func NewDefaultConfig() *Config {
+	return &Config{
+		HandlerDir:     "./internal/api/http/web/handler",
+		SecurityScheme: "BearerAuth",
+		RouterFile:     "./internal/api/http/web/router.go",
+		TypesPaths:     []string{"./internal/api/http/web/types/*.go", "./pkg/types/*.go"},
+		HandlerPattern: "*_handler.go",
+		Concurrency:    4,
+		ApiPrefix:      "",
+		Verbose:        true,
+	}
+}
+
+// SetupFlags sets up command line flags for the configuration
+func (cfg *Config) SetupFlags() {
+	flag.StringVar(&cfg.HandlerDir, "dir", cfg.HandlerDir, "Directory containing handler files")
+	flag.StringVar(&cfg.OutputDir, "out", cfg.OutputDir, "Output directory (default: same as handler directory)")
+	flag.StringVar(&cfg.SecurityScheme, "security", cfg.SecurityScheme, "Security scheme name")
+	flag.StringVar(&cfg.RouterFile, "router", cfg.RouterFile, "Router file path")
+	flag.StringVar(&cfg.HandlerPattern, "pattern", cfg.HandlerPattern, "Pattern to match handler files")
+	flag.StringVar(&cfg.ApiPrefix, "prefix", cfg.ApiPrefix, "API prefix for paths")
+	flag.StringVar(&cfg.ProjectName, "project", cfg.ProjectName, "Project name for documentation")
+	flag.IntVar(&cfg.Concurrency, "concurrency", cfg.Concurrency, "Number of concurrent workers")
+	flag.BoolVar(&cfg.Verbose, "v", cfg.Verbose, "Verbose output")
+
+	// Allow comma-separated list of types paths
+	var typesPaths string
+	defaultTypesPaths := strings.Join(cfg.TypesPaths, ",")
+	flag.StringVar(&typesPaths, "types", defaultTypesPaths, "Comma-separated list of glob patterns for type definition files")
+
+	// Parse the types paths after flags are parsed
+	flag.Parse()
+
+	if typesPaths != "" {
+		cfg.TypesPaths = strings.Split(typesPaths, ",")
+	}
+
+	// Use handler directory as output directory if not specified
+	if cfg.OutputDir == "" {
+		cfg.OutputDir = cfg.HandlerDir
+	}
 }
 
 // RouteInfo stores information about an API route
@@ -70,21 +119,333 @@ var (
 	publicPatterns = []string{"Login", "Register", "Captcha", "Public"}
 )
 
-func main() {
-	// Initialize default configuration
-	config := Config{
-		HandlerDir:     "./internal/api/http/web/handler",
-		SecurityScheme: "BearerAuth",
-		RouterFile:     "./internal/api/http/web/router.go",
-		Verbose:        true,
+// FileCache provides caching for parsed files to avoid repeated parsing
+type FileCache struct {
+	parsedFiles map[string]*ast.File
+	mutex       sync.RWMutex
+}
+
+// NewFileCache creates a new file cache
+func NewFileCache() *FileCache {
+	return &FileCache{
+		parsedFiles: make(map[string]*ast.File),
+	}
+}
+
+// GetParsedFile gets a parsed file from cache or parses it if not cached
+func (c *FileCache) GetParsedFile(filePath string) (*ast.File, error) {
+	// Check cache first
+	c.mutex.RLock()
+	if file, ok := c.parsedFiles[filePath]; ok {
+		c.mutex.RUnlock()
+		return file, nil
+	}
+	c.mutex.RUnlock()
+
+	// Parse the file
+	fset := token.NewFileSet()
+	node, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
+	if err != nil {
+		return nil, fmt.Errorf("parse error: %v", err)
 	}
 
+	// Cache the result
+	c.mutex.Lock()
+	c.parsedFiles[filePath] = node
+	c.mutex.Unlock()
+
+	return node, nil
+}
+
+// TypeFinder provides an interface for finding and caching type information
+type TypeFinder interface {
+	// FindType finds a type by name and returns information about it
+	FindType(typeName string) (map[string]URIParameter, error)
+}
+
+// CachedTypeFinder caches type information to avoid repeated parsing
+type CachedTypeFinder struct {
+	typePaths  []string
+	cache      map[string]map[string]URIParameter
+	fileCache  *FileCache
+	cacheMutex sync.RWMutex
+}
+
+// NewCachedTypeFinder creates a new type finder with caching
+func NewCachedTypeFinder(typePaths []string, fileCache *FileCache) *CachedTypeFinder {
+	return &CachedTypeFinder{
+		typePaths: typePaths,
+		cache:     make(map[string]map[string]URIParameter),
+		fileCache: fileCache,
+	}
+}
+
+// FindType finds a type by name and caches the result
+func (tf *CachedTypeFinder) FindType(typeName string) (map[string]URIParameter, error) {
+	// Check cache first
+	tf.cacheMutex.RLock()
+	params, found := tf.cache[typeName]
+	tf.cacheMutex.RUnlock()
+
+	if found {
+		return params, nil
+	}
+
+	// Not in cache, find it
+	params, err := tf.extractURIParametersFromType(typeName)
+	if err != nil {
+		return params, err
+	}
+
+	// Cache the result
+	tf.cacheMutex.Lock()
+	tf.cache[typeName] = params
+	tf.cacheMutex.Unlock()
+
+	return params, nil
+}
+
+// extractURIParametersFromType extracts URI parameters from request struct types
+func (tf *CachedTypeFinder) extractURIParametersFromType(typeName string) (map[string]URIParameter, error) {
+	uriParams := make(map[string]URIParameter)
+
+	// Find files with types package in the codebase
+	var typesFiles []string
+	for _, pattern := range tf.typePaths {
+		matches, err := filepath.Glob(pattern)
+		if err != nil {
+			continue
+		}
+		typesFiles = append(typesFiles, matches...)
+	}
+
+	// Get the struct name without package prefix (e.g., "UserReq" from "types.UserReq")
+	parts := strings.Split(typeName, ".")
+	if len(parts) != 2 {
+		return uriParams, nil
+	}
+	structName := parts[1]
+
+	for _, filePath := range typesFiles {
+		// Get the parsed file from cache
+		node, err := tf.fileCache.GetParsedFile(filePath)
+		if err != nil {
+			continue
+		}
+
+		// Find the struct declaration
+		for _, decl := range node.Decls {
+			genDecl, ok := decl.(*ast.GenDecl)
+			if !ok || genDecl.Tok != token.TYPE {
+				continue
+			}
+
+			for _, spec := range genDecl.Specs {
+				typeSpec, ok := spec.(*ast.TypeSpec)
+				if !ok || typeSpec.Name.Name != structName {
+					continue
+				}
+
+				structType, ok := typeSpec.Type.(*ast.StructType)
+				if !ok {
+					continue
+				}
+
+				// Examine each field for URI tag
+				for _, field := range structType.Fields.List {
+					if field.Tag == nil {
+						continue
+					}
+
+					tag := field.Tag.Value
+
+					// Extract URI parameter name from the tag
+					uriMatch := regexp.MustCompile(`uri:"([^"]+)"`).FindStringSubmatch(tag)
+					if len(uriMatch) < 2 {
+						continue
+					}
+
+					uriParamName := uriMatch[1]
+					required := regexp.MustCompile(`binding:"[^"]*required[^"]*"`).MatchString(tag)
+
+					// Determine field type
+					paramType := "string" // default
+					if ident, ok := field.Type.(*ast.Ident); ok {
+						switch ident.Name {
+						case "int", "int32", "int64", "uint", "uint32", "uint64":
+							paramType = "integer"
+						case "float32", "float64":
+							paramType = "number"
+						case "bool":
+							paramType = "boolean"
+						}
+					}
+
+					// Store parameter info
+					uriParams[uriParamName] = URIParameter{
+						Name:     uriParamName,
+						Type:     paramType,
+						Required: required,
+					}
+				}
+			}
+		}
+	}
+
+	return uriParams, nil
+}
+
+// SwaggerGenerator handles the generation of Swagger comments
+type SwaggerGenerator struct {
+	config     *Config
+	routes     map[string]RouteInfo
+	fileCache  *FileCache
+	typeFinder TypeFinder
+}
+
+// NewSwaggerGenerator creates a new Swagger generator
+func NewSwaggerGenerator(config *Config) (*SwaggerGenerator, error) {
+	// Create file cache
+	fileCache := NewFileCache()
+
+	// Extract routes from router file
+	routes, err := extractRoutes(config.RouterFile)
+	if err != nil && config.Verbose {
+		fmt.Printf("Warning: Could not extract routes from router file: %v\n", err)
+		fmt.Println("Will use function name analysis to determine routes.")
+	}
+
+	// Create type finder
+	typeFinder := NewCachedTypeFinder(config.TypesPaths, fileCache)
+
+	return &SwaggerGenerator{
+		config:     config,
+		routes:     routes,
+		fileCache:  fileCache,
+		typeFinder: typeFinder,
+	}, nil
+}
+
+// Run runs the swagger generation process
+func (sg *SwaggerGenerator) Run() (FileStats, error) {
+	totalStats := FileStats{}
+
+	// Find all handler files
+	handlerFiles, err := findHandlerFiles(sg.config.HandlerDir, sg.config.HandlerPattern)
+	if err != nil {
+		return totalStats, fmt.Errorf("error finding handler files: %v", err)
+	}
+
+	if len(handlerFiles) == 0 {
+		return totalStats, fmt.Errorf("no handler files found in %s matching pattern %s",
+			sg.config.HandlerDir, sg.config.HandlerPattern)
+	}
+
+	if sg.config.Verbose {
+		fmt.Printf("Found %d handler files to process\n", len(handlerFiles))
+	}
+
+	// Create and start worker pool
+	workerPool := NewWorkerPool(sg.config, sg.routes, sg.fileCache, sg.typeFinder)
+	workerPool.Start()
+
+	// Add files to work queue
+	for _, path := range handlerFiles {
+		workerPool.AddFile(path)
+	}
+
+	// Close worker pool and process results
+	workerPool.Close()
+	totalStats = workerPool.ProcessResults()
+
+	return totalStats, nil
+}
+
+// WorkerPool manages a pool of workers for processing files
+type WorkerPool struct {
+	concurrency int
+	workChan    chan string
+	resultChan  chan fileResult
+	wg          *sync.WaitGroup
+	config      *Config
+	routes      map[string]RouteInfo
+	fileCache   *FileCache
+	typeFinder  TypeFinder
+}
+
+// NewWorkerPool creates a new worker pool
+func NewWorkerPool(config *Config, routes map[string]RouteInfo, fileCache *FileCache, typeFinder TypeFinder) *WorkerPool {
+	return &WorkerPool{
+		concurrency: config.Concurrency,
+		workChan:    make(chan string, config.Concurrency*2),
+		resultChan:  make(chan fileResult, config.Concurrency*2),
+		wg:          &sync.WaitGroup{},
+		config:      config,
+		routes:      routes,
+		fileCache:   fileCache,
+		typeFinder:  typeFinder,
+	}
+}
+
+// Start starts the worker pool
+func (wp *WorkerPool) Start() {
+	// Start workers
+	for i := 0; i < wp.concurrency; i++ {
+		wp.wg.Add(1)
+		go wp.worker()
+	}
+}
+
+// worker processes files from the work channel
+func (wp *WorkerPool) worker() {
+	defer wp.wg.Done()
+	for filePath := range wp.workChan {
+		stats, err := processFile(filePath, *wp.config, wp.routes, wp.fileCache, wp.typeFinder)
+		wp.resultChan <- fileResult{path: filePath, stats: stats, err: err}
+	}
+}
+
+// AddFile adds a file to the work queue
+func (wp *WorkerPool) AddFile(filePath string) {
+	wp.workChan <- filePath
+}
+
+// Close closes the work channel and waits for all workers to finish
+func (wp *WorkerPool) Close() {
+	close(wp.workChan)
+	wp.wg.Wait()
+	close(wp.resultChan)
+}
+
+// ProcessResults processes results from the result channel and returns total stats
+func (wp *WorkerPool) ProcessResults() FileStats {
+	totalStats := FileStats{}
+
+	for result := range wp.resultChan {
+		if result.err != nil {
+			fmt.Printf("Error processing %s: %v\n", result.path, result.err)
+			continue
+		}
+
+		totalStats.TotalMethods += result.stats.TotalMethods
+		totalStats.HandlerMethods += result.stats.HandlerMethods
+		totalStats.AlreadyCommented += result.stats.AlreadyCommented
+		totalStats.NewlyCommented += result.stats.NewlyCommented
+
+		if wp.config.Verbose {
+			printFileStats(result.path, result.stats)
+		}
+	}
+
+	return totalStats
+}
+
+func main() {
+	// Initialize default configuration
+	config := NewDefaultConfig()
+
 	// Parse command line flags
-	flag.StringVar(&config.HandlerDir, "dir", config.HandlerDir, "Directory containing handler files")
-	flag.StringVar(&config.OutputDir, "out", "", "Output directory (default: same as handler directory)")
-	flag.StringVar(&config.SecurityScheme, "security", config.SecurityScheme, "Security scheme name")
-	flag.StringVar(&config.RouterFile, "router", config.RouterFile, "Router file path")
-	flag.BoolVar(&config.Verbose, "v", config.Verbose, "Verbose output")
+	config.SetupFlags()
 
 	help := flag.Bool("help", false, "Print usage information")
 	h := flag.Bool("h", false, "Print usage information")
@@ -96,11 +457,6 @@ func main() {
 		return
 	}
 
-	// Use handler directory as output directory if not specified
-	if config.OutputDir == "" {
-		config.OutputDir = config.HandlerDir
-	}
-
 	// Validate handler directory
 	if !dirExists(config.HandlerDir) {
 		fmt.Printf("Error: Directory %s does not exist!\n", config.HandlerDir)
@@ -109,80 +465,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Extract routes from router file
-	routes, err := extractRoutes(config.RouterFile)
-	if err != nil && config.Verbose {
-		fmt.Printf("Warning: Could not extract routes from router file: %v\n", err)
-		fmt.Println("Will use function name analysis to determine routes.")
-	}
-
-	// Print configuration if verbose
-	if config.Verbose {
-		printConfig(config, len(routes))
-	}
-
-	// Find all handler files
-	handlerFiles, err := findHandlerFiles(config.HandlerDir)
+	// Create Swagger generator
+	generator, err := NewSwaggerGenerator(config)
 	if err != nil {
-		fmt.Printf("Error finding handler files: %v\n", err)
+		fmt.Printf("Error creating Swagger generator: %v\n", err)
 		os.Exit(1)
 	}
 
-	if len(handlerFiles) == 0 {
-		fmt.Println("No handler files found in", config.HandlerDir)
-		fmt.Println("Make sure the directory contains *_handler.go files")
+	// Run the generator
+	totalStats, err := generator.Run()
+	if err != nil {
+		fmt.Printf("Error running Swagger generator: %v\n", err)
 		os.Exit(1)
-	}
-
-	if config.Verbose {
-		fmt.Printf("Found %d handler files to process\n", len(handlerFiles))
-	}
-
-	// Process files
-	var wg sync.WaitGroup
-	results := make(chan fileResult, len(handlerFiles))
-
-	// Process each handler file - limited concurrency
-	semaphore := make(chan struct{}, 4) // Limit to 4 concurrent file operations
-	for _, path := range handlerFiles {
-		wg.Add(1)
-		semaphore <- struct{}{}
-
-		go func(path string) {
-			defer wg.Done()
-			defer func() { <-semaphore }()
-
-			if config.Verbose {
-				fmt.Printf("Processing file: %s\n", path)
-			}
-
-			stats, err := processFile(path, config, routes)
-			results <- fileResult{path: path, stats: stats, err: err}
-		}(path)
-	}
-
-	// Close results channel when all goroutines complete
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
-
-	// Collect and process results
-	totalStats := FileStats{}
-	for result := range results {
-		if result.err != nil {
-			fmt.Printf("Error processing %s: %v\n", result.path, result.err)
-			continue
-		}
-
-		totalStats.TotalMethods += result.stats.TotalMethods
-		totalStats.HandlerMethods += result.stats.HandlerMethods
-		totalStats.AlreadyCommented += result.stats.AlreadyCommented
-		totalStats.NewlyCommented += result.stats.NewlyCommented
-
-		if config.Verbose {
-			printFileStats(result.path, result.stats)
-		}
 	}
 
 	fmt.Println("Swagger comment generation complete!")
@@ -244,14 +538,19 @@ func printUsage() {
 }
 
 // findHandlerFiles finds all handler files in the given directory
-func findHandlerFiles(dirPath string) ([]string, error) {
+func findHandlerFiles(dirPath string, pattern string) ([]string, error) {
 	var handlerFiles []string
 
 	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() && strings.HasSuffix(path, "_handler.go") {
+		// Check if file matches pattern
+		matched, err := filepath.Match(pattern, filepath.Base(path))
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && matched {
 			handlerFiles = append(handlerFiles, path)
 		}
 		return nil
@@ -307,14 +606,13 @@ func extractRoutes(routerFile string) (map[string]RouteInfo, error) {
 }
 
 // processFile processes a single file to add Swagger comments
-func processFile(filePath string, config Config, routes map[string]RouteInfo) (FileStats, error) {
+func processFile(filePath string, config Config, routes map[string]RouteInfo, fileCache *FileCache, typeFinder TypeFinder) (FileStats, error) {
 	stats := FileStats{}
 
-	// Parse the file
-	fset := token.NewFileSet()
-	node, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
+	// Get parsed file from cache
+	node, err := fileCache.GetParsedFile(filePath)
 	if err != nil {
-		return stats, fmt.Errorf("parse error: %v", err)
+		return stats, fmt.Errorf("error getting parsed file: %v", err)
 	}
 
 	// Collect all handler methods that need comments
@@ -331,13 +629,13 @@ func processFile(filePath string, config Config, routes map[string]RouteInfo) (F
 		handlerName := funcDecl.Name.Name
 
 		// Generate swagger comment
-		comment := generateSwaggerComment(funcDecl, config, routes)
+		comment := generateSwaggerComment(funcDecl, &config, routes, typeFinder)
 		if config.Verbose {
 			fmt.Printf("  Generated comment for %s\n", handlerName)
 		}
 
 		// Update the file with the new comment
-		if err := updateFileWithComment(filePath, fset, funcDecl, comment); err != nil {
+		if err := updateFileWithComment(filePath, funcDecl, comment); err != nil {
 			fmt.Printf("  Error updating comment for %s: %v\n", handlerName, err)
 			continue
 		}
@@ -460,7 +758,7 @@ func hasSwaggerComment(funcDecl *ast.FuncDecl) bool {
 }
 
 // generateSwaggerComment generates a Swagger comment for a handler method
-func generateSwaggerComment(funcDecl *ast.FuncDecl, config Config, routes map[string]RouteInfo) string {
+func generateSwaggerComment(funcDecl *ast.FuncDecl, config *Config, routes map[string]RouteInfo, typeFinder TypeFinder) string {
 	handlerName := funcDecl.Name.Name
 	receiverType := getReceiverType(funcDecl)
 
@@ -481,6 +779,11 @@ func generateSwaggerComment(funcDecl *ast.FuncDecl, config Config, routes map[st
 		path = determinePath(handlerName)
 	}
 
+	// Add API prefix if configured
+	if config.ApiPrefix != "" && !strings.HasPrefix(path, config.ApiPrefix) {
+		path = config.ApiPrefix + path
+	}
+
 	// Build the comment - use a pre-sized StringBuilder for better performance
 	var comment strings.Builder
 	comment.Grow(500) // Pre-allocate for typical comment size
@@ -494,7 +797,7 @@ func generateSwaggerComment(funcDecl *ast.FuncDecl, config Config, routes map[st
 	comment.WriteString("// @Produce json\n")
 
 	// Add parameters
-	addParametersToComment(&comment, handlerName, path, method)
+	addParametersToComment(&comment, handlerName, path, method, typeFinder)
 
 	// Add response type
 	statusCode := determineStatusCode(method)
@@ -518,10 +821,10 @@ func generateSwaggerComment(funcDecl *ast.FuncDecl, config Config, routes map[st
 }
 
 // addParametersToComment adds parameter information to the comment
-func addParametersToComment(comment *strings.Builder, handlerName, path, method string) {
+func addParametersToComment(comment *strings.Builder, handlerName, path, method string, typeFinder TypeFinder) {
 	// Try to extract URI parameters from request struct
 	reqTypeName := "types." + handlerName + "Req"
-	uriParams, _ := extractURIParametersFromType(reqTypeName)
+	uriParams, _ := typeFinder.FindType(reqTypeName)
 
 	// Get path parameters
 	pathParams := pathParamRegex.FindAllStringSubmatch(path, -1)
@@ -564,7 +867,16 @@ func addParametersToComment(comment *strings.Builder, handlerName, path, method 
 }
 
 // updateFileWithComment updates a file with a new Swagger comment
-func updateFileWithComment(filePath string, fset *token.FileSet, funcDecl *ast.FuncDecl, comment string) error {
+func updateFileWithComment(filePath string, funcDecl *ast.FuncDecl, comment string) error {
+	// Create a new file set for this operation
+	fset := token.NewFileSet()
+
+	// Parse the file to get positions
+	_, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
+	if err != nil {
+		return fmt.Errorf("parse error: %v", err)
+	}
+
 	// Get function position
 	startPos := funcDecl.Pos()
 	startOffset := fset.Position(startPos).Offset
@@ -741,112 +1053,4 @@ func isLikelySecured(handlerName string) bool {
 	}
 
 	return true
-}
-
-// extractURIParametersFromType extracts URI parameters from request struct types
-func extractURIParametersFromType(typeName string) (map[string]URIParameter, error) {
-	uriParams := make(map[string]URIParameter)
-
-	// Find files with types package in the codebase
-	typesFiles, err := findTypesFiles()
-	if err != nil {
-		return uriParams, err
-	}
-
-	for _, filePath := range typesFiles {
-		// Parse the file
-		fset := token.NewFileSet()
-		node, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
-		if err != nil {
-			continue
-		}
-
-		// Get the struct name without package prefix (e.g., "UserReq" from "types.UserReq")
-		parts := strings.Split(typeName, ".")
-		if len(parts) != 2 {
-			continue
-		}
-		structName := parts[1]
-
-		// Find the struct declaration
-		for _, decl := range node.Decls {
-			genDecl, ok := decl.(*ast.GenDecl)
-			if !ok || genDecl.Tok != token.TYPE {
-				continue
-			}
-
-			for _, spec := range genDecl.Specs {
-				typeSpec, ok := spec.(*ast.TypeSpec)
-				if !ok || typeSpec.Name.Name != structName {
-					continue
-				}
-
-				structType, ok := typeSpec.Type.(*ast.StructType)
-				if !ok {
-					continue
-				}
-
-				// Examine each field for URI tag
-				for _, field := range structType.Fields.List {
-					if field.Tag == nil {
-						continue
-					}
-
-					tag := field.Tag.Value
-
-					// Extract URI parameter name from the tag
-					uriMatch := regexp.MustCompile(`uri:"([^"]+)"`).FindStringSubmatch(tag)
-					if len(uriMatch) < 2 {
-						continue
-					}
-
-					uriParamName := uriMatch[1]
-					required := regexp.MustCompile(`binding:"[^"]*required[^"]*"`).MatchString(tag)
-
-					// Determine field type
-					paramType := "string" // default
-					if ident, ok := field.Type.(*ast.Ident); ok {
-						switch ident.Name {
-						case "int", "int32", "int64", "uint", "uint32", "uint64":
-							paramType = "integer"
-						case "float32", "float64":
-							paramType = "number"
-						case "bool":
-							paramType = "boolean"
-						}
-					}
-
-					// Store parameter info
-					uriParams[uriParamName] = URIParameter{
-						Name:     uriParamName,
-						Type:     paramType,
-						Required: required,
-					}
-				}
-			}
-		}
-	}
-
-	return uriParams, nil
-}
-
-// findTypesFiles finds files that might contain type definitions
-func findTypesFiles() ([]string, error) {
-	var typesFiles []string
-
-	// Common patterns for types package files
-	patterns := []string{
-		"./internal/api/http/web/types/*.go",
-		"./pkg/types/*.go",
-	}
-
-	for _, pattern := range patterns {
-		matches, err := filepath.Glob(pattern)
-		if err != nil {
-			continue
-		}
-		typesFiles = append(typesFiles, matches...)
-	}
-
-	return typesFiles, nil
 }
