@@ -79,9 +79,12 @@ func (s *AuthService) GetCurrentUserInfo(ctx context.Context, req *types.GetCurr
 	}
 
 	return &types.GetCurrentUserInfoResp{
-		ID:          user.ID,
-		RoleSlug:    user.Role,
-		Permissions: []string{}, // TODO
+		ID:       user.ID,
+		RoleSlug: user.Role,
+		Permissions: []string{
+			"page:users",
+			"page:departments",
+		}, // TODO
 	}, nil
 }
 

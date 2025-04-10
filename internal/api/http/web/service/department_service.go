@@ -66,8 +66,8 @@ func (s *DepartmentService) ListDepartments(ctx context.Context, req *types.List
 	}
 
 	return &types.ListDepartmentsResp{
-		Results:  respResults,
-		PageInfo: types.NewPageResp(count, req.GetPage(), req.GetPageSize()),
+		Results:    respResults,
+		Pagination: types.NewPageResp(count, req.GetPage(), req.GetPageSize()),
 	}, nil
 }
 

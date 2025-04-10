@@ -147,7 +147,7 @@ definitions:
     type: object
   types.ListDepartmentsResp:
     properties:
-      page_info:
+      pagination:
         $ref: '#/definitions/types.PageResp'
       results:
         items:
@@ -169,7 +169,7 @@ definitions:
     type: object
   types.ListUsersResp:
     properties:
-      page_info:
+      pagination:
         $ref: '#/definitions/types.PageResp'
       results:
         items:

@@ -26,8 +26,8 @@ type ListDepartmentsReq struct {
 
 // ListDepartmentsResp represents department list with pagination info.
 type ListDepartmentsResp struct {
-	Results  []ListDepartmentsRespResult `json:"results"`
-	PageInfo PageResp                    `json:"page_info"`
+	Results    []ListDepartmentsRespResult `json:"results"`
+	Pagination PageResp                    `json:"pagination"`
 }
 
 type ListDepartmentsRespResult struct {

@@ -29,8 +29,8 @@ type ListUsersReq struct {
 
 // ListUsersResp represents user list with pagination info.
 type ListUsersResp struct {
-	Results  []ListUsersRespResult `json:"results"`
-	PageInfo PageResp              `json:"page_info"`
+	Results    []ListUsersRespResult `json:"results"`
+	Pagination PageResp              `json:"pagination"`
 }
 
 type ListUsersRespResult struct {

@@ -1910,7 +1910,7 @@ const docTemplate = `{
         "types.ListDepartmentsResp": {
             "type": "object",
             "properties": {
-                "page_info": {
+                "pagination": {
                     "$ref": "#/definitions/types.PageResp"
                 },
                 "results": {
@@ -1944,7 +1944,7 @@ const docTemplate = `{
         "types.ListUsersResp": {
             "type": "object",
             "properties": {
-                "page_info": {
+                "pagination": {
                     "$ref": "#/definitions/types.PageResp"
                 },
                 "results": {

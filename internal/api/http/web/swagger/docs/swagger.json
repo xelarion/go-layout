@@ -1904,7 +1904,7 @@
         "types.ListDepartmentsResp": {
             "type": "object",
             "properties": {
-                "page_info": {
+                "pagination": {
                     "$ref": "#/definitions/types.PageResp"
                 },
                 "results": {
@@ -1938,7 +1938,7 @@
         "types.ListUsersResp": {
             "type": "object",
             "properties": {
-                "page_info": {
+                "pagination": {
                     "$ref": "#/definitions/types.PageResp"
                 },
                 "results": {
