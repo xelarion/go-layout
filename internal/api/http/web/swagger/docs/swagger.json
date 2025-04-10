@@ -22,6 +22,7 @@
                     "auth"
                 ],
                 "summary": "New Captcha",
+                "operationId": "NewCaptcha",
                 "parameters": [
                     {
                         "description": "req",
@@ -86,6 +87,7 @@
                     "auth"
                 ],
                 "summary": "Reload Captcha",
+                "operationId": "ReloadCaptcha",
                 "parameters": [
                     {
                         "type": "string",
@@ -157,6 +159,7 @@
                     "auth"
                 ],
                 "summary": "Login",
+                "operationId": "Login",
                 "parameters": [
                     {
                         "description": "req",
@@ -226,6 +229,7 @@
                     "auth"
                 ],
                 "summary": "Logout",
+                "operationId": "Logout",
                 "parameters": [
                     {
                         "description": "req",
@@ -295,6 +299,7 @@
                     "auth"
                 ],
                 "summary": "Get Profile",
+                "operationId": "GetProfile",
                 "responses": {
                     "200": {
                         "description": "Success",
@@ -351,6 +356,7 @@
                     "auth"
                 ],
                 "summary": "Update Profile",
+                "operationId": "UpdateProfile",
                 "parameters": [
                     {
                         "description": "req",
@@ -415,6 +421,7 @@
                     "auth"
                 ],
                 "summary": "Get RSAPublic Key",
+                "operationId": "GetRSAPublicKey",
                 "parameters": [
                     {
                         "description": "req",
@@ -479,6 +486,7 @@
                     "auth"
                 ],
                 "summary": "Refresh Token",
+                "operationId": "RefreshToken",
                 "parameters": [
                     {
                         "type": "string",
@@ -546,6 +554,7 @@
                     "user"
                 ],
                 "summary": "List Users",
+                "operationId": "ListUsers",
                 "parameters": [
                     {
                         "maxLength": 100,
@@ -663,6 +672,7 @@
                     "user"
                 ],
                 "summary": "Create User",
+                "operationId": "CreateUser",
                 "parameters": [
                     {
                         "description": "req",
@@ -732,6 +742,7 @@
                     "auth"
                 ],
                 "summary": "Get Current User Info",
+                "operationId": "GetCurrentUserInfo",
                 "responses": {
                     "200": {
                         "description": "Success",
@@ -790,6 +801,7 @@
                     "user"
                 ],
                 "summary": "Get User",
+                "operationId": "GetUser",
                 "parameters": [
                     {
                         "type": "integer",
@@ -855,6 +867,7 @@
                     "user"
                 ],
                 "summary": "Update User",
+                "operationId": "UpdateUser",
                 "parameters": [
                     {
                         "type": "integer",
@@ -929,6 +942,7 @@
                     "user"
                 ],
                 "summary": "Delete User",
+                "operationId": "DeleteUser",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1005,6 +1019,7 @@
                     "user"
                 ],
                 "summary": "Update User Enabled",
+                "operationId": "UpdateUserEnabled",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1081,6 +1096,7 @@
                     "user"
                 ],
                 "summary": "Get User Form Data",
+                "operationId": "GetUserFormData",
                 "parameters": [
                     {
                         "type": "integer",

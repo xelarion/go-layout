@@ -288,6 +288,7 @@ paths:
       consumes:
       - application/json
       description: Reload Captcha
+      operationId: ReloadCaptcha
       parameters:
       - description: id
         in: path
@@ -332,6 +333,7 @@ paths:
       consumes:
       - application/json
       description: New Captcha
+      operationId: NewCaptcha
       parameters:
       - description: req
         in: body
@@ -371,6 +373,7 @@ paths:
       consumes:
       - application/json
       description: Login
+      operationId: Login
       parameters:
       - description: req
         in: body
@@ -410,6 +413,7 @@ paths:
       consumes:
       - application/json
       description: Logout
+      operationId: Logout
       parameters:
       - description: req
         in: body
@@ -451,6 +455,7 @@ paths:
       consumes:
       - application/json
       description: Retrieves a single Profile
+      operationId: GetProfile
       produces:
       - application/json
       responses:
@@ -484,6 +489,7 @@ paths:
       consumes:
       - application/json
       description: Updates an existing Profile
+      operationId: UpdateProfile
       parameters:
       - description: req
         in: body
@@ -525,6 +531,7 @@ paths:
       consumes:
       - application/json
       description: Retrieves a single RSAPublic Key
+      operationId: GetRSAPublicKey
       parameters:
       - description: req
         in: body
@@ -564,6 +571,7 @@ paths:
       consumes:
       - application/json
       description: Refresh Token
+      operationId: RefreshToken
       parameters:
       - description: Expired or about-to-expire token to refresh
         in: query
@@ -602,6 +610,7 @@ paths:
       consumes:
       - application/json
       description: Retrieves a list of Users
+      operationId: ListUsers
       parameters:
       - in: query
         maxLength: 100
@@ -677,6 +686,7 @@ paths:
       consumes:
       - application/json
       description: Creates a new User
+      operationId: CreateUser
       parameters:
       - description: req
         in: body
@@ -718,6 +728,7 @@ paths:
       consumes:
       - application/json
       description: Deletes an existing User
+      operationId: DeleteUser
       parameters:
       - description: id
         in: path
@@ -763,6 +774,7 @@ paths:
       consumes:
       - application/json
       description: Retrieves a single User
+      operationId: GetUser
       parameters:
       - description: id
         in: path
@@ -802,6 +814,7 @@ paths:
       consumes:
       - application/json
       description: Updates an existing User
+      operationId: UpdateUser
       parameters:
       - description: id
         in: path
@@ -848,6 +861,7 @@ paths:
       consumes:
       - application/json
       description: Updates an existing User Enabled
+      operationId: UpdateUserEnabled
       parameters:
       - description: id
         in: path
@@ -894,6 +908,7 @@ paths:
       consumes:
       - application/json
       description: Retrieves a single User Form Data
+      operationId: GetUserFormData
       parameters:
       - description: id
         in: path
@@ -934,6 +949,7 @@ paths:
       consumes:
       - application/json
       description: Retrieves a single Current User Info
+      operationId: GetCurrentUserInfo
       produces:
       - application/json
       responses:

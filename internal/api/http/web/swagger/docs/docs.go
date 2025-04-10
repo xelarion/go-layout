@@ -28,6 +28,7 @@ const docTemplate = `{
                     "auth"
                 ],
                 "summary": "New Captcha",
+                "operationId": "NewCaptcha",
                 "parameters": [
                     {
                         "description": "req",
@@ -92,6 +93,7 @@ const docTemplate = `{
                     "auth"
                 ],
                 "summary": "Reload Captcha",
+                "operationId": "ReloadCaptcha",
                 "parameters": [
                     {
                         "type": "string",
@@ -163,6 +165,7 @@ const docTemplate = `{
                     "auth"
                 ],
                 "summary": "Login",
+                "operationId": "Login",
                 "parameters": [
                     {
                         "description": "req",
@@ -232,6 +235,7 @@ const docTemplate = `{
                     "auth"
                 ],
                 "summary": "Logout",
+                "operationId": "Logout",
                 "parameters": [
                     {
                         "description": "req",
@@ -301,6 +305,7 @@ const docTemplate = `{
                     "auth"
                 ],
                 "summary": "Get Profile",
+                "operationId": "GetProfile",
                 "responses": {
                     "200": {
                         "description": "Success",
@@ -357,6 +362,7 @@ const docTemplate = `{
                     "auth"
                 ],
                 "summary": "Update Profile",
+                "operationId": "UpdateProfile",
                 "parameters": [
                     {
                         "description": "req",
@@ -421,6 +427,7 @@ const docTemplate = `{
                     "auth"
                 ],
                 "summary": "Get RSAPublic Key",
+                "operationId": "GetRSAPublicKey",
                 "parameters": [
                     {
                         "description": "req",
@@ -485,6 +492,7 @@ const docTemplate = `{
                     "auth"
                 ],
                 "summary": "Refresh Token",
+                "operationId": "RefreshToken",
                 "parameters": [
                     {
                         "type": "string",
@@ -552,6 +560,7 @@ const docTemplate = `{
                     "user"
                 ],
                 "summary": "List Users",
+                "operationId": "ListUsers",
                 "parameters": [
                     {
                         "maxLength": 100,
@@ -669,6 +678,7 @@ const docTemplate = `{
                     "user"
                 ],
                 "summary": "Create User",
+                "operationId": "CreateUser",
                 "parameters": [
                     {
                         "description": "req",
@@ -738,6 +748,7 @@ const docTemplate = `{
                     "auth"
                 ],
                 "summary": "Get Current User Info",
+                "operationId": "GetCurrentUserInfo",
                 "responses": {
                     "200": {
                         "description": "Success",
@@ -796,6 +807,7 @@ const docTemplate = `{
                     "user"
                 ],
                 "summary": "Get User",
+                "operationId": "GetUser",
                 "parameters": [
                     {
                         "type": "integer",
@@ -861,6 +873,7 @@ const docTemplate = `{
                     "user"
                 ],
                 "summary": "Update User",
+                "operationId": "UpdateUser",
                 "parameters": [
                     {
                         "type": "integer",
@@ -935,6 +948,7 @@ const docTemplate = `{
                     "user"
                 ],
                 "summary": "Delete User",
+                "operationId": "DeleteUser",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1011,6 +1025,7 @@ const docTemplate = `{
                     "user"
                 ],
                 "summary": "Update User Enabled",
+                "operationId": "UpdateUserEnabled",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1087,6 +1102,7 @@ const docTemplate = `{
                     "user"
                 ],
                 "summary": "Get User Form Data",
+                "operationId": "GetUserFormData",
                 "parameters": [
                     {
                         "type": "integer",

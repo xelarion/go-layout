@@ -882,6 +882,7 @@ func generateSwaggerComment(funcDecl *ast.FuncDecl, config *Config, routes map[s
 
 	// Add basic info
 	comment.WriteString(fmt.Sprintf("// %s godoc\n", handlerName))
+	comment.WriteString(fmt.Sprintf("// @ID %s\n", handlerName))
 	comment.WriteString(fmt.Sprintf("// @Summary %s\n", generateSummary(handlerName)))
 	comment.WriteString(fmt.Sprintf("// @Description %s\n", generateDescription(handlerName)))
 	comment.WriteString("// @Tags " + determineTagFromHandler(receiverType) + "\n")

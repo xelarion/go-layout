@@ -30,6 +30,7 @@ func NewAuthHandler(authService *service.AuthService, authMW *jwt.GinJWTMiddlewa
 }
 
 // NewCaptcha godoc
+//	@ID				NewCaptcha
 //	@Summary		New Captcha
 //	@Description	New Captcha
 //	@Tags			auth
@@ -58,6 +59,7 @@ func (h *AuthHandler) NewCaptcha(c *gin.Context) {
 }
 
 // ReloadCaptcha godoc
+//	@ID				ReloadCaptcha
 //	@Summary		Reload Captcha
 //	@Description	Reload Captcha
 //	@Tags			auth
@@ -87,6 +89,7 @@ func (h *AuthHandler) ReloadCaptcha(c *gin.Context) {
 }
 
 // GetRSAPublicKey godoc
+//	@ID				GetRSAPublicKey
 //	@Summary		Get RSAPublic Key
 //	@Description	Retrieves a single RSAPublic Key
 //	@Tags			auth
@@ -115,6 +118,7 @@ func (h *AuthHandler) GetRSAPublicKey(c *gin.Context) {
 }
 
 // Login godoc
+//	@ID				Login
 //	@Summary		Login
 //	@Description	Login
 //	@Tags			auth
@@ -131,6 +135,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 // RefreshToken godoc
+//	@ID				RefreshToken
 //	@Summary		Refresh Token
 //	@Description	Refresh Token
 //	@Tags			auth
@@ -147,6 +152,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 }
 
 // Logout godoc
+//	@ID				Logout
 //	@Summary		Logout
 //	@Description	Logout
 //	@Tags			auth
@@ -164,6 +170,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 }
 
 // GetProfile godoc
+//	@ID				GetProfile
 //	@Summary		Get Profile
 //	@Description	Retrieves a single Profile
 //	@Tags			auth
@@ -193,6 +200,7 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 }
 
 // UpdateProfile godoc
+//	@ID				UpdateProfile
 //	@Summary		Update Profile
 //	@Description	Updates an existing Profile
 //	@Tags			auth
@@ -222,6 +230,7 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 }
 
 // GetCurrentUserInfo godoc
+//	@ID				GetCurrentUserInfo
 //	@Summary		Get Current User Info
 //	@Description	Retrieves a single Current User Info
 //	@Tags			auth
