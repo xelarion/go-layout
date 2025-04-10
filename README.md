@@ -33,60 +33,60 @@ A scalable, high-performance, high-availability web application template built w
 ## Project Structure
 
 ```
-├── cmd/                   # Application entry points
-│   ├── web-api/           # Web API server
-│   ├── migrate/           # Database migration tool
-│   └── task/              # Task runner for scheduled, polling, and queue tasks
-├── config/                # Configuration files
-│   ├── dev/               # Development environment configs
-│   └── prod/              # Production environment configs
-├── db/                    # Database related files
-│   └── migrations/        # Database migration files
-├── deploy/                # Deployment configurations
-│   ├── config/            # Deployment config files
-│   ├── k3s/               # k3s deployment manifests
-│   │   ├── cluster/       # Cluster deployment configurations
-│   │   └── single/        # Single-node deployment configurations
-│   └── scripts/           # Deployment automation scripts
-├── docs/                  # Documentation
-│   ├── deployment.md      # Detailed deployment guide (English)
-│   ├── deployment-zh.md   # Detailed deployment guide (Chinese)
-├── internal/              # Private application code
-│   ├── api/               # API-specific code
-│   │   └── http/          # HTTP API code
-│   │       └── web/       # Web API handlers and routes
-│   │           ├── handler/   # API request handlers
-│   │           ├── middleware/# HTTP middleware components
-│   │           ├── types/     # Request/response structures
-│   │           ├── service/   # Web API services
-│   │           ├── swagger/   # Swagger documentation
-│   │           └── router.go  # Route definitions
-│   ├── enum/              # Enumeration constants
-│   ├── model/             # Domain models
-│   │   └── gen/           # Generated models
-│   ├── repository/        # Data access layer
-│   ├── service/           # Service layer, coordinates between handlers and usecases
-│   ├── task/              # Task management
-│   │   ├── poller/        # Polling task framework
-│   │   ├── queue/         # Queue-based task framework
-│   │   └── scheduler/     # Scheduled task framework
-│   └── usecase/           # Business logic
-├── pkg/                   # Public libraries
-│   ├── app/               # Application framework
-│   ├── binding/           # Request binding tools
-│   ├── cache/             # Caching
-│   ├── config/            # Configuration
-│   ├── database/          # Database connections
-│   ├── errs/              # Error handling tools
-│   ├── logger/            # Logging
-│   ├── migrate/           # Database migration tools
-│   ├── mq/                # Message queue
-│   ├── server/            # HTTP server
-│   └── utils/             # Utility functions
-├── tools/                 # Development tools
-│   ├── gen/               # Code generation tools
-│   └── swagger_autocomment/ # Swagger comment generation tool
-└── scripts/               # Automation scripts
+├── cmd/                           # Application entry points
+│   ├── web-api/                   # Web API server
+│   ├── migrate/                   # Database migration tool
+│   └── task/                      # Task runner for scheduled, polling, and queue tasks
+├── config/                        # Configuration files
+│   ├── dev/                       # Development environment configs
+│   └── prod/                      # Production environment configs
+├── db/                            # Database related files
+│   └── migrations/                # Database migration files
+├── deploy/                        # Deployment configurations
+│   ├── config/                    # Deployment config files
+│   ├── k3s/                       # k3s deployment manifests
+│   │   ├── cluster/               # Cluster deployment configurations
+│   │   └── single/                # Single-node deployment configurations
+│   └── scripts/                   # Deployment automation scripts
+├── docs/                          # Documentation
+│   ├── deployment.md              # Detailed deployment guide (English)
+│   ├── deployment-zh.md           # Detailed deployment guide (Chinese)
+├── internal/                      # Private application code
+│   ├── api/                       # API-specific code
+│   │   └── http/                  # HTTP API code
+│   │       └── web/               # Web API handlers and routes
+│   │           ├── handler/       # API request handlers
+│   │           ├── middleware/    # HTTP middleware components
+│   │           ├── types/         # Request/response structures
+│   │           ├── service/       # Web API services
+│   │           ├── swagger/       # Swagger documentation
+│   │           └── router.go      # Route definitions
+│   ├── enum/                      # Enumeration constants
+│   ├── model/                     # Domain models
+│   │   └── gen/                   # Generated models
+│   ├── repository/                # Data access layer
+│   ├── service/                   # Service layer, coordinates between handlers and usecases
+│   ├── task/                      # Task management
+│   │   ├── poller/                # Polling task framework
+│   │   ├── queue/                 # Queue-based task framework
+│   │   └── scheduler/             # Scheduled task framework
+│   └── usecase/                   # Business logic
+├── pkg/                           # Public libraries
+│   ├── app/                       # Application framework
+│   ├── binding/                   # Request binding tools
+│   ├── cache/                     # Caching
+│   ├── config/                    # Configuration
+│   ├── database/                  # Database connections
+│   ├── errs/                      # Error handling tools
+│   ├── logger/                    # Logging
+│   ├── migrate/                   # Database migration tools
+│   ├── mq/                        # Message queue
+│   ├── server/                    # HTTP server
+│   └── utils/                     # Utility functions
+├── tools/                         # Development tools
+│   ├── gen/                       # Code generation tools
+│   └── swagger_autocomment/       # Swagger comment generation tool
+└── scripts/                       # Automation scripts
 ```
 
 ## Architecture
@@ -106,7 +106,6 @@ The application includes multiple middleware components:
 - **Recovery Middleware**: Panic recovery with structured logging using zap
 - **Timeout Middleware**: Request timeout enforcement
 - **Authentication Middleware**: JWT-based authentication
-- **Admin-Only Middleware**: Role-based admin route authorization
 - **CORS Middleware**: Cross-Origin Resource Sharing policy enforcement with production-ready secure defaults
 
 ### Error Handling System
@@ -272,29 +271,6 @@ make deploy-cluster
 make deploy-k3s
 ```
 
-## API Endpoints
-
-The API provides the following endpoints:
-
-- **Authentication**
-  - `POST /api/web/v1/login` - Login and get JWT token
-  - `GET /api/web/v1/refresh_token` - Refresh JWT token
-  - `GET /api/web/v1/captcha` - Get login captcha
-
-- **User Management**
-  - `GET /api/web/v1/profile` - Get current user profile (requires authentication)
-  - `PUT /api/web/v1/profile` - Update current user profile (requires authentication)
-  - `POST /api/web/v1/users` - Create new user (requires admin role)
-  - `GET /api/web/v1/users/:id` - Get user by ID (requires admin role)
-  - `PUT /api/web/v1/users/:id` - Update user (requires admin role)
-  - `PATCH /api/web/v1/users/:id/enabled` - Update user enabled status (requires admin role)
-  - `DELETE /api/web/v1/users/:id` - Delete user (requires admin role)
-  - `GET /api/web/v1/users` - List users with pagination and filtering (requires admin role)
-
-- **System**
-  - `GET /health` - Health check endpoint
-  - `GET /ready` - Readiness check endpoint
-
 ## Database Migrations
 
 This project uses [Goose](https://github.com/pressly/goose) for database migration management. Migration files are written in SQL and stored in the `db/migrations` directory.
@@ -325,7 +301,7 @@ make migrate-down
 make migrate-reset
 
 # Create a new migration file (automatically using timestamp)
-make migrate-create NAME=add_users_table
+make migrate-create NAME=create_users
 
 # Fix migration versions (convert timestamps to sequential numbers)
 make migrate-fix

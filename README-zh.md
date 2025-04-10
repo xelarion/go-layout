@@ -33,60 +33,60 @@
 ## 项目结构
 
 ```
-├── cmd/                   # 应用程序入口点
-│   ├── web-api/           # Web API 服务器
-│   ├── migrate/           # 数据库迁移工具
-│   └── task/              # 任务运行器（定时任务、轮询任务和队列任务）
-├── config/                # 配置文件
-│   ├── dev/               # 开发环境配置
-│   └── prod/              # 生产环境配置
-├── db/                    # 数据库相关文件
-│   └── migrations/        # 数据库迁移文件
-├── deploy/                # 部署配置
-│   ├── config/            # 部署配置文件
-│   ├── k3s/               # k3s 部署清单
-│   │   ├── cluster/       # 集群部署配置
-│   │   └── single/        # 单节点部署配置
-│   └── scripts/           # 部署自动化脚本
-├── docs/                  # 文档
-│   ├── deployment.md      # 详细部署指南（英文）
-│   ├── deployment-zh.md   # 详细部署指南（中文）
-├── internal/              # 私有应用代码
-│   ├── api/               # API 专用代码
-│   │   └── http/          # HTTP API 代码
-│   │       └── web/       # Web API 处理器和路由
-│   │           ├── handler/   # API 请求处理器
-│   │           ├── middleware/# HTTP 中间件组件
-│   │           ├── types/     # 请求/响应结构
-│   │           ├── service/   # Web API 服务
-│   │           ├── swagger/   # Swagger 文档
-│   │           └── router.go  # 路由定义
-│   ├── enum/              # 枚举常量
-│   ├── model/             # 领域模型
-│   │   └── gen/           # 生成的模型
-│   ├── repository/        # 数据访问层
-│   ├── service/           # 服务层，协调处理器和用例层之间的交互
-│   ├── task/              # 任务管理
-│   │   ├── poller/        # 轮询任务框架
-│   │   ├── queue/         # 基于队列的任务框架
-│   │   └── scheduler/     # 计划任务框架
-│   └── usecase/           # 业务逻辑
-├── pkg/                   # 公共库
-│   ├── app/               # 应用程序框架
-│   ├── binding/           # 请求绑定工具
-│   ├── cache/             # 缓存
-│   ├── config/            # 配置
-│   ├── database/          # 数据库连接
-│   ├── errs/              # 错误处理工具
-│   ├── logger/            # 日志记录
-│   ├── migrate/           # 数据库迁移工具
-│   ├── mq/                # 消息队列
-│   ├── server/            # HTTP 服务器
-│   └── utils/             # 实用工具函数
-├── tools/                 # 开发工具
-│   ├── gen/               # 代码生成工具
-│   └── swagger_autocomment/ # Swagger 注释生成工具
-└── scripts/               # 自动化脚本
+├── cmd/                           # 应用程序入口点
+│   ├── web-api/                   # Web API 服务器
+│   ├── migrate/                   # 数据库迁移工具
+│   └── task/                      # 任务运行器（定时任务、轮询任务和队列任务）
+├── config/                        # 配置文件
+│   ├── dev/                       # 开发环境配置
+│   └── prod/                      # 生产环境配置
+├── db/                            # 数据库相关文件
+│   └── migrations/                # 数据库迁移文件
+├── deploy/                        # 部署配置
+│   ├── config/                    # 部署配置文件
+│   ├── k3s/                       # k3s 部署清单
+│   │   ├── cluster/               # 集群部署配置
+│   │   └── single/                # 单节点部署配置
+│   └── scripts/                   # 部署自动化脚本
+├── docs/                          # 文档
+│   ├── deployment.md              # 详细部署指南（英文）
+│   ├── deployment-zh.md           # 详细部署指南（中文）
+├── internal/                      # 私有应用代码
+│   ├── api/                       # API 专用代码
+│   │   └── http/                  # HTTP API 代码
+│   │       └── web/               # Web API 处理器和路由
+│   │           ├── handler/       # API 请求处理器
+│   │           ├── middleware/    # HTTP 中间件组件
+│   │           ├── types/         # 请求/响应结构
+│   │           ├── service/       # Web API 服务
+│   │           ├── swagger/       # Swagger 文档
+│   │           └── router.go      # 路由定义
+│   ├── enum/                      # 枚举常量
+│   ├── model/                     # 领域模型
+│   │   └── gen/                   # 生成的模型
+│   ├── repository/                # 数据访问层
+│   ├── service/                   # 服务层，协调处理器和用例层之间的交互
+│   ├── task/                      # 任务管理
+│   │   ├── poller/                # 轮询任务框架
+│   │   ├── queue/                 # 基于队列的任务框架
+│   │   └── scheduler/             # 计划任务框架
+│   └── usecase/                   # 业务逻辑
+├── pkg/                           # 公共库
+│   ├── app/                       # 应用程序框架
+│   ├── binding/                   # 请求绑定工具
+│   ├── cache/                     # 缓存
+│   ├── config/                    # 配置
+│   ├── database/                  # 数据库连接
+│   ├── errs/                      # 错误处理工具
+│   ├── logger/                    # 日志记录
+│   ├── migrate/                   # 数据库迁移工具
+│   ├── mq/                        # 消息队列
+│   ├── server/                    # HTTP 服务器
+│   └── utils/                     # 实用工具函数
+├── tools/                         # 开发工具
+│   ├── gen/                       # 代码生成工具
+│   └── swagger_autocomment/       # Swagger 注释生成工具
+└── scripts/                       # 自动化脚本
 ```
 
 ## 架构设计
@@ -106,7 +106,6 @@
 - **恢复中间件**：使用 zap 进行结构化日志记录的 panic 恢复
 - **超时中间件**：请求超时强制执行
 - **认证中间件**：基于 JWT 的认证
-- **仅管理员中间件**：基于角色的管理员路由授权
 - **CORS 中间件**：跨源资源共享策略实施，具有生产环境安全默认设置
 
 ### 错误处理系统
@@ -133,7 +132,7 @@
 
 应用程序实现了基于 JWT 的认证系统，具有以下特点：
 
-- **短寿命令令牌**：默认情况下，访问令牌在 30 分钟后过期，增强安全性
+- **短寿命命令令牌**：默认情况下，访问令牌在 30 分钟后过期，增强安全性
 - **令牌刷新**：支持在可配置时间窗口内刷新令牌（默认为 7 天）
 - **无状态设计**：无服务器端会话存储，非常适合水平扩展
 - **RESTful 实现**：通过 Authorization 标头传递令牌
@@ -272,29 +271,6 @@ make deploy-cluster
 make deploy-k3s
 ```
 
-## API 端点
-
-API 提供以下端点：
-
-- **认证**
-  - `POST /api/web/v1/login` - 登录并获取 JWT 令牌
-  - `GET /api/web/v1/refresh_token` - 刷新 JWT 令牌
-  - `GET /api/web/v1/captcha` - 获取登录验证码
-
-- **用户管理**
-  - `GET /api/web/v1/profile` - 获取当前用户资料（需要认证）
-  - `PUT /api/web/v1/profile` - 更新当前用户资料（需要认证）
-  - `POST /api/web/v1/users` - 创建新用户（需要管理员角色）
-  - `GET /api/web/v1/users/:id` - 根据 ID 获取用户（需要管理员角色）
-  - `PUT /api/web/v1/users/:id` - 更新用户（需要管理员角色）
-  - `PATCH /api/web/v1/users/:id/enabled` - 更新用户启用状态（需要管理员角色）
-  - `DELETE /api/web/v1/users/:id` - 删除用户（需要管理员角色）
-  - `GET /api/web/v1/users` - 带分页和过滤的用户列表（需要管理员角色）
-
-- **系统**
-  - `GET /health` - 健康检查端点
-  - `GET /ready` - 就绪检查端点
-
 ## 数据库迁移
 
 本项目使用 [Goose](https://github.com/pressly/goose) 进行数据库迁移管理。迁移文件以 SQL 编写，存储在 `db/migrations` 目录中。
@@ -325,7 +301,7 @@ make migrate-down
 make migrate-reset
 
 # 创建新的迁移文件（自动使用时间戳）
-make migrate-create NAME=add_users_table
+make migrate-create NAME=create_users
 
 # 修复迁移版本（将时间戳转换为顺序编号）
 make migrate-fix
