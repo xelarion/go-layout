@@ -36,7 +36,7 @@ func (r *Router) SetupRoutes() {
 	authHandler := handler.NewAuthHandler(r.authService, r.logger)
 
 	// API routes
-	api := r.Engine.Group("/api/web")
+	api := r.Engine.Group("/api/web/v1")
 
 	// Public routes
 	api.POST("/captcha/new", authHandler.NewCaptcha)

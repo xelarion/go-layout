@@ -58,7 +58,7 @@ type NewCaptchaResp struct {
 }
 
 type ReloadCaptchaReq struct {
-	ID string `uri:"id" binding:"required"`
+	ID string `uri:"id" binding:"required" swaggerignore:"true"`
 }
 
 type ReloadCaptchaResp struct {
