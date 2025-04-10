@@ -1,4 +1,3 @@
-// Package types contains request and response types for the web API.
 package types
 
 const (

@@ -1,14 +1,14 @@
-// Package types contains request/response types for the API.
 package types
 
 import "time"
 
 // LoginReq represents user login data.
 type LoginReq struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
-	//Captcha   string `json:"captcha" binding:"required"`
-	//CaptchaID string `json:"captcha_id" binding:"required"`
+	Username  string `json:"username" binding:"required"`
+	Password  string `json:"password" binding:"required"`
+	Captcha   string `json:"captcha" binding:"required"`
+	CaptchaID string `json:"captcha_id" binding:"required"`
+	Key       string `json:"key" binding:"required"` // rsa redis key
 }
 
 // LoginResp represents login response data.
@@ -21,6 +21,14 @@ type LoginResp struct {
 	ExpiresIn int64 `json:"expires_in"`
 	// Type of token (always "Bearer" for JWT)
 	TokenType string `json:"token_type"`
+}
+
+// LogoutReq represents logout request.
+type LogoutReq struct {
+}
+
+// LogoutResp represents logout response data.
+type LogoutResp struct {
 }
 
 // RefreshReq represents token refresh request.
@@ -41,11 +49,35 @@ type RefreshResp struct {
 	TokenType string `json:"token_type"`
 }
 
-type GetCaptchaReq struct {
+type NewCaptcha struct {
 }
 
-// GetCaptchaResp represents captcha data in responses.
-type GetCaptchaResp struct {
-	CaptchaID  string `json:"captcha_id"`
-	CaptchaImg string `json:"captcha_img"` // Base64 encoded image
+type NewCaptchaResp struct {
+	ID    string `json:"id"`
+	Image string `json:"image"` // base64
+}
+
+type ReloadCaptchaReq struct {
+	ID string `uri:"id" binding:"required"`
+}
+
+type ReloadCaptchaResp struct {
+	Image string `json:"image"` // base64
+}
+
+type GetRSAPublicKeyReq struct {
+}
+
+type GetRSAPublicKeyResp struct {
+	PubKey string `json:"pub_key"` // public key
+	Key    string `json:"key"`     // key
+}
+
+type GetCurrentUserInfoReq struct {
+}
+
+type GetCurrentUserInfoResp struct {
+	ID          uint     `json:"id"`
+	RoleSlug    string   `json:"role_slug"`
+	Permissions []string `json:"permissions"`
 }

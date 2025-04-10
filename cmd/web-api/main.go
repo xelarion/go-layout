@@ -1,4 +1,3 @@
-// Package main provides a command line program for the Web API service.
 package main
 
 import (

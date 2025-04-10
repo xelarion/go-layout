@@ -1,4 +1,3 @@
-// Package web contains Web API handlers and routers.
 package web
 
 import (
@@ -10,7 +9,7 @@ import (
 	"github.com/xelarion/go-layout/internal/api/http/web/service"
 )
 
-// Router handles all routes for the Web API.
+// Router handles all routes.
 type Router struct {
 	Engine      *gin.Engine
 	logger      *zap.Logger
@@ -19,7 +18,7 @@ type Router struct {
 	authMW      *jwt.GinJWTMiddleware
 }
 
-// NewRouter creates a new Web API router.
+// NewRouter creates a new router.
 func NewRouter(engine *gin.Engine, userService *service.UserService, authService *service.AuthService, authMiddleware *jwt.GinJWTMiddleware, logger *zap.Logger) *Router {
 	return &Router{
 		Engine:      engine,
@@ -30,23 +29,28 @@ func NewRouter(engine *gin.Engine, userService *service.UserService, authService
 	}
 }
 
-// SetupRoutes configures all routes for the Web API.
+// SetupRoutes configures all routes.
 func (r *Router) SetupRoutes() {
 	// Initialize handlers
 	userHandler := handler.NewUserHandler(r.userService, r.logger)
 	authHandler := handler.NewAuthHandler(r.authService, r.logger)
 
 	// API routes
-	api := r.Engine.Group("/api/web/v1")
+	api := r.Engine.Group("/api/web")
 
 	// Public routes
+	api.POST("/captcha/new", authHandler.NewCaptcha)
+	api.POST("/captcha/:id/reload", authHandler.ReloadCaptcha)
+	api.POST("/public_key", authHandler.GetRSAPublicKey)
 	api.POST("/login", r.authMW.LoginHandler)
 	api.GET("/refresh_token", r.authMW.RefreshHandler)
-	api.GET("/captcha", authHandler.GetCaptcha)
 
 	// Protected routes - user profile (current user)
 	authorized := api.Group("/")
 	authorized.Use(r.authMW.MiddlewareFunc())
+
+	authorized.GET("/users/current", authHandler.GetCurrentUserInfo)
+	authorized.POST("/logout", r.authMW.LogoutHandler)
 
 	// User profile routes
 	authorized.GET("/profile", userHandler.GetProfile)

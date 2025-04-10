@@ -8,6 +8,7 @@ import (
 
 	"github.com/xelarion/go-layout/internal/model"
 	"github.com/xelarion/go-layout/internal/model/gen"
+	"github.com/xelarion/go-layout/internal/util"
 	"github.com/xelarion/go-layout/pkg/errs"
 )
 
@@ -44,6 +45,9 @@ type UserRepository interface {
 	FindByUsername(ctx context.Context, username string) (*model.User, error)
 	Update(ctx context.Context, user *model.User) error
 	Delete(ctx context.Context, id uint) error
+	SetRSAPrivateKey(ctx context.Context, cacheKey string, privateKey []byte) error
+	GetRSAPrivateKey(ctx context.Context, cacheKey string) ([]byte, error)
+	DeleteRSAPrivateKey(ctx context.Context, cacheKey string) error
 }
 
 // UserUseCase implements business logic for user operations.
@@ -186,4 +190,27 @@ func (uc *UserUseCase) Login(ctx context.Context, username, password string) (*m
 	}
 
 	return user, nil
+}
+
+func (uc *UserUseCase) GetRSAPublicKey(ctx context.Context) (string, string, error) {
+	privateKey, publicKey, err := util.GenRSAKey(2048)
+	if err != nil {
+		return "", "", err
+	}
+
+	rdsKey := util.RandSeq(25)
+	err = uc.repo.SetRSAPrivateKey(ctx, rdsKey, privateKey)
+	if err != nil {
+		return "", "", err
+	}
+
+	return string(publicKey), rdsKey, nil
+}
+
+func (uc *UserUseCase) GetRSAPrivateKey(ctx context.Context, cacheKey string) ([]byte, error) {
+	return uc.repo.GetRSAPrivateKey(ctx, cacheKey)
+}
+
+func (uc *UserUseCase) DeleteRSAPrivateKey(ctx context.Context, cacheKey string) error {
+	return uc.repo.DeleteRSAPrivateKey(ctx, cacheKey)
 }

@@ -139,3 +139,29 @@ func (r *UserRepository) Delete(ctx context.Context, id uint) error {
 
 	return nil
 }
+
+// SetRSAPrivateKey sets the RSA private key in the cache.
+func (r *UserRepository) SetRSAPrivateKey(ctx context.Context, cacheKey string, privateKey []byte) error {
+	err := r.rds.Set(ctx, cacheKey, privateKey, 0).Err()
+	if err != nil {
+		return errs.WrapInternal(err, "failed to set RSA private key in cache")
+	}
+	return nil
+}
+
+func (r *UserRepository) GetRSAPrivateKey(ctx context.Context, cacheKey string) ([]byte, error) {
+	key, err := r.rds.Get(ctx, cacheKey).Bytes()
+	if err != nil {
+		return nil, errs.WrapInternal(err, "failed to get RSA private key from cache")
+	}
+	return key, nil
+}
+
+// DeleteRSAPrivateKey removes the RSA private key from the cache.
+func (r *UserRepository) DeleteRSAPrivateKey(ctx context.Context, cacheKey string) error {
+	err := r.rds.Del(ctx, cacheKey).Err()
+	if err != nil {
+		return errs.WrapInternal(err, "failed to delete RSA private key from cache")
+	}
+	return nil
+}

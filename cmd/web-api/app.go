@@ -1,4 +1,3 @@
-// Package main contains the entry point for the Web API service.
 package main
 
 import (
@@ -23,7 +22,7 @@ import (
 	"github.com/xelarion/go-layout/pkg/server"
 )
 
-// initApp initializes the Web API application with all needed components.
+// initApp initializes the application with all needed components.
 // It sets up the database connection, repositories, usecases, services,
 // and HTTP server with all routes.
 func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
@@ -75,7 +74,7 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 	// Initialize auth service
 	authService := service.NewAuthService(userUseCase, logger)
 
-	// Register Web API routes
+	// Register API routes
 	webRouter := web.NewRouter(httpServer.Router(), userService, authService, authMiddleware, logger)
 	webRouter.SetupRoutes()
 

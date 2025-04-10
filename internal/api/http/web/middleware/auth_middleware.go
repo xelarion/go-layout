@@ -1,16 +1,18 @@
-// Package middleware provides HTTP middleware components specifically for Web API.
 package middleware
 
 import (
+	"encoding/base64"
 	"net/http"
 	"time"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
+	"github.com/dchest/captcha"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
 	"github.com/xelarion/go-layout/internal/api/http/web/types"
 	"github.com/xelarion/go-layout/internal/usecase"
+	"github.com/xelarion/go-layout/internal/util"
 	"github.com/xelarion/go-layout/pkg/binding"
 	"github.com/xelarion/go-layout/pkg/config"
 	"github.com/xelarion/go-layout/pkg/errs"
@@ -27,7 +29,7 @@ type User struct {
 }
 
 // NewAuthMiddleware creates a new JWT auth middleware with production-ready configuration.
-func NewAuthMiddleware(cfg *config.JWT, userUseCase *usecase.UserUseCase, logger *zap.Logger) (*jwt.GinJWTMiddleware, error) {
+func NewAuthMiddleware(cfg *config.JWT, uc *usecase.UserUseCase, logger *zap.Logger) (*jwt.GinJWTMiddleware, error) {
 	// Initialize JWT middleware with RESTful API best practices
 	authMiddleware, err := jwt.New(&jwt.GinJWTMiddleware{
 		Realm:           "go-layout",
@@ -37,10 +39,11 @@ func NewAuthMiddleware(cfg *config.JWT, userUseCase *usecase.UserUseCase, logger
 		IdentityKey:     IdentityKey,
 		PayloadFunc:     payloadFunc(cfg.TokenExpiration),
 		IdentityHandler: identityHandler,
-		Authenticator:   authenticator(userUseCase),
-		Authorizator:    authorizator(userUseCase),
+		Authenticator:   authenticator(uc),
+		Authorizator:    authorizator(uc),
 		Unauthorized:    unauthorized,
 		LoginResponse:   loginResponse,
+		LogoutResponse:  logoutResponse,
 		RefreshResponse: refreshResponse,
 		// REST API best practice: use header for token transport
 		TokenLookup:   "header: Authorization",
@@ -83,14 +86,50 @@ func identityHandler(c *gin.Context) any {
 }
 
 // authenticator validates user credentials and returns identity
-func authenticator(userUseCase *usecase.UserUseCase) func(c *gin.Context) (any, error) {
+func authenticator(uc *usecase.UserUseCase) func(c *gin.Context) (any, error) {
 	return func(c *gin.Context) (any, error) {
 		var req types.LoginReq
 		if err := binding.Bind(c, &req, binding.JSON); err != nil {
 			return nil, errs.WrapValidation(err, err.Error())
 		}
 
-		user, err := userUseCase.Login(c.Request.Context(), req.Email, req.Password)
+		// check captcha
+		if !captcha.VerifyString(req.CaptchaID, req.Captcha) {
+			return nil, errs.NewBusiness("captcha is invalid")
+		}
+
+		privateKey, err := uc.GetRSAPrivateKey(c.Request.Context(), req.Key)
+		if err != nil {
+			return nil, err
+		}
+
+		username, err := base64.StdEncoding.DecodeString(req.Username)
+		if err != nil {
+			return nil, errs.WrapInternal(err, "failed to decode username")
+		}
+		// Decrypt username
+		decryptedUsername, err := util.RSADecrypt(username, privateKey)
+		if err != nil {
+			return nil, err
+		}
+
+		password, err := base64.StdEncoding.DecodeString(req.Password)
+		if err != nil {
+			return nil, errs.WrapInternal(err, "failed to decode password")
+		}
+
+		// Decrypt password
+		decryptedPassword, err := util.RSADecrypt(password, privateKey)
+		if err != nil {
+			return nil, err
+		}
+
+		// Delete RSA private key from cache
+		if err := uc.DeleteRSAPrivateKey(c.Request.Context(), req.Key); err != nil {
+			return nil, err
+		}
+
+		user, err := uc.Login(c.Request.Context(), string(decryptedUsername), string(decryptedPassword))
 		if err != nil {
 			return nil, err
 		}
@@ -102,11 +141,11 @@ func authenticator(userUseCase *usecase.UserUseCase) func(c *gin.Context) (any, 
 }
 
 // authorizator determines if a user has access and stores user in context
-func authorizator(userUseCase *usecase.UserUseCase) func(data any, c *gin.Context) bool {
+func authorizator(uc *usecase.UserUseCase) func(data any, c *gin.Context) bool {
 	return func(data any, c *gin.Context) bool {
 		if v, ok := data.(*User); ok {
 			// Get full user from database
-			user, err := userUseCase.GetByID(c.Request.Context(), v.ID)
+			user, err := uc.GetByID(c.Request.Context(), v.ID)
 			if err != nil {
 				_ = c.Error(err)
 				return false
@@ -147,6 +186,11 @@ func loginResponse(c *gin.Context, code int, token string, expire time.Time) {
 		ExpiresIn: expiresIn,
 		TokenType: TokenType,
 	}))
+}
+
+// logoutResponse handles logout responses with the standard response format
+func logoutResponse(c *gin.Context, code int) {
+	c.JSON(code, types.Success(types.LogoutResp{}))
 }
 
 // refreshResponse handles refresh token responses with the standard response format

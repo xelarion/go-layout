@@ -1,4 +1,3 @@
-// Package types contains user-related request and response types for the web API.
 package types
 
 import "time"

@@ -1,4 +1,3 @@
-// Package web contains Web API handlers and routers.
 package handler
 
 import (
@@ -13,7 +12,7 @@ import (
 	"github.com/xelarion/go-layout/pkg/errs"
 )
 
-// UserHandler defines the user HTTP handlers for Web API.
+// UserHandler defines the user HTTP handlers.
 type UserHandler struct {
 	userService *service.UserService
 	logger      *zap.Logger
@@ -27,19 +26,7 @@ func NewUserHandler(userService *service.UserService, logger *zap.Logger) *UserH
 	}
 }
 
-// CreateUser godoc
-//	@Summary		Create User
-//	@Description	Creates a new User
-//	@Tags			user
-//	@Accept			json
-//	@Produce		json
-//	@Param			req	body		types.CreateUserReq							true	"req"
-//	@Success		201	{object}	types.Response{data=types.CreateUserResp}	"Success"
-//	@Failure		400	{object}	types.Response								"Bad request"
-//	@Failure		401	{object}	types.Response								"Unauthorized"
-//	@Failure		500	{object}	types.Response								"Internal server error"
-//	@Security		BearerAuth
-//	@Router			/users [post]
+// CreateUser handles requests to create a new user.
 func (h *UserHandler) CreateUser(c *gin.Context) {
 	var req types.CreateUserReq
 	if err := binding.Bind(c, &req, binding.JSON); err != nil {
@@ -56,19 +43,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	c.JSON(http.StatusCreated, types.Success(resp).WithMessage("User created successfully"))
 }
 
-// ListUsers godoc
-//	@Summary		List Users
-//	@Description	Retrieves a list of Users
-//	@Tags			user
-//	@Accept			json
-//	@Produce		json
-//	@Param			req	query		types.ListUsersReq							false	"req"
-//	@Success		200	{object}	types.Response{data=types.ListUsersResp}	"Success"
-//	@Failure		400	{object}	types.Response								"Bad request"
-//	@Failure		401	{object}	types.Response								"Unauthorized"
-//	@Failure		500	{object}	types.Response								"Internal server error"
-//	@Security		BearerAuth
-//	@Router			/users [get]
+// ListUsers handles requests to list users with pagination and filtering.
 func (h *UserHandler) ListUsers(c *gin.Context) {
 	var req types.ListUsersReq
 	if err := binding.Bind(c, &req, binding.Query); err != nil {
@@ -85,20 +60,7 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, types.Success(resp))
 }
 
-// GetUser godoc
-//	@Summary		Get User
-//	@Description	Retrieves a single User
-//	@Tags			user
-//	@Accept			json
-//	@Produce		json
-//	@Param			id	path		string									true	"id"
-//	@Param			req	query		types.GetUserReq						false	"req"
-//	@Success		200	{object}	types.Response{data=types.GetUserResp}	"Success"
-//	@Failure		400	{object}	types.Response							"Bad request"
-//	@Failure		401	{object}	types.Response							"Unauthorized"
-//	@Failure		500	{object}	types.Response							"Internal server error"
-//	@Security		BearerAuth
-//	@Router			/users/{id} [get]
+// GetUser handles requests to get a user by ID.
 func (h *UserHandler) GetUser(c *gin.Context) {
 	var req types.GetUserReq
 	if err := binding.Bind(c, &req, binding.URI, binding.Query); err != nil {
@@ -120,20 +82,7 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 	c.JSON(http.StatusOK, types.Success(resp))
 }
 
-// GetUserFormData godoc
-//	@Summary		Get User Form Data
-//	@Description	Retrieves a single User Form Data
-//	@Tags			user
-//	@Accept			json
-//	@Produce		json
-//	@Param			id	path		string											true	"id"
-//	@Param			req	query		types.GetUserFormDataReq						false	"req"
-//	@Success		200	{object}	types.Response{data=types.GetUserFormDataResp}	"Success"
-//	@Failure		400	{object}	types.Response									"Bad request"
-//	@Failure		401	{object}	types.Response									"Unauthorized"
-//	@Failure		500	{object}	types.Response									"Internal server error"
-//	@Security		BearerAuth
-//	@Router			/users/{id}/form [get]
+// GetUserFormData provides data needed for user forms (update).
 func (h *UserHandler) GetUserFormData(c *gin.Context) {
 	var req types.GetUserFormDataReq
 	if err := binding.Bind(c, &req, binding.URI, binding.Query); err != nil {
@@ -150,20 +99,7 @@ func (h *UserHandler) GetUserFormData(c *gin.Context) {
 	c.JSON(http.StatusOK, types.Success(resp))
 }
 
-// UpdateUser godoc
-//	@Summary		Update User
-//	@Description	Updates an existing User
-//	@Tags			user
-//	@Accept			json
-//	@Produce		json
-//	@Param			id	path		string										true	"id"
-//	@Param			req	body		types.UpdateUserReq							true	"req"
-//	@Success		200	{object}	types.Response{data=types.UpdateUserResp}	"Success"
-//	@Failure		400	{object}	types.Response								"Bad request"
-//	@Failure		401	{object}	types.Response								"Unauthorized"
-//	@Failure		500	{object}	types.Response								"Internal server error"
-//	@Security		BearerAuth
-//	@Router			/users/{id} [put]
+// UpdateUser handles requests to update a user.
 func (h *UserHandler) UpdateUser(c *gin.Context) {
 	var req types.UpdateUserReq
 	if err := binding.Bind(c, &req, binding.URI, binding.JSON); err != nil {
@@ -180,20 +116,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	c.JSON(http.StatusOK, types.Success(resp).WithMessage("User updated successfully"))
 }
 
-// UpdateUserEnabled godoc
-//	@Summary		Update User Enabled
-//	@Description	Updates an existing User Enabled
-//	@Tags			user
-//	@Accept			json
-//	@Produce		json
-//	@Param			id	path		string												true	"id"
-//	@Param			req	body		types.UpdateUserEnabledReq							true	"req"
-//	@Success		200	{object}	types.Response{data=types.UpdateUserEnabledResp}	"Success"
-//	@Failure		400	{object}	types.Response										"Bad request"
-//	@Failure		401	{object}	types.Response										"Unauthorized"
-//	@Failure		500	{object}	types.Response										"Internal server error"
-//	@Security		BearerAuth
-//	@Router			/users/{id}/enabled [patch]
+// UpdateUserEnabled handles requests to update a user's enabled status.
 func (h *UserHandler) UpdateUserEnabled(c *gin.Context) {
 	var req types.UpdateUserEnabledReq
 	if err := binding.Bind(c, &req, binding.URI, binding.JSON); err != nil {
@@ -210,20 +133,7 @@ func (h *UserHandler) UpdateUserEnabled(c *gin.Context) {
 	c.JSON(http.StatusOK, types.Success(resp).WithMessage("User enabled status updated successfully"))
 }
 
-// DeleteUser godoc
-//	@Summary		Delete User
-//	@Description	Deletes an existing User
-//	@Tags			user
-//	@Accept			json
-//	@Produce		json
-//	@Param			id	path		string										true	"id"
-//	@Param			req	body		types.DeleteUserReq							true	"req"
-//	@Success		204	{object}	types.Response{data=types.DeleteUserResp}	"Success"
-//	@Failure		400	{object}	types.Response								"Bad request"
-//	@Failure		401	{object}	types.Response								"Unauthorized"
-//	@Failure		500	{object}	types.Response								"Internal server error"
-//	@Security		BearerAuth
-//	@Router			/users/{id} [delete]
+// DeleteUser handles requests to delete a user.
 func (h *UserHandler) DeleteUser(c *gin.Context) {
 	var req types.DeleteUserReq
 	if err := binding.Bind(c, &req, binding.URI, binding.Query); err != nil {
@@ -240,19 +150,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	c.JSON(http.StatusOK, types.Success(resp).WithMessage("User deleted successfully"))
 }
 
-// GetProfile godoc
-//	@Summary		Get Profile
-//	@Description	Retrieves a single Profile
-//	@Tags			user
-//	@Accept			json
-//	@Produce		json
-//	@Param			req	query		types.GetProfileReq							false	"req"
-//	@Success		200	{object}	types.Response{data=types.GetProfileResp}	"Success"
-//	@Failure		400	{object}	types.Response								"Bad request"
-//	@Failure		401	{object}	types.Response								"Unauthorized"
-//	@Failure		500	{object}	types.Response								"Internal server error"
-//	@Security		BearerAuth
-//	@Router			/profile [get]
+// GetProfile handles requests to get the current user's profile.
 func (h *UserHandler) GetProfile(c *gin.Context) {
 	var req types.GetProfileReq
 	if err := binding.Bind(c, &req, binding.Query); err != nil {
@@ -269,19 +167,7 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, types.Success(resp))
 }
 
-// UpdateProfile godoc
-//	@Summary		Update Profile
-//	@Description	Updates an existing Profile
-//	@Tags			user
-//	@Accept			json
-//	@Produce		json
-//	@Param			req	body		types.UpdateProfileReq							true	"req"
-//	@Success		200	{object}	types.Response{data=types.UpdateProfileResp}	"Success"
-//	@Failure		400	{object}	types.Response									"Bad request"
-//	@Failure		401	{object}	types.Response									"Unauthorized"
-//	@Failure		500	{object}	types.Response									"Internal server error"
-//	@Security		BearerAuth
-//	@Router			/profile [put]
+// UpdateProfile handles requests to update the current user's profile.
 func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	var req types.UpdateProfileReq
 	if err := binding.Bind(c, &req, binding.JSON); err != nil {

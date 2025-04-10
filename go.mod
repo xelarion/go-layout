@@ -7,6 +7,7 @@ toolchain go1.23.7
 require (
 	github.com/appleboy/gin-jwt/v2 v2.10.3
 	github.com/caarlos0/env/v11 v11.3.1
+	github.com/dchest/captcha v1.1.0
 	github.com/gin-contrib/cors v1.7.5
 	github.com/gin-gonic/gin v1.10.0
 	github.com/jackc/pgx/v5 v5.7.4

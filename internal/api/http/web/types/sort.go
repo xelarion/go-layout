@@ -1,4 +1,3 @@
-// Package types contains sorting utilities for API requests.
 package types
 
 import (

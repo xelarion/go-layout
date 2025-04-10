@@ -1,4 +1,3 @@
-// Package middleware provides HTTP middleware components specifically for Web API.
 package middleware
 
 import (

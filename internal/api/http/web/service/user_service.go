@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/xelarion/go-layout/internal/api/http/web/middleware"
-	types "github.com/xelarion/go-layout/internal/api/http/web/types"
+	"github.com/xelarion/go-layout/internal/api/http/web/types"
 	"github.com/xelarion/go-layout/internal/usecase"
 	"github.com/xelarion/go-layout/pkg/errs"
 )

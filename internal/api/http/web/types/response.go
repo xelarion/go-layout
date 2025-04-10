@@ -1,4 +1,3 @@
-// Package types contains standardized API response structures.
 package types
 
 // Common business status codes
