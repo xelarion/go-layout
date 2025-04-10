@@ -49,6 +49,13 @@ type FileStats struct {
 	NewlyCommented   int
 }
 
+// URIParameter stores information about URI parameters from request structs
+type URIParameter struct {
+	Name     string
+	Type     string
+	Required bool
+}
+
 var (
 	// Regular expressions - compiled once for performance
 	pathParamRegex   = regexp.MustCompile(`\{([^}]+)\}`)
@@ -512,12 +519,33 @@ func generateSwaggerComment(funcDecl *ast.FuncDecl, config Config, routes map[st
 
 // addParametersToComment adds parameter information to the comment
 func addParametersToComment(comment *strings.Builder, handlerName, path, method string) {
+	// Try to extract URI parameters from request struct
+	reqTypeName := "types." + handlerName + "Req"
+	uriParams, _ := extractURIParametersFromType(reqTypeName)
+
 	// Get path parameters
 	pathParams := pathParamRegex.FindAllStringSubmatch(path, -1)
 	for _, match := range pathParams {
 		if len(match) >= 2 {
-			comment.WriteString(fmt.Sprintf("// @Param %s path string true \"%s\"\n",
-				match[1], match[1]))
+			paramName := match[1]
+			paramType := "string" // default type
+			required := "true"    // default required
+
+			// Check if we have type info from the request struct
+			if param, found := uriParams[paramName]; found {
+				paramType = param.Type
+				if param.Required {
+					required = "true"
+				} else {
+					required = "false"
+				}
+			} else if paramName == "id" || strings.HasSuffix(paramName, "_id") {
+				// Fallback: Check if parameter is "id" or ends with "_id"
+				paramType = "integer"
+			}
+
+			comment.WriteString(fmt.Sprintf("// @Param %s path %s %s \"%s\"\n",
+				paramName, paramType, required, paramName))
 		}
 	}
 
@@ -713,4 +741,112 @@ func isLikelySecured(handlerName string) bool {
 	}
 
 	return true
+}
+
+// extractURIParametersFromType extracts URI parameters from request struct types
+func extractURIParametersFromType(typeName string) (map[string]URIParameter, error) {
+	uriParams := make(map[string]URIParameter)
+
+	// Find files with types package in the codebase
+	typesFiles, err := findTypesFiles()
+	if err != nil {
+		return uriParams, err
+	}
+
+	for _, filePath := range typesFiles {
+		// Parse the file
+		fset := token.NewFileSet()
+		node, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
+		if err != nil {
+			continue
+		}
+
+		// Get the struct name without package prefix (e.g., "UserReq" from "types.UserReq")
+		parts := strings.Split(typeName, ".")
+		if len(parts) != 2 {
+			continue
+		}
+		structName := parts[1]
+
+		// Find the struct declaration
+		for _, decl := range node.Decls {
+			genDecl, ok := decl.(*ast.GenDecl)
+			if !ok || genDecl.Tok != token.TYPE {
+				continue
+			}
+
+			for _, spec := range genDecl.Specs {
+				typeSpec, ok := spec.(*ast.TypeSpec)
+				if !ok || typeSpec.Name.Name != structName {
+					continue
+				}
+
+				structType, ok := typeSpec.Type.(*ast.StructType)
+				if !ok {
+					continue
+				}
+
+				// Examine each field for URI tag
+				for _, field := range structType.Fields.List {
+					if field.Tag == nil {
+						continue
+					}
+
+					tag := field.Tag.Value
+
+					// Extract URI parameter name from the tag
+					uriMatch := regexp.MustCompile(`uri:"([^"]+)"`).FindStringSubmatch(tag)
+					if len(uriMatch) < 2 {
+						continue
+					}
+
+					uriParamName := uriMatch[1]
+					required := regexp.MustCompile(`binding:"[^"]*required[^"]*"`).MatchString(tag)
+
+					// Determine field type
+					paramType := "string" // default
+					if ident, ok := field.Type.(*ast.Ident); ok {
+						switch ident.Name {
+						case "int", "int32", "int64", "uint", "uint32", "uint64":
+							paramType = "integer"
+						case "float32", "float64":
+							paramType = "number"
+						case "bool":
+							paramType = "boolean"
+						}
+					}
+
+					// Store parameter info
+					uriParams[uriParamName] = URIParameter{
+						Name:     uriParamName,
+						Type:     paramType,
+						Required: required,
+					}
+				}
+			}
+		}
+	}
+
+	return uriParams, nil
+}
+
+// findTypesFiles finds files that might contain type definitions
+func findTypesFiles() ([]string, error) {
+	var typesFiles []string
+
+	// Common patterns for types package files
+	patterns := []string{
+		"./internal/api/http/web/types/*.go",
+		"./pkg/types/*.go",
+	}
+
+	for _, pattern := range patterns {
+		matches, err := filepath.Glob(pattern)
+		if err != nil {
+			continue
+		}
+		typesFiles = append(typesFiles, matches...)
+	}
+
+	return typesFiles, nil
 }
