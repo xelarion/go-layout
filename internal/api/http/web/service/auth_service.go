@@ -39,7 +39,7 @@ func (u *AuthService) GetRSAPublicKey(ctx context.Context, req *types.GetRSAPubl
 	}, nil
 }
 
-func (u *AuthService) NewCaptcha(ctx context.Context, req *types.NewCaptcha) (*types.NewCaptchaResp, error) {
+func (u *AuthService) NewCaptcha(ctx context.Context, req *types.NewCaptchaReq) (*types.NewCaptchaResp, error) {
 	id := captcha.NewLen(4)
 	var buf bytes.Buffer
 	if err := captcha.WriteImage(&buf, id, 180, 80); err != nil {

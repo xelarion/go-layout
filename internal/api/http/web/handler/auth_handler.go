@@ -27,7 +27,7 @@ func NewAuthHandler(authService *service.AuthService, logger *zap.Logger) *AuthH
 }
 
 func (h *AuthHandler) NewCaptcha(c *gin.Context) {
-	var req types.NewCaptcha
+	var req types.NewCaptchaReq
 	if err := binding.Bind(c, &req, binding.JSON); err != nil {
 		_ = c.Error(errs.WrapValidation(err, err.Error()))
 		return

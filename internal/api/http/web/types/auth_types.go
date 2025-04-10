@@ -49,7 +49,7 @@ type RefreshResp struct {
 	TokenType string `json:"token_type"`
 }
 
-type NewCaptcha struct {
+type NewCaptchaReq struct {
 }
 
 type NewCaptchaResp struct {
