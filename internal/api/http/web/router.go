@@ -53,7 +53,7 @@ func (r *Router) SetupRoutes() {
 	authorized.GET("/profile", authHandler.GetProfile)
 	authorized.PUT("/profile", authHandler.UpdateProfile)
 	authorized.GET("/users/current", authHandler.GetCurrentUserInfo)
-	
+
 	// User management routes
 	authorized.POST("/users", userHandler.CreateUser)
 	authorized.GET("/users", userHandler.ListUsers)

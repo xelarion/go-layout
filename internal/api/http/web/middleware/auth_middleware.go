@@ -198,7 +198,7 @@ func refreshResponse(c *gin.Context, code int, token string, expire time.Time) {
 	// Calculate seconds until expiration
 	expiresIn := int64(expire.Sub(time.Now()).Seconds())
 
-	c.JSON(code, types.Success(types.RefreshResp{
+	c.JSON(code, types.Success(types.RefreshTokenResp{
 		Token:     token,
 		Expire:    expire,
 		ExpiresIn: expiresIn,

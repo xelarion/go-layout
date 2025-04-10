@@ -1,4 +1,280 @@
 basePath: /api/web/v1
+definitions:
+  types.CreateUserReq:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      role:
+        enum:
+        - user
+        - admin
+        type: string
+      username:
+        maxLength: 100
+        minLength: 2
+        type: string
+    required:
+    - email
+    - password
+    - role
+    - username
+    type: object
+  types.CreateUserResp:
+    properties:
+      id:
+        type: integer
+    type: object
+  types.DeleteUserReq:
+    type: object
+  types.DeleteUserResp:
+    type: object
+  types.GetCurrentUserInfoResp:
+    properties:
+      id:
+        type: integer
+      permissions:
+        items:
+          type: string
+        type: array
+      role_slug:
+        type: string
+    type: object
+  types.GetProfileResp:
+    properties:
+      avatar:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      permissions:
+        items:
+          type: string
+        type: array
+      role:
+        type: string
+      username:
+        type: string
+    type: object
+  types.GetRSAPublicKeyReq:
+    type: object
+  types.GetRSAPublicKeyResp:
+    properties:
+      key:
+        description: key
+        type: string
+      pub_key:
+        description: public key
+        type: string
+    type: object
+  types.GetUserFormDataResp:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      role:
+        type: string
+      username:
+        type: string
+    type: object
+  types.GetUserResp:
+    properties:
+      avatar:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      enabled:
+        type: boolean
+      id:
+        type: integer
+      role:
+        type: string
+      username:
+        type: string
+    type: object
+  types.ListUsersResp:
+    properties:
+      page_info:
+        $ref: '#/definitions/types.PageResp'
+      results:
+        items:
+          $ref: '#/definitions/types.ListUsersRespResult'
+        type: array
+    type: object
+  types.ListUsersRespResult:
+    properties:
+      avatar:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      enabled:
+        type: boolean
+      id:
+        type: integer
+      role:
+        type: string
+      username:
+        type: string
+    type: object
+  types.LoginReq:
+    properties:
+      captcha:
+        type: string
+      captcha_id:
+        type: string
+      key:
+        description: rsa redis key
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - captcha
+    - captcha_id
+    - key
+    - password
+    - username
+    type: object
+  types.LoginResp:
+    properties:
+      expire:
+        description: Time when the token will expire
+        type: string
+      expires_in:
+        description: Time in seconds until the token expires (useful for frontend
+          countdown)
+        type: integer
+      token:
+        description: JWT token for authorization
+        type: string
+      token_type:
+        description: Type of token (always "Bearer" for JWT)
+        type: string
+    type: object
+  types.LogoutReq:
+    type: object
+  types.LogoutResp:
+    type: object
+  types.NewCaptchaReq:
+    type: object
+  types.NewCaptchaResp:
+    properties:
+      id:
+        type: string
+      image:
+        description: base64
+        type: string
+    type: object
+  types.PageResp:
+    properties:
+      page:
+        description: Current page number
+        type: integer
+      page_size:
+        description: Items per page
+        type: integer
+      total_count:
+        description: Total number of items
+        type: integer
+      total_pages:
+        description: Total number of pages
+        type: integer
+    type: object
+  types.RefreshTokenResp:
+    properties:
+      expire:
+        description: Time when the token will expire
+        type: string
+      expires_in:
+        description: Time in seconds until the token expires
+        type: integer
+      token:
+        description: New JWT token for authorization
+        type: string
+      token_type:
+        description: Type of token (always "Bearer" for JWT)
+        type: string
+    type: object
+  types.ReloadCaptchaReq:
+    type: object
+  types.ReloadCaptchaResp:
+    properties:
+      image:
+        description: base64
+        type: string
+    type: object
+  types.Response:
+    properties:
+      code:
+        description: Business status code
+        type: integer
+      data:
+        description: Data payload
+      message:
+        description: Response message
+        type: string
+      meta:
+        description: Metadata like pagination info
+    type: object
+  types.UpdateProfileReq:
+    properties:
+      avatar:
+        type: string
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      username:
+        maxLength: 100
+        minLength: 2
+        type: string
+    type: object
+  types.UpdateProfileResp:
+    type: object
+  types.UpdateUserEnabledReq:
+    properties:
+      enabled:
+        type: boolean
+    required:
+    - enabled
+    type: object
+  types.UpdateUserEnabledResp:
+    type: object
+  types.UpdateUserReq:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      role:
+        enum:
+        - user
+        - admin
+        type: string
+      username:
+        maxLength: 100
+        minLength: 2
+        type: string
+    required:
+    - email
+    - role
+    - username
+    type: object
+  types.UpdateUserResp:
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -6,7 +282,687 @@ info:
     template built with Go.
   title: Web API
   version: "1.0"
-paths: {}
+paths:
+  /captcha/{id}/reload:
+    post:
+      consumes:
+      - application/json
+      description: Reload Captcha
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.ReloadCaptchaReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ReloadCaptchaResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      summary: Reload Captcha
+      tags:
+      - auth
+  /captcha/new:
+    post:
+      consumes:
+      - application/json
+      description: New Captcha
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.NewCaptchaReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.NewCaptchaResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      summary: New Captcha
+      tags:
+      - auth
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Login
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.LoginReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.LoginResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      summary: Login
+      tags:
+      - auth
+  /logout:
+    post:
+      consumes:
+      - application/json
+      description: Logout
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.LogoutReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.LogoutResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Logout
+      tags:
+      - auth
+  /profile:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetProfileResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Profile
+      tags:
+      - auth
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing Profile
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateProfileReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UpdateProfileResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Profile
+      tags:
+      - auth
+  /public_key:
+    post:
+      consumes:
+      - application/json
+      description: Retrieves a single RSAPublic Key
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.GetRSAPublicKeyReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetRSAPublicKeyResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      summary: Get RSAPublic Key
+      tags:
+      - auth
+  /refresh_token:
+    get:
+      consumes:
+      - application/json
+      description: Refresh Token
+      parameters:
+      - description: Expired or about-to-expire token to refresh
+        in: query
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.RefreshTokenResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      summary: Refresh Token
+      tags:
+      - auth
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of Users
+      parameters:
+      - in: query
+        maxLength: 100
+        name: email
+        type: string
+      - in: query
+        name: enabled
+        type: boolean
+      - description: Current page number (1-based)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        maximum: 100
+        minimum: 1
+        name: page_size
+        type: integer
+      - enum:
+        - user
+        - admin
+        in: query
+        name: role
+        type: string
+      - description: Field to sort by, can include table prefix (e.g. "users.id")
+        in: query
+        name: sort_field
+        type: string
+      - description: 'Sort direction: asc or desc'
+        enum:
+        - asc
+        - desc
+        - ASC
+        - DESC
+        in: query
+        name: sort_order
+        type: string
+      - in: query
+        maxLength: 100
+        name: username
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ListUsersResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: List Users
+      tags:
+      - user
+    post:
+      consumes:
+      - application/json
+      description: Creates a new User
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.CreateUserReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.CreateUserResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Create User
+      tags:
+      - user
+  /users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes an existing User
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.DeleteUserReq'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.DeleteUserResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete User
+      tags:
+      - user
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single User
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetUserResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get User
+      tags:
+      - user
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing User
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateUserReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UpdateUserResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Update User
+      tags:
+      - user
+  /users/{id}/enabled:
+    patch:
+      consumes:
+      - application/json
+      description: Updates an existing User Enabled
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateUserEnabledReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UpdateUserEnabledResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Update User Enabled
+      tags:
+      - user
+  /users/{id}/form:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single User Form Data
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetUserFormDataResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get User Form Data
+      tags:
+      - user
+  /users/current:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Current User Info
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetCurrentUserInfoResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Current User Info
+      tags:
+      - auth
 securityDefinitions:
   BearerAuth:
     description: Bearer token authentication

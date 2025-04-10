@@ -29,6 +29,18 @@ func NewAuthHandler(authService *service.AuthService, authMW *jwt.GinJWTMiddlewa
 	}
 }
 
+// NewCaptcha godoc
+//	@Summary		New Captcha
+//	@Description	New Captcha
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			req	body		types.NewCaptchaReq							true	"req"
+//	@Success		201	{object}	types.Response{data=types.NewCaptchaResp}	"Success"
+//	@Failure		400	{object}	types.Response								"Bad request"
+//	@Failure		401	{object}	types.Response								"Unauthorized"
+//	@Failure		500	{object}	types.Response								"Internal server error"
+//	@Router			/captcha/new [post]
 func (h *AuthHandler) NewCaptcha(c *gin.Context) {
 	var req types.NewCaptchaReq
 	if err := binding.Bind(c, &req, binding.JSON); err != nil {
@@ -45,7 +57,19 @@ func (h *AuthHandler) NewCaptcha(c *gin.Context) {
 	c.JSON(http.StatusOK, types.Success(resp))
 }
 
-// ReloadCaptcha generates and returns a captcha image.
+// ReloadCaptcha godoc
+//	@Summary		Reload Captcha
+//	@Description	Reload Captcha
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string											true	"id"
+//	@Param			req	body		types.ReloadCaptchaReq							true	"req"
+//	@Success		201	{object}	types.Response{data=types.ReloadCaptchaResp}	"Success"
+//	@Failure		400	{object}	types.Response									"Bad request"
+//	@Failure		401	{object}	types.Response									"Unauthorized"
+//	@Failure		500	{object}	types.Response									"Internal server error"
+//	@Router			/captcha/{id}/reload [post]
 func (h *AuthHandler) ReloadCaptcha(c *gin.Context) {
 	var req types.ReloadCaptchaReq
 	if err := binding.Bind(c, &req, binding.URI, binding.JSON); err != nil {
@@ -62,6 +86,18 @@ func (h *AuthHandler) ReloadCaptcha(c *gin.Context) {
 	c.JSON(http.StatusOK, types.Success(resp))
 }
 
+// GetRSAPublicKey godoc
+//	@Summary		Get RSAPublic Key
+//	@Description	Retrieves a single RSAPublic Key
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			req	body		types.GetRSAPublicKeyReq						true	"req"
+//	@Success		201	{object}	types.Response{data=types.GetRSAPublicKeyResp}	"Success"
+//	@Failure		400	{object}	types.Response									"Bad request"
+//	@Failure		401	{object}	types.Response									"Unauthorized"
+//	@Failure		500	{object}	types.Response									"Internal server error"
+//	@Router			/public_key [post]
 func (h *AuthHandler) GetRSAPublicKey(c *gin.Context) {
 	var req types.GetRSAPublicKeyReq
 	if err := binding.Bind(c, &req, binding.JSON); err != nil {
@@ -78,19 +114,68 @@ func (h *AuthHandler) GetRSAPublicKey(c *gin.Context) {
 	c.JSON(http.StatusOK, types.Success(resp))
 }
 
+// Login godoc
+//	@Summary		Login
+//	@Description	Login
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			req	body		types.LoginReq							true	"req"
+//	@Success		201	{object}	types.Response{data=types.LoginResp}	"Success"
+//	@Failure		400	{object}	types.Response							"Bad request"
+//	@Failure		401	{object}	types.Response							"Unauthorized"
+//	@Failure		500	{object}	types.Response							"Internal server error"
+//	@Router			/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	h.authMW.LoginHandler(c)
 }
 
+// RefreshToken godoc
+//	@Summary		Refresh Token
+//	@Description	Refresh Token
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			req	query		types.RefreshTokenReq						false	"req"
+//	@Success		200	{object}	types.Response{data=types.RefreshTokenResp}	"Success"
+//	@Failure		400	{object}	types.Response								"Bad request"
+//	@Failure		401	{object}	types.Response								"Unauthorized"
+//	@Failure		500	{object}	types.Response								"Internal server error"
+//	@Router			/refresh_token [get]
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	h.authMW.RefreshHandler(c)
 }
 
+// Logout godoc
+//	@Summary		Logout
+//	@Description	Logout
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			req	body		types.LogoutReq							true	"req"
+//	@Success		201	{object}	types.Response{data=types.LogoutResp}	"Success"
+//	@Failure		400	{object}	types.Response							"Bad request"
+//	@Failure		401	{object}	types.Response							"Unauthorized"
+//	@Failure		500	{object}	types.Response							"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	h.authMW.LogoutHandler(c)
 }
 
-// GetProfile handles requests to get the current user's profile.
+// GetProfile godoc
+//	@Summary		Get Profile
+//	@Description	Retrieves a single Profile
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			req	query		types.GetProfileReq							false	"req"
+//	@Success		200	{object}	types.Response{data=types.GetProfileResp}	"Success"
+//	@Failure		400	{object}	types.Response								"Bad request"
+//	@Failure		401	{object}	types.Response								"Unauthorized"
+//	@Failure		500	{object}	types.Response								"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/profile [get]
 func (h *AuthHandler) GetProfile(c *gin.Context) {
 	var req types.GetProfileReq
 	if err := binding.Bind(c, &req, binding.Query); err != nil {
@@ -107,7 +192,19 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, types.Success(resp))
 }
 
-// UpdateProfile handles requests to update the current user's profile.
+// UpdateProfile godoc
+//	@Summary		Update Profile
+//	@Description	Updates an existing Profile
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			req	body		types.UpdateProfileReq							true	"req"
+//	@Success		200	{object}	types.Response{data=types.UpdateProfileResp}	"Success"
+//	@Failure		400	{object}	types.Response									"Bad request"
+//	@Failure		401	{object}	types.Response									"Unauthorized"
+//	@Failure		500	{object}	types.Response									"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/profile [put]
 func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	var req types.UpdateProfileReq
 	if err := binding.Bind(c, &req, binding.JSON); err != nil {
@@ -124,6 +221,19 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, types.Success(resp).WithMessage("Profile updated successfully"))
 }
 
+// GetCurrentUserInfo godoc
+//	@Summary		Get Current User Info
+//	@Description	Retrieves a single Current User Info
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			req	query		types.GetCurrentUserInfoReq							false	"req"
+//	@Success		200	{object}	types.Response{data=types.GetCurrentUserInfoResp}	"Success"
+//	@Failure		400	{object}	types.Response										"Bad request"
+//	@Failure		401	{object}	types.Response										"Unauthorized"
+//	@Failure		500	{object}	types.Response										"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/users/current [get]
 func (h *AuthHandler) GetCurrentUserInfo(c *gin.Context) {
 	var req types.GetCurrentUserInfoReq
 	if err := binding.Bind(c, &req, binding.Query); err != nil {

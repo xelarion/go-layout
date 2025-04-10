@@ -102,28 +102,3 @@ type DeleteUserReq struct {
 // DeleteUserResp represents user delete response.
 type DeleteUserResp struct {
 }
-
-type GetProfileReq struct {
-}
-
-type GetProfileResp struct {
-	ID          uint      `json:"id"`
-	Username    string    `json:"username"`
-	Email       string    `json:"email"`
-	Role        string    `json:"role"`
-	Avatar      string    `json:"avatar"`
-	CreatedAt   time.Time `json:"created_at"`
-	Permissions []string  `json:"permissions"`
-}
-
-// UpdateProfileReq represents profile update data.
-type UpdateProfileReq struct {
-	Username string `json:"username" binding:"omitempty,min=2,max=100"`
-	Email    string `json:"email" binding:"omitempty,email"`
-	Password string `json:"password" binding:"omitempty,min=6"`
-	Avatar   string `json:"avatar" binding:"omitempty,url"`
-}
-
-// UpdateProfileResp represents profile update response.
-type UpdateProfileResp struct {
-}
