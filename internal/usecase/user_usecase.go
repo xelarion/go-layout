@@ -65,13 +65,13 @@ func NewUserUseCase(repo UserRepository) *UserUseCase {
 // Create creates a new user.
 func (uc *UserUseCase) Create(ctx context.Context, params CreateUserParams) (*model.User, error) {
 	// Check if user already exists
-	_, err := uc.repo.FindByEmail(ctx, params.Email)
+	_, err := uc.repo.FindByUsername(ctx, params.Username)
 	if err != nil {
 		if !errs.IsReason(err, errs.ReasonNotFound) {
 			return nil, err
 		}
 	} else {
-		return nil, errs.NewBusiness("email already exists").
+		return nil, errs.NewBusiness("username already exists").
 			WithReason(errs.ReasonDuplicate)
 	}
 

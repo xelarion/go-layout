@@ -26,7 +26,7 @@ type Response struct {
 	Code    int    `json:"code"`           // Business status code
 	Message string `json:"message"`        // Response message
 	Data    any    `json:"data,omitempty"` // Data payload
-	Meta    any    `json:"meta,omitempty"` // Metadata like pagination info
+	Meta    any    `json:"meta,omitempty"` // Additional metadata
 }
 
 // NewResponse creates a new response with the given parameters.

@@ -1466,7 +1466,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "description": "Metadata like pagination info"
+                    "description": "Additional metadata"
                 }
             }
         },

@@ -225,7 +225,7 @@ definitions:
         description: Response message
         type: string
       meta:
-        description: Metadata like pagination info
+        description: Additional metadata
     type: object
   types.UpdateProfileReq:
     properties:

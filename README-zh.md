@@ -148,10 +148,10 @@
 
 ```json
 {
-  "code": 200,           // HTTP 状态码
-  "message": "Success",  // 人类可读消息
-  "data": {},            // 响应负载（成功时）
-  "meta": {}             // 附加元数据（例如，分页信息）
+  "code": 200,
+  "message": "Success",
+  "data": {},
+  "meta": {}
 }
 ```
 
@@ -159,10 +159,8 @@
 
 ```json
 {
-  "code": 400,                 // 错误码
-  "message": "Validation error", // 错误消息
-  "data": null,                // 错误时无数据
-  "meta": null                 // 错误时无元数据
+  "code": 400,
+  "message": "Validation error"
 }
 ```
 

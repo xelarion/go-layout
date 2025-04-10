@@ -148,10 +148,10 @@ All API responses follow a consistent structure:
 
 ```json
 {
-  "code": 200,           // HTTP status code
-  "message": "Success",  // Human-readable message
-  "data": {},            // Response payload (when successful)
-  "meta": {}             // Additional metadata (e.g., pagination info)
+  "code": 200,
+  "message": "Success",
+  "data": {},
+  "meta": {}
 }
 ```
 
@@ -159,10 +159,8 @@ Error responses maintain the same structure:
 
 ```json
 {
-  "code": 400,                 // Error code
-  "message": "Validation error", // Error message
-  "data": null,                // No data on error
-  "meta": null                 // No metadata on error
+  "code": 400,
+  "message": "Validation error"
 }
 ```
 
