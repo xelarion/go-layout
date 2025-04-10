@@ -28,7 +28,6 @@ type Config struct {
 	Verbose        bool     // Whether to output verbose logs
 	Concurrency    int      // Number of concurrent workers
 	ApiPrefix      string   // API prefix for paths
-	ProjectName    string   // Project name for documentation
 }
 
 // NewDefaultConfig creates a new configuration with default values
@@ -63,7 +62,6 @@ func (cfg *Config) SetupFlags() {
 	flag.StringVar(&cfg.RouterFile, "router", cfg.RouterFile, "Router file path")
 	flag.StringVar(&cfg.HandlerPattern, "handler-pattern", cfg.HandlerPattern, "Pattern to match handler files")
 	flag.StringVar(&cfg.ApiPrefix, "api-prefix", cfg.ApiPrefix, "API prefix for paths")
-	flag.StringVar(&cfg.ProjectName, "project", cfg.ProjectName, "Project name for documentation")
 	flag.IntVar(&cfg.Concurrency, "concurrency", cfg.Concurrency, "Number of concurrent workers")
 	flag.BoolVar(&cfg.Verbose, "verbose", cfg.Verbose, "Enable verbose output")
 
@@ -618,9 +616,6 @@ func printConfig(config *Config, routesCount int) {
 	fmt.Printf("  Security scheme: %s\n", config.SecurityScheme)
 	fmt.Printf("  Concurrency: %d\n", config.Concurrency)
 	fmt.Printf("  Type paths: %s\n", strings.Join(config.TypesPaths, ", "))
-	if config.ProjectName != "" {
-		fmt.Printf("  Project name: %s\n", config.ProjectName)
-	}
 	fmt.Printf("  Extracted %d routes from router file\n", routesCount)
 	fmt.Println()
 }
