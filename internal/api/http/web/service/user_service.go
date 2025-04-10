@@ -3,10 +3,8 @@ package service
 import (
 	"context"
 
-	"github.com/xelarion/go-layout/internal/api/http/web/middleware"
 	"github.com/xelarion/go-layout/internal/api/http/web/types"
 	"github.com/xelarion/go-layout/internal/usecase"
-	"github.com/xelarion/go-layout/pkg/errs"
 )
 
 // UserService handles user-related services.
@@ -175,67 +173,4 @@ func (s *UserService) DeleteUser(ctx context.Context, req *types.DeleteUserReq) 
 	}
 
 	return &types.DeleteUserResp{}, nil
-}
-
-// GetProfile gets the current user's profile.
-func (s *UserService) GetProfile(ctx context.Context, req *types.GetProfileReq) (*types.GetProfileResp, error) {
-	current := middleware.GetCurrent(ctx)
-	if current == nil || current.User == nil {
-		return nil, errs.NewBusiness("invalid credentials").WithReason(errs.ReasonUnauthorized)
-	}
-
-	user, err := s.userUseCase.GetByID(ctx, current.User.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &types.GetProfileResp{
-		ID:          user.ID,
-		Username:    user.Username,
-		Email:       user.Email,
-		Role:        user.Role,
-		CreatedAt:   user.CreatedAt,
-		Permissions: []string{}, // TODO
-	}, nil
-}
-
-// UpdateProfile updates the current user's profile.
-func (s *UserService) UpdateProfile(ctx context.Context, req *types.UpdateProfileReq) (*types.UpdateProfileResp, error) {
-	current := middleware.GetCurrent(ctx)
-	if current == nil || current.User == nil {
-		return nil, errs.NewBusiness("invalid credentials").WithReason(errs.ReasonUnauthorized)
-	}
-
-	// First check if the user exists
-	_, err := s.userUseCase.GetByID(ctx, current.User.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create update params
-	params := usecase.UpdateUserParams{
-		ID: current.User.ID,
-	}
-
-	// Only set fields that are provided in the request
-	if req.Username != "" {
-		params.Username = req.Username
-		params.UsernameSet = true
-	}
-
-	if req.Email != "" {
-		params.Email = req.Email
-		params.EmailSet = true
-	}
-
-	if req.Password != "" {
-		params.Password = req.Password
-		params.PasswordSet = true
-	}
-
-	if err := s.userUseCase.Update(ctx, params); err != nil {
-		return nil, err
-	}
-
-	return &types.UpdateProfileResp{}, nil
 }

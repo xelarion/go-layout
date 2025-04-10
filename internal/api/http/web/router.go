@@ -33,7 +33,7 @@ func NewRouter(engine *gin.Engine, userService *service.UserService, authService
 func (r *Router) SetupRoutes() {
 	// Initialize handlers
 	userHandler := handler.NewUserHandler(r.userService, r.logger)
-	authHandler := handler.NewAuthHandler(r.authService, r.logger)
+	authHandler := handler.NewAuthHandler(r.authService, r.authMW, r.logger)
 
 	// API routes
 	api := r.Engine.Group("/api/web/v1")
@@ -42,20 +42,18 @@ func (r *Router) SetupRoutes() {
 	api.POST("/captcha/new", authHandler.NewCaptcha)
 	api.POST("/captcha/:id/reload", authHandler.ReloadCaptcha)
 	api.POST("/public_key", authHandler.GetRSAPublicKey)
-	api.POST("/login", r.authMW.LoginHandler)
-	api.GET("/refresh_token", r.authMW.RefreshHandler)
+	api.POST("/login", authHandler.Login)
+	api.GET("/refresh_token", authHandler.RefreshToken)
 
 	// Protected routes - user profile (current user)
 	authorized := api.Group("/")
 	authorized.Use(r.authMW.MiddlewareFunc())
 
+	authorized.POST("/logout", authHandler.Logout)
+	authorized.GET("/profile", authHandler.GetProfile)
+	authorized.PUT("/profile", authHandler.UpdateProfile)
 	authorized.GET("/users/current", authHandler.GetCurrentUserInfo)
-	authorized.POST("/logout", r.authMW.LogoutHandler)
-
-	// User profile routes
-	authorized.GET("/profile", userHandler.GetProfile)
-	authorized.PUT("/profile", userHandler.UpdateProfile)
-
+	
 	// User management routes
 	authorized.POST("/users", userHandler.CreateUser)
 	authorized.GET("/users", userHandler.ListUsers)
