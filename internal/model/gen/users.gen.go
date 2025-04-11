@@ -12,13 +12,16 @@ const TableNameUser = "users"
 
 // User mapped from table <users>
 type User struct {
-	ID        uint      `gorm:"column:id;type:bigint;primaryKey;autoIncrement:true" json:"id"`
-	CreatedAt time.Time `gorm:"column:created_at;type:timestamp with time zone;not null;default:now()" json:"created_at"`
-	Username  string    `gorm:"column:username;type:character varying(100);not null;uniqueIndex:idx_users_username,priority:1" json:"username"`
-	Email     string    `gorm:"column:email;type:character varying(100);not null" json:"email"`
-	Password  string    `gorm:"column:password;type:character varying(100);not null" json:"password"`
-	Enabled   bool      `gorm:"column:enabled;type:boolean;not null;default:true" json:"enabled"`
-	Role      string    `gorm:"column:role;type:character varying(20);not null" json:"role"`
+	ID           uint      `gorm:"column:id;type:bigint;primaryKey;autoIncrement:true;comment:Primary key" json:"id"`                                               // Primary key
+	CreatedAt    time.Time `gorm:"column:created_at;type:timestamp with time zone;not null;default:now();comment:Creation timestamp" json:"created_at"`             // Creation timestamp
+	Username     string    `gorm:"column:username;type:character varying(100);not null;uniqueIndex:idx_users_username,priority:1;comment:Username" json:"username"` // Username
+	Password     string    `gorm:"column:password;type:character varying(255);not null;comment:Password" json:"password"`                                           // Password
+	FullName     string    `gorm:"column:full_name;type:character varying(100);not null;comment:Full name" json:"full_name"`                                        // Full name
+	PhoneNumber  string    `gorm:"column:phone_number;type:character varying(20);not null;comment:Phone number" json:"phone_number"`                                // Phone number
+	Email        string    `gorm:"column:email;type:character varying(100);not null;comment:Email" json:"email"`                                                    // Email
+	Enabled      bool      `gorm:"column:enabled;type:boolean;not null;default:true;comment:Enabled" json:"enabled"`                                                // Enabled
+	DepartmentID uint      `gorm:"column:department_id;type:bigint;not null;comment:Department ID" json:"department_id"`                                            // Department ID
+	RoleID       uint      `gorm:"column:role_id;type:bigint;not null;comment:Role ID" json:"role_id"`                                                              // Role ID
 }
 
 // TableName User's table name
