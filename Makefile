@@ -13,6 +13,9 @@ SERVICES = web-api task
 .PHONY: migrate migrate-up migrate-down migrate-status migrate-create migrate-reset
 .PHONY: migrate-version migrate-redo migrate-up-to migrate-down-to migrate-fix
 
+# Run database migrations (shorthand for migrate-up)
+migrate: migrate-up
+
 # Apply all pending migrations
 migrate-up:
 	go run cmd/migrate/main.go up
@@ -55,9 +58,6 @@ migrate-down-to:
 # Fix migrations order (convert timestamps to sequential for production)
 migrate-fix:
 	go run cmd/migrate/main.go fix
-
-# Run database migrations (shorthand for migrate-up)
-migrate: migrate-up
 
 #
 # Code generation
