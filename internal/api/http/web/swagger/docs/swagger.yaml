@@ -11,7 +11,6 @@ definitions:
         minLength: 1
         type: string
     required:
-    - description
     - name
     type: object
   types.CreateDepartmentResp:
@@ -307,15 +306,11 @@ definitions:
     properties:
       description:
         type: string
-      enabled:
-        type: boolean
       name:
         maxLength: 100
         minLength: 1
         type: string
     required:
-    - description
-    - enabled
     - name
     type: object
   types.UpdateDepartmentResp:
@@ -496,6 +491,8 @@ paths:
         - desc
         - ASC
         - DESC
+        - ascend
+        - descend
         in: query
         name: sort_order
         type: string
@@ -1068,6 +1065,8 @@ paths:
         - desc
         - ASC
         - DESC
+        - ascend
+        - descend
         in: query
         name: sort_order
         type: string

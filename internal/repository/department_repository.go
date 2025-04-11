@@ -39,7 +39,16 @@ func (r *DepartmentRepository) List(ctx context.Context, filters map[string]any,
 	query := r.db.WithContext(ctx).Model(&model.Department{})
 
 	for field, value := range filters {
-		if value != nil {
+		if value == nil {
+			continue
+		}
+
+		switch field {
+		case "name":
+			if str, ok := value.(string); ok {
+				query = query.Where(field+" LIKE ?", "%"+str+"%")
+			}
+		default:
 			query = query.Where(field+" = ?", value)
 		}
 	}

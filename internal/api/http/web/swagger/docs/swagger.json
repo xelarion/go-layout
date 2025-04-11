@@ -203,7 +203,9 @@
                             "asc",
                             "desc",
                             "ASC",
-                            "DESC"
+                            "DESC",
+                            "ascend",
+                            "descend"
                         ],
                         "type": "string",
                         "description": "Sort direction: asc or desc",
@@ -1138,7 +1140,9 @@
                             "asc",
                             "desc",
                             "ASC",
-                            "DESC"
+                            "DESC",
+                            "ascend",
+                            "descend"
                         ],
                         "type": "string",
                         "description": "Sort direction: asc or desc",
@@ -1687,7 +1691,6 @@
         "types.CreateDepartmentReq": {
             "type": "object",
             "required": [
-                "description",
                 "name"
             ],
             "properties": {
@@ -2135,16 +2138,11 @@
         "types.UpdateDepartmentReq": {
             "type": "object",
             "required": [
-                "description",
-                "enabled",
                 "name"
             ],
             "properties": {
                 "description": {
                     "type": "string"
-                },
-                "enabled": {
-                    "type": "boolean"
                 },
                 "name": {
                     "type": "string",

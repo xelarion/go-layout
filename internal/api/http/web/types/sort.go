@@ -17,8 +17,8 @@ var safeSortFieldPattern = regexp.MustCompile(`^[a-zA-Z0-9_.]+$`)
 
 // SortReq represents common sorting parameters for list query requests.
 type SortReq struct {
-	SortField string `form:"sort_field" json:"sort_field" binding:"omitempty"`                         // Field to sort by, can include table prefix (e.g. "users.id")
-	SortOrder string `form:"sort_order" json:"sort_order" binding:"omitempty,oneof=asc desc ASC DESC"` // Sort direction: asc or desc
+	SortField string `form:"sort_field" json:"sort_field" binding:"omitempty"`                                        // Field to sort by, can include table prefix (e.g. "users.id")
+	SortOrder string `form:"sort_order" json:"sort_order" binding:"omitempty,oneof=asc desc ASC DESC ascend descend"` // Sort direction: asc or desc
 }
 
 // GetSortField returns the field to sort by or empty string if not set.
@@ -29,7 +29,7 @@ func (s *SortReq) GetSortField() string {
 // GetSortOrder returns the sort direction (asc/desc), defaulting to asc if not set.
 func (s *SortReq) GetSortOrder() string {
 	order := strings.ToLower(s.SortOrder)
-	if order == SortDesc {
+	if order == SortDesc || order == "descend" {
 		return SortDesc
 	}
 	return SortAsc

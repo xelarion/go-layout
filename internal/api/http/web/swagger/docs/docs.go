@@ -209,7 +209,9 @@ const docTemplate = `{
                             "asc",
                             "desc",
                             "ASC",
-                            "DESC"
+                            "DESC",
+                            "ascend",
+                            "descend"
                         ],
                         "type": "string",
                         "description": "Sort direction: asc or desc",
@@ -1144,7 +1146,9 @@ const docTemplate = `{
                             "asc",
                             "desc",
                             "ASC",
-                            "DESC"
+                            "DESC",
+                            "ascend",
+                            "descend"
                         ],
                         "type": "string",
                         "description": "Sort direction: asc or desc",
@@ -1693,7 +1697,6 @@ const docTemplate = `{
         "types.CreateDepartmentReq": {
             "type": "object",
             "required": [
-                "description",
                 "name"
             ],
             "properties": {
@@ -2141,16 +2144,11 @@ const docTemplate = `{
         "types.UpdateDepartmentReq": {
             "type": "object",
             "required": [
-                "description",
-                "enabled",
                 "name"
             ],
             "properties": {
                 "description": {
                     "type": "string"
-                },
-                "enabled": {
-                    "type": "boolean"
                 },
                 "name": {
                     "type": "string",

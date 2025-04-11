@@ -7,7 +7,7 @@ import "time"
 // CreateDepartmentReq represents department creation request.
 type CreateDepartmentReq struct {
 	Name        string `json:"name" binding:"required,min=1,max=100"`
-	Description string `json:"description" binding:"required"`
+	Description string `json:"description"`
 	Enabled     bool   `json:"enabled"`
 }
 
@@ -67,8 +67,7 @@ type GetDepartmentFormDataResp struct {
 type UpdateDepartmentReq struct {
 	ID          uint   `uri:"id" binding:"required" swaggerignore:"true"`
 	Name        string `json:"name" binding:"required,min=1,max=100"`
-	Description string `json:"description" binding:"required"`
-	Enabled     bool   `json:"enabled" binding:"required"`
+	Description string `json:"description"`
 }
 
 // UpdateDepartmentResp represents department update response.

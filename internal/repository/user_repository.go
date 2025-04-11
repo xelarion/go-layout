@@ -39,7 +39,16 @@ func (r *UserRepository) List(ctx context.Context, filters map[string]any, limit
 	query := r.db.WithContext(ctx).Model(&model.User{})
 
 	for field, value := range filters {
-		if value != nil {
+		if value == nil {
+			continue
+		}
+
+		switch field {
+		case "username":
+			if str, ok := value.(string); ok {
+				query = query.Where(field+" LIKE ?", "%"+str+"%")
+			}
+		default:
 			query = query.Where(field+" = ?", value)
 		}
 	}

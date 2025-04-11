@@ -54,7 +54,7 @@ func (h *DepartmentHandler) CreateDepartment(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, types.Success(resp).WithMessage("Department created successfully"))
+	c.JSON(http.StatusCreated, types.Success(resp).WithMessage("Created successfully"))
 }
 
 // ListDepartments godoc
@@ -186,7 +186,7 @@ func (h *DepartmentHandler) UpdateDepartment(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, types.Success(resp).WithMessage("Department updated successfully"))
+	c.JSON(http.StatusOK, types.Success(resp).WithMessage("Updated successfully"))
 }
 
 // UpdateDepartmentEnabled godoc
@@ -218,7 +218,7 @@ func (h *DepartmentHandler) UpdateDepartmentEnabled(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, types.Success(resp).WithMessage("Department enabled status updated successfully"))
+	c.JSON(http.StatusOK, types.Success(resp).WithMessage("Operation successfully"))
 }
 
 // DeleteDepartment godoc
@@ -250,5 +250,5 @@ func (h *DepartmentHandler) DeleteDepartment(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, types.Success(resp).WithMessage("Department deleted successfully"))
+	c.JSON(http.StatusOK, types.Success(resp).WithMessage("Deleted successfully"))
 }

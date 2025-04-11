@@ -120,9 +120,6 @@ func (s *DepartmentService) UpdateDepartment(ctx context.Context, req *types.Upd
 	params.Description = req.Description
 	params.DescriptionSet = true
 
-	params.Enabled = req.Enabled
-	params.EnabledSet = true
-
 	if err := s.departmentUseCase.Update(ctx, params); err != nil {
 		return nil, err
 	}
