@@ -8,7 +8,6 @@ import "time"
 type CreateDepartmentReq struct {
 	Name        string `json:"name" binding:"required,min=1,max=100"`
 	Description string `json:"description"`
-	Enabled     bool   `json:"enabled"`
 }
 
 // CreateDepartmentResp represents department creation response.
@@ -36,6 +35,7 @@ type ListDepartmentsRespResult struct {
 	Description string    `json:"description"`
 	Enabled     bool      `json:"enabled"`
 	CreatedAt   time.Time `json:"created_at"`
+	UserCount   int64     `json:"user_count"`
 }
 
 // GetDepartmentReq represents a request to get a specific department.
@@ -50,6 +50,7 @@ type GetDepartmentResp struct {
 	Description string    `json:"description"`
 	Enabled     bool      `json:"enabled"`
 	CreatedAt   time.Time `json:"created_at"`
+	UserCount   int64     `json:"user_count"`
 }
 
 type GetDepartmentFormDataReq struct {
@@ -91,4 +92,17 @@ type DeleteDepartmentReq struct {
 
 // DeleteDepartmentResp represents department delete response.
 type DeleteDepartmentResp struct {
+}
+
+// GetDepartmentOptionsReq represents a request to get department options.
+type GetDepartmentOptionsReq struct {
+}
+
+// GetDepartmentOptionsResp represents department options response.
+type GetDepartmentOptionsResp struct {
+	Results []GetDepartmentOptionsRespResult `json:"results"`
+}
+type GetDepartmentOptionsRespResult struct {
+	GetOptionsRespResult
+	Enabled bool `json:"enabled"`
 }

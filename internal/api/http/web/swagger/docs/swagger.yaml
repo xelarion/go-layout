@@ -4,8 +4,6 @@ definitions:
     properties:
       description:
         type: string
-      enabled:
-        type: boolean
       name:
         maxLength: 100
         minLength: 1
@@ -18,26 +16,54 @@ definitions:
       id:
         type: integer
     type: object
+  types.CreateRoleReq:
+    properties:
+      description:
+        type: string
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
+  types.CreateRoleResp:
+    properties:
+      id:
+        type: integer
+    type: object
   types.CreateUserReq:
     properties:
+      department_id:
+        minimum: 1
+        type: integer
       email:
+        maxLength: 100
+        type: string
+      full_name:
+        maxLength: 100
+        minLength: 1
         type: string
       password:
         minLength: 6
         type: string
-      role:
-        enum:
-        - user
-        - admin
+      phone_number:
+        maxLength: 20
+        minLength: 1
         type: string
+      role_id:
+        minimum: 1
+        type: integer
       username:
         maxLength: 100
         minLength: 1
         type: string
     required:
-    - email
+    - department_id
+    - full_name
     - password
-    - role
+    - phone_number
+    - role_id
     - username
     type: object
   types.CreateUserResp:
@@ -48,6 +74,10 @@ definitions:
   types.DeleteDepartmentReq:
     type: object
   types.DeleteDepartmentResp:
+    type: object
+  types.DeleteRoleReq:
+    type: object
+  types.DeleteRoleResp:
     type: object
   types.DeleteUserReq:
     type: object
@@ -73,6 +103,21 @@ definitions:
       name:
         type: string
     type: object
+  types.GetDepartmentOptionsResp:
+    properties:
+      results:
+        items:
+          $ref: '#/definitions/types.GetDepartmentOptionsRespResult'
+        type: array
+    type: object
+  types.GetDepartmentOptionsRespResult:
+    properties:
+      enabled:
+        type: boolean
+      label:
+        type: string
+      value: {}
+    type: object
   types.GetDepartmentResp:
     properties:
       created_at:
@@ -85,6 +130,8 @@ definitions:
         type: integer
       name:
         type: string
+      user_count:
+        type: integer
     type: object
   types.GetProfileResp:
     properties:
@@ -116,30 +163,83 @@ definitions:
         description: public key
         type: string
     type: object
-  types.GetUserFormDataResp:
+  types.GetRoleFormDataResp:
     properties:
-      email:
+      description:
         type: string
       id:
         type: integer
-      role:
-        type: string
-      username:
+      name:
         type: string
     type: object
-  types.GetUserResp:
+  types.GetRoleOptionsResp:
     properties:
-      avatar:
+      results:
+        items:
+          $ref: '#/definitions/types.GetRoleOptionsRespResult'
+        type: array
+    type: object
+  types.GetRoleOptionsRespResult:
+    properties:
+      enabled:
+        type: boolean
+      label:
         type: string
+      slug:
+        type: string
+      value: {}
+    type: object
+  types.GetRoleResp:
+    properties:
       created_at:
         type: string
-      email:
+      description:
         type: string
       enabled:
         type: boolean
       id:
         type: integer
-      role:
+      name:
+        type: string
+      user_count:
+        type: integer
+    type: object
+  types.GetUserFormDataResp:
+    properties:
+      department_id:
+        type: integer
+      email:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: integer
+      phone_number:
+        type: string
+      role_id:
+        type: integer
+      username:
+        type: string
+    type: object
+  types.GetUserResp:
+    properties:
+      created_at:
+        type: string
+      department_name:
+        type: string
+      email:
+        type: string
+      enabled:
+        type: boolean
+      full_name:
+        type: string
+      id:
+        type: integer
+      phone_number:
+        type: string
+      role_name:
+        type: string
+      role_slug:
         type: string
       username:
         type: string
@@ -165,6 +265,32 @@ definitions:
         type: integer
       name:
         type: string
+      user_count:
+        type: integer
+    type: object
+  types.ListRolesResp:
+    properties:
+      pagination:
+        $ref: '#/definitions/types.PageResp'
+      results:
+        items:
+          $ref: '#/definitions/types.ListRolesRespResult'
+        type: array
+    type: object
+  types.ListRolesRespResult:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      enabled:
+        type: boolean
+      id:
+        type: integer
+      name:
+        type: string
+      user_count:
+        type: integer
     type: object
   types.ListUsersResp:
     properties:
@@ -177,17 +303,23 @@ definitions:
     type: object
   types.ListUsersRespResult:
     properties:
-      avatar:
-        type: string
       created_at:
+        type: string
+      department_name:
         type: string
       email:
         type: string
       enabled:
         type: boolean
+      full_name:
+        type: string
       id:
         type: integer
-      role:
+      phone_number:
+        type: string
+      role_name:
+        type: string
+      role_slug:
         type: string
       username:
         type: string
@@ -331,6 +463,28 @@ definitions:
     type: object
   types.UpdateProfileResp:
     type: object
+  types.UpdateRoleEnabledReq:
+    properties:
+      enabled:
+        type: boolean
+    required:
+    - enabled
+    type: object
+  types.UpdateRoleEnabledResp:
+    type: object
+  types.UpdateRoleReq:
+    properties:
+      description:
+        type: string
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
+  types.UpdateRoleResp:
+    type: object
   types.UpdateUserEnabledReq:
     properties:
       enabled:
@@ -342,23 +496,35 @@ definitions:
     type: object
   types.UpdateUserReq:
     properties:
+      department_id:
+        minimum: 1
+        type: integer
       email:
+        maxLength: 100
+        type: string
+      full_name:
+        maxLength: 100
+        minLength: 1
         type: string
       password:
         minLength: 6
         type: string
-      role:
-        enum:
-        - user
-        - admin
+      phone_number:
+        maxLength: 20
+        minLength: 1
         type: string
+      role_id:
+        minimum: 1
+        type: integer
       username:
         maxLength: 100
         minLength: 1
         type: string
     required:
-    - email
-    - role
+    - department_id
+    - full_name
+    - phone_number
+    - role_id
     - username
     type: object
   types.UpdateUserResp:
@@ -787,6 +953,41 @@ paths:
       summary: Get Department Form Data
       tags:
       - department
+  /departments/options:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Department Options
+      operationId: GetDepartmentOptions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetDepartmentOptionsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Department Options
+      tags:
+      - department
   /login:
     post:
       consumes:
@@ -1024,20 +1225,20 @@ paths:
       summary: Refresh Token
       tags:
       - auth
-  /users:
+  /roles:
     get:
       consumes:
       - application/json
-      description: Retrieves a list of Users
-      operationId: ListUsers
+      description: Retrieves a list of Roles
+      operationId: ListRoles
       parameters:
-      - in: query
-        maxLength: 100
-        name: email
-        type: string
       - in: query
         name: enabled
         type: boolean
+      - in: query
+        maxLength: 100
+        name: name
+        type: string
       - description: Current page number (1-based)
         in: query
         minimum: 1
@@ -1049,12 +1250,6 @@ paths:
         minimum: 1
         name: page_size
         type: integer
-      - enum:
-        - user
-        - admin
-        in: query
-        name: role
-        type: string
       - description: Field to sort by, can include table prefix (e.g. "users.id")
         in: query
         name: sort_field
@@ -1070,9 +1265,380 @@ paths:
         in: query
         name: sort_order
         type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ListRolesResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: List Roles
+      tags:
+      - role
+    post:
+      consumes:
+      - application/json
+      description: Creates a new Role
+      operationId: CreateRole
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.CreateRoleReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.CreateRoleResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Role
+      tags:
+      - role
+  /roles/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes an existing Role
+      operationId: DeleteRole
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.DeleteRoleReq'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.DeleteRoleResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Role
+      tags:
+      - role
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Role
+      operationId: GetRole
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetRoleResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Role
+      tags:
+      - role
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing Role
+      operationId: UpdateRole
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateRoleReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UpdateRoleResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Role
+      tags:
+      - role
+  /roles/{id}/enabled:
+    patch:
+      consumes:
+      - application/json
+      description: Updates an existing Role Enabled
+      operationId: UpdateRoleEnabled
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateRoleEnabledReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UpdateRoleEnabledResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Role Enabled
+      tags:
+      - role
+  /roles/{id}/form:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Role Form Data
+      operationId: GetRoleFormData
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetRoleFormDataResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Role Form Data
+      tags:
+      - role
+  /roles/options:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Role Options
+      operationId: GetRoleOptions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetRoleOptionsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Role Options
+      tags:
+      - role
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of Users
+      operationId: ListUsers
+      parameters:
       - in: query
+        minimum: 1
+        name: department_id
+        type: integer
+      - in: query
+        name: enabled
+        type: boolean
+      - description: Search by username or full name
+        in: query
         maxLength: 100
-        name: username
+        name: key
+        type: string
+      - description: Current page number (1-based)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        maximum: 100
+        minimum: 1
+        name: page_size
+        type: integer
+      - in: query
+        minimum: 1
+        name: role_id
+        type: integer
+      - description: Field to sort by, can include table prefix (e.g. "users.id")
+        in: query
+        name: sort_field
+        type: string
+      - description: 'Sort direction: asc or desc'
+        enum:
+        - asc
+        - desc
+        - ASC
+        - DESC
+        - ascend
+        - descend
+        in: query
+        name: sort_order
         type: string
       produces:
       - application/json

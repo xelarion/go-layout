@@ -77,13 +77,10 @@ type GetProfileReq struct {
 }
 
 type GetProfileResp struct {
-	ID          uint      `json:"id"`
-	Username    string    `json:"username"`
-	Email       string    `json:"email"`
-	Role        string    `json:"role"`
-	Avatar      string    `json:"avatar"`
-	CreatedAt   time.Time `json:"created_at"`
-	Permissions []string  `json:"permissions"`
+	ID        uint      `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
 }
 
 // UpdateProfileReq represents profile update data.

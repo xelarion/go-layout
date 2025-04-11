@@ -42,26 +42,6 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 	}
 	logger.Info("Connected to redis successfully")
 
-	// Initialize repositories
-	userRepo := repository.NewUserRepository(db.DB, redis.Client)
-	// Initialize usecases
-	userUseCase := usecase.NewUserUseCase(userRepo)
-	// Initialize services (without JWT dependency)
-	userService := service.NewUserService(userUseCase)
-
-	// Initialize department repository
-	departmentRepo := repository.NewDepartmentRepository(db.DB, redis.Client)
-	// Initialize department usecase
-	departmentUseCase := usecase.NewDepartmentUseCase(departmentRepo)
-	// Initialize department service
-	departmentService := service.NewDepartmentService(departmentUseCase)
-
-	// Initialize auth middleware
-	authMiddleware, err := middleware.NewAuthMiddleware(&cfg.JWT, userUseCase, logger)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create auth middleware: %w", err)
-	}
-
 	// Initialize HTTP server
 	httpServer := server.NewHTTPServer(&server.HTTPConfig{
 		Host:         cfg.HTTP.Host,
@@ -78,11 +58,30 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 	httpServer.Router().Use(middleware.Recovery(logger))
 	httpServer.Router().Use(middleware.Error(logger))
 
-	// Initialize auth service
+	// Initialize repositories
+	userRepo := repository.NewUserRepository(db.DB, redis.Client)
+	departmentRepo := repository.NewDepartmentRepository(db.DB, redis.Client)
+	roleRepo := repository.NewRoleRepository(db.DB, redis.Client)
+
+	// Initialize usecases
+	userUseCase := usecase.NewUserUseCase(userRepo, roleRepo, departmentRepo)
+	departmentUseCase := usecase.NewDepartmentUseCase(departmentRepo)
+	roleUseCase := usecase.NewRoleUseCase(roleRepo)
+
+	// Initialize services
+	departmentService := service.NewDepartmentService(departmentUseCase)
+	roleService := service.NewRoleService(roleUseCase)
+	userService := service.NewUserService(userUseCase)
 	authService := service.NewAuthService(userUseCase, logger)
 
+	// Initialize auth middleware
+	authMiddleware, err := middleware.NewAuthMiddleware(&cfg.JWT, userUseCase, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create auth middleware: %w", err)
+	}
+
 	// Register API routes
-	webRouter := web.NewRouter(httpServer.Router(), authService, userService, departmentService, authMiddleware, logger)
+	webRouter := web.NewRouter(httpServer.Router(), authService, userService, departmentService, roleService, authMiddleware, logger)
 	webRouter.SetupRoutes()
 
 	// Register Swagger documentation routes (when swag is installed)

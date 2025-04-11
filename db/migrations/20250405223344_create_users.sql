@@ -35,7 +35,7 @@ VALUES ('admin',
         '12345678900',
         'admin@example.com',
         TRUE,
-        1,
+        0,
         1)
 ON CONFLICT DO NOTHING;
 -- +goose StatementEnd

@@ -2,8 +2,6 @@ package middleware
 
 import (
 	"context"
-
-	"github.com/xelarion/go-layout/internal/model"
 )
 
 // contextKey is a unexported type for context keys to avoid collisions
@@ -16,14 +14,18 @@ var (
 
 // Current represents the current context information.
 type Current struct {
-	User *model.User
+	UserID   uint
+	RoleID   uint
+	RoleSlug string
 	// Can be extended with other fields in the future
 }
 
 // NewCurrent creates a new Current instance
-func NewCurrent(user *model.User) *Current {
+func NewCurrent(userID uint, roleID uint, roleSlug string) *Current {
 	return &Current{
-		User: user,
+		UserID:   userID,
+		RoleID:   roleID,
+		RoleSlug: roleSlug,
 	}
 }
 

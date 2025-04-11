@@ -12,28 +12,46 @@ import (
 	"github.com/xelarion/go-layout/pkg/errs"
 )
 
+type User struct {
+	*model.User
+	RoleName       string
+	RoleSlug       string
+	DepartmentName string
+}
+
 // CreateUserParams contains all parameters needed to create a user
 type CreateUserParams struct {
-	Username string
-	Email    string
-	Password string
-	Role     string
+	Username     string
+	Password     string
+	FullName     string
+	PhoneNumber  string
+	Email        string
+	Enabled      bool
+	DepartmentID uint
+	RoleID       uint
 }
 
 // UpdateUserParams contains all parameters needed to update a user
 type UpdateUserParams struct {
-	ID       uint
-	Username string
-	Email    string
-	Password string
-	Role     string
-	Enabled  bool
+	ID           uint
+	Username     string
+	Password     string
+	FullName     string
+	PhoneNumber  string
+	Email        string
+	Enabled      bool
+	DepartmentID uint
+	RoleID       uint
+
 	// Fields to track which values are explicitly set
-	UsernameSet bool
-	EmailSet    bool
-	PasswordSet bool
-	RoleSet     bool
-	EnabledSet  bool
+	UsernameSet     bool
+	PasswordSet     bool
+	FullNameSet     bool
+	PhoneNumberSet  bool
+	EmailSet        bool
+	EnabledSet      bool
+	DepartmentIDSet bool
+	RoleIDSet       bool
 }
 
 // UserRepository defines methods for user data access.
@@ -52,74 +70,130 @@ type UserRepository interface {
 
 // UserUseCase implements business logic for user operations.
 type UserUseCase struct {
-	repo UserRepository
+	userRepo       UserRepository
+	roleRepo       RoleRepository
+	departmentRepo DepartmentRepository
 }
 
 // NewUserUseCase creates a new instance of UserUseCase.
-func NewUserUseCase(repo UserRepository) *UserUseCase {
+func NewUserUseCase(repo UserRepository, roleRepo RoleRepository, departmentRepo DepartmentRepository) *UserUseCase {
 	return &UserUseCase{
-		repo: repo,
+		userRepo:       repo,
+		roleRepo:       roleRepo,
+		departmentRepo: departmentRepo,
 	}
 }
 
 // Create creates a new user.
-func (uc *UserUseCase) Create(ctx context.Context, params CreateUserParams) (*model.User, error) {
+func (uc *UserUseCase) Create(ctx context.Context, params CreateUserParams) (uint, error) {
 	// Check if user already exists
-	_, err := uc.repo.FindByUsername(ctx, params.Username)
+	_, err := uc.userRepo.FindByUsername(ctx, params.Username)
 	if err != nil {
 		if !errs.IsReason(err, errs.ReasonNotFound) {
-			return nil, err
+			return 0, err
 		}
 	} else {
-		return nil, errs.NewBusiness("username already exists").
+		return 0, errs.NewBusiness("username already exists").
 			WithReason(errs.ReasonDuplicate)
 	}
 
 	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(params.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, errs.WrapInternal(err, "failed to hash password")
+		return 0, errs.WrapInternal(err, "failed to hash password")
 	}
 
 	// Create user
 	user := &model.User{
 		User: gen.User{
-			Username: params.Username,
-			Email:    params.Email,
-			Password: string(hashedPassword),
-			Role:     params.Role,
+			Username:     params.Username,
+			Password:     string(hashedPassword),
+			FullName:     params.FullName,
+			PhoneNumber:  params.PhoneNumber,
+			Email:        params.Email,
+			Enabled:      params.Enabled,
+			DepartmentID: params.DepartmentID,
+			RoleID:       params.RoleID,
 		},
 	}
 
-	if err := uc.repo.Create(ctx, user); err != nil {
-		return nil, err
+	err = uc.userRepo.Create(ctx, user)
+	if err != nil {
+		return 0, err
 	}
 
-	return user, nil
+	return user.ID, nil
 }
 
 // List returns a list of users with pagination and filtering.
-func (uc *UserUseCase) List(ctx context.Context, filters map[string]any, limit, offset int, sortClause string) ([]*model.User, int, error) {
-	users, count, err := uc.repo.List(ctx, filters, limit, offset, sortClause)
+func (uc *UserUseCase) List(ctx context.Context, filters map[string]any, limit, offset int, sortClause string) ([]*User, int, error) {
+	users, count, err := uc.userRepo.List(ctx, filters, limit, offset, sortClause)
 	if err != nil {
 		return nil, 0, err
 	}
-	return users, count, nil
+
+	var usersWithRoles []*User
+	for _, user := range users {
+		userWithRoles := &User{
+			User: user,
+		}
+
+		role, err := uc.roleRepo.FindByID(ctx, user.RoleID)
+		if err != nil {
+			return nil, 0, err
+		}
+		userWithRoles.RoleName = role.Name
+		userWithRoles.RoleSlug = role.Slug
+
+		department, err := uc.departmentRepo.FindByID(ctx, user.DepartmentID)
+		if err != nil {
+			if !errs.IsReason(err, errs.ReasonNotFound) {
+				return nil, 0, err
+			}
+		} else {
+			userWithRoles.DepartmentName = department.Name
+		}
+
+		usersWithRoles = append(usersWithRoles, userWithRoles)
+	}
+
+	return usersWithRoles, count, nil
 }
 
 // GetByID retrieves a user by ID.
-func (uc *UserUseCase) GetByID(ctx context.Context, id uint) (*model.User, error) {
-	user, err := uc.repo.FindByID(ctx, id)
+func (uc *UserUseCase) GetByID(ctx context.Context, id uint) (*User, error) {
+	user, err := uc.userRepo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	return user, nil
+
+	role, err := uc.roleRepo.FindByID(ctx, user.RoleID)
+	if err != nil {
+		return nil, err
+	}
+
+	departmentName := ""
+	department, err := uc.departmentRepo.FindByID(ctx, user.DepartmentID)
+	if err != nil {
+		if !errs.IsReason(err, errs.ReasonNotFound) {
+			return nil, err
+		}
+	} else {
+		departmentName = department.Name
+	}
+
+	return &User{
+		User:           user,
+		RoleName:       role.Name,
+		RoleSlug:       role.Slug,
+		DepartmentName: departmentName,
+	}, nil
 }
 
 // Update updates an existing user.
 func (uc *UserUseCase) Update(ctx context.Context, params UpdateUserParams) error {
 	// Get the existing user
-	user, err := uc.repo.FindByID(ctx, params.ID)
+	user, err := uc.userRepo.FindByID(ctx, params.ID)
 	if err != nil {
 		return err
 	}
@@ -127,10 +201,6 @@ func (uc *UserUseCase) Update(ctx context.Context, params UpdateUserParams) erro
 	// Update fields that are explicitly set
 	if params.UsernameSet {
 		user.Username = params.Username
-	}
-
-	if params.EmailSet {
-		user.Email = params.Email
 	}
 
 	if params.PasswordSet && params.Password != "" {
@@ -141,15 +211,31 @@ func (uc *UserUseCase) Update(ctx context.Context, params UpdateUserParams) erro
 		user.Password = string(hashedPassword)
 	}
 
-	if params.RoleSet {
-		user.Role = params.Role
+	if params.FullNameSet {
+		user.FullName = params.FullName
+	}
+
+	if params.PhoneNumberSet {
+		user.PhoneNumber = params.PhoneNumber
+	}
+
+	if params.EmailSet {
+		user.Email = params.Email
 	}
 
 	if params.EnabledSet {
 		user.Enabled = params.Enabled
 	}
 
-	if err := uc.repo.Update(ctx, user); err != nil {
+	if params.DepartmentIDSet {
+		user.DepartmentID = params.DepartmentID
+	}
+
+	if params.RoleIDSet {
+		user.RoleID = params.RoleID
+	}
+
+	if err := uc.userRepo.Update(ctx, user); err != nil {
 		return err
 	}
 	return nil
@@ -157,12 +243,12 @@ func (uc *UserUseCase) Update(ctx context.Context, params UpdateUserParams) erro
 
 // Delete removes a user.
 func (uc *UserUseCase) Delete(ctx context.Context, id uint) error {
-	_, err := uc.repo.FindByID(ctx, id)
+	_, err := uc.userRepo.FindByID(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	if err := uc.repo.Delete(ctx, id); err != nil {
+	if err := uc.userRepo.Delete(ctx, id); err != nil {
 		return err
 	}
 
@@ -170,26 +256,35 @@ func (uc *UserUseCase) Delete(ctx context.Context, id uint) error {
 }
 
 // Login authenticates a user.
-func (uc *UserUseCase) Login(ctx context.Context, username, password string) (*model.User, error) {
-	user, err := uc.repo.FindByUsername(ctx, username)
+func (uc *UserUseCase) Login(ctx context.Context, username, password string) (*User, error) {
+	user, err := uc.userRepo.FindByUsername(ctx, username)
 	if err != nil {
 		if errs.IsReason(err, errs.ReasonNotFound) {
-			return nil, errs.NewBusiness("Incorrect username or password").WithReason(errs.ReasonUnauthorized)
+			return nil, errs.NewBusiness("incorrect username or password").WithReason(errs.ReasonUnauthorized)
 		}
 		return nil, err
 	}
 
 	// Verify password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return nil, errs.NewBusiness("Incorrect username or password").WithReason(errs.ReasonUnauthorized)
+		return nil, errs.NewBusiness("incorrect username or password").WithReason(errs.ReasonUnauthorized)
 	}
 
 	// Check if user is enabled
 	if !user.Enabled {
-		return nil, errs.NewBusiness("User account is disabled").WithReason(errs.ReasonUnauthorized)
+		return nil, errs.NewBusiness("user account is disabled").WithReason(errs.ReasonUnauthorized)
 	}
 
-	return user, nil
+	role, err := uc.roleRepo.FindByID(ctx, user.RoleID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &User{
+		User:     user,
+		RoleName: role.Name,
+		RoleSlug: role.Slug,
+	}, nil
 }
 
 func (uc *UserUseCase) GetRSAPublicKey(ctx context.Context) (string, string, error) {
@@ -199,7 +294,7 @@ func (uc *UserUseCase) GetRSAPublicKey(ctx context.Context) (string, string, err
 	}
 
 	rdsKey := util.RandSeq(25)
-	err = uc.repo.SetRSAPrivateKey(ctx, rdsKey, privateKey)
+	err = uc.userRepo.SetRSAPrivateKey(ctx, rdsKey, privateKey)
 	if err != nil {
 		return "", "", err
 	}
@@ -208,9 +303,9 @@ func (uc *UserUseCase) GetRSAPublicKey(ctx context.Context) (string, string, err
 }
 
 func (uc *UserUseCase) GetRSAPrivateKey(ctx context.Context, cacheKey string) ([]byte, error) {
-	return uc.repo.GetRSAPrivateKey(ctx, cacheKey)
+	return uc.userRepo.GetRSAPrivateKey(ctx, cacheKey)
 }
 
 func (uc *UserUseCase) DeleteRSAPrivateKey(ctx context.Context, cacheKey string) error {
-	return uc.repo.DeleteRSAPrivateKey(ctx, cacheKey)
+	return uc.userRepo.DeleteRSAPrivateKey(ctx, cacheKey)
 }

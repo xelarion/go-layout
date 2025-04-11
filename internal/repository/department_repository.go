@@ -132,3 +132,17 @@ func (r *DepartmentRepository) Delete(ctx context.Context, id uint) error {
 
 	return nil
 }
+
+// CountUsersByDepartmentID counts the number of users in a department.
+func (r *DepartmentRepository) CountUsersByDepartmentID(ctx context.Context, departmentID uint) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&model.User{}).
+		Where("department_id = ?", departmentID).
+		Count(&count).Error
+
+	if err != nil {
+		return 0, errs.WrapInternal(err, "failed to count users by department ID")
+	}
+	return count, nil
+}

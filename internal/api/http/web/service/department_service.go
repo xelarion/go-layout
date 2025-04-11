@@ -24,16 +24,16 @@ func (s *DepartmentService) CreateDepartment(ctx context.Context, req *types.Cre
 	params := usecase.CreateDepartmentParams{
 		Name:        req.Name,
 		Description: req.Description,
-		Enabled:     req.Enabled,
+		Enabled:     true,
 	}
 
-	department, err := s.departmentUseCase.Create(ctx, params)
+	id, err := s.departmentUseCase.Create(ctx, params)
 	if err != nil {
 		return nil, err
 	}
 
 	return &types.CreateDepartmentResp{
-		ID: department.ID,
+		ID: id,
 	}, nil
 }
 
@@ -61,6 +61,7 @@ func (s *DepartmentService) ListDepartments(ctx context.Context, req *types.List
 			Description: department.Description,
 			Enabled:     department.Enabled,
 			CreatedAt:   department.CreatedAt,
+			UserCount:   department.UserCount,
 		}
 		respResults = append(respResults, u)
 	}
@@ -156,4 +157,26 @@ func (s *DepartmentService) DeleteDepartment(ctx context.Context, req *types.Del
 	}
 
 	return &types.DeleteDepartmentResp{}, nil
+}
+
+func (s *DepartmentService) GetDepartmentOptions(ctx context.Context, req *types.GetDepartmentOptionsReq) (*types.GetDepartmentOptionsResp, error) {
+	departments, err := s.departmentUseCase.GetDepartmentOptions(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]types.GetDepartmentOptionsRespResult, 0, len(departments))
+	for _, department := range departments {
+		results = append(results, types.GetDepartmentOptionsRespResult{
+			GetOptionsRespResult: types.GetOptionsRespResult{
+				Label: department.Name,
+				Value: department.ID,
+			},
+			Enabled: department.Enabled,
+		})
+	}
+
+	return &types.GetDepartmentOptionsResp{
+		Results: results,
+	}, nil
 }

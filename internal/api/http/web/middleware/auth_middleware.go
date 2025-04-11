@@ -32,23 +32,23 @@ type User struct {
 func NewAuthMiddleware(cfg *config.JWT, uc *usecase.UserUseCase, logger *zap.Logger) (*jwt.GinJWTMiddleware, error) {
 	// Initialize JWT middleware with RESTful API best practices
 	authMiddleware, err := jwt.New(&jwt.GinJWTMiddleware{
-		Realm:           "go-layout",
-		Key:             []byte(cfg.Secret),
-		Timeout:         cfg.TokenExpiration,   // Short-lived access token
-		MaxRefresh:      cfg.RefreshExpiration, // How long a user can refresh token without login
-		IdentityKey:     IdentityKey,
-		PayloadFunc:     payloadFunc(cfg.TokenExpiration),
-		IdentityHandler: identityHandler,
-		Authenticator:   authenticator(uc),
-		Authorizator:    authorizator(uc),
-		Unauthorized:    unauthorized,
-		LoginResponse:   loginResponse,
-		LogoutResponse:  logoutResponse,
-		RefreshResponse: refreshResponse,
-		// REST API best practice: use header for token transport
-		TokenLookup:   "header: Authorization",
-		TokenHeadName: "Bearer",
-		TimeFunc:      time.Now,
+		Realm:                 "go-layout",
+		Key:                   []byte(cfg.Secret),
+		Timeout:               cfg.TokenExpiration,   // Short-lived access token
+		MaxRefresh:            cfg.RefreshExpiration, // How long a user can refresh token without login
+		IdentityKey:           IdentityKey,
+		PayloadFunc:           payloadFunc(cfg.TokenExpiration),
+		IdentityHandler:       identityHandler,
+		Authenticator:         authenticator(uc),
+		Authorizator:          authorizator(uc, logger),
+		Unauthorized:          unauthorized,
+		LoginResponse:         loginResponse,
+		LogoutResponse:        logoutResponse,
+		RefreshResponse:       refreshResponse,
+		TokenLookup:           "header: Authorization",
+		TokenHeadName:         "Bearer",
+		TimeFunc:              time.Now,
+		HTTPStatusMessageFunc: httpStatusMessageFunc,
 		// Disable cookie for REST API (SPA frontend)
 		SendCookie: false,
 	})
@@ -141,18 +141,23 @@ func authenticator(uc *usecase.UserUseCase) func(c *gin.Context) (any, error) {
 }
 
 // authorizator determines if a user has access and stores user in context
-func authorizator(uc *usecase.UserUseCase) func(data any, c *gin.Context) bool {
+func authorizator(uc *usecase.UserUseCase, logger *zap.Logger) func(data any, c *gin.Context) bool {
 	return func(data any, c *gin.Context) bool {
 		if v, ok := data.(*User); ok {
 			// Get full user from database
 			user, err := uc.GetByID(c.Request.Context(), v.ID)
 			if err != nil {
-				_ = c.Error(err)
+				c.Set("jwt_error", err.Error())
+				return false
+			}
+
+			if !user.Enabled {
+				c.Set("jwt_error", "user account is disabled")
 				return false
 			}
 
 			// Store full user in request context using Current
-			c.Request = c.Request.WithContext(SetCurrent(c.Request.Context(), NewCurrent(user)))
+			c.Request = c.Request.WithContext(SetCurrent(c.Request.Context(), NewCurrent(user.ID, user.RoleID, user.RoleSlug)))
 
 			return true
 		}
@@ -204,4 +209,11 @@ func refreshResponse(c *gin.Context, code int, token string, expire time.Time) {
 		ExpiresIn: expiresIn,
 		TokenType: TokenType,
 	}))
+}
+
+func httpStatusMessageFunc(err error, c *gin.Context) string {
+	if msg, exists := c.Get("jwt_error"); exists {
+		return msg.(string)
+	}
+	return err.Error()
 }

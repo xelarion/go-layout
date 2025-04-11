@@ -3,6 +3,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 
 	"github.com/redis/go-redis/v9"
@@ -44,9 +45,9 @@ func (r *UserRepository) List(ctx context.Context, filters map[string]any, limit
 		}
 
 		switch field {
-		case "username":
+		case "key":
 			if str, ok := value.(string); ok {
-				query = query.Where(field+" LIKE ?", "%"+str+"%")
+				query = query.Where("username LIKE @key OR full_name LIKE @key", sql.Named("key", "%"+str+"%"))
 			}
 		default:
 			query = query.Where(field+" = ?", value)

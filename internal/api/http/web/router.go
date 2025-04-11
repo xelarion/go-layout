@@ -17,10 +17,19 @@ type Router struct {
 	authService       *service.AuthService
 	userService       *service.UserService
 	departmentService *service.DepartmentService
+	roleService       *service.RoleService
 }
 
 // NewRouter creates a new router.
-func NewRouter(engine *gin.Engine, authService *service.AuthService, userService *service.UserService, departmentService *service.DepartmentService, authMiddleware *jwt.GinJWTMiddleware, logger *zap.Logger) *Router {
+func NewRouter(
+	engine *gin.Engine,
+	authService *service.AuthService,
+	userService *service.UserService,
+	departmentService *service.DepartmentService,
+	roleService *service.RoleService,
+	authMiddleware *jwt.GinJWTMiddleware,
+	logger *zap.Logger,
+) *Router {
 	return &Router{
 		Engine:            engine,
 		logger:            logger.Named("web_router"),
@@ -28,6 +37,7 @@ func NewRouter(engine *gin.Engine, authService *service.AuthService, userService
 		authService:       authService,
 		userService:       userService,
 		departmentService: departmentService,
+		roleService:       roleService,
 	}
 }
 
@@ -37,6 +47,7 @@ func (r *Router) SetupRoutes() {
 	authHandler := handler.NewAuthHandler(r.authService, r.authMW, r.logger)
 	userHandler := handler.NewUserHandler(r.userService, r.logger)
 	departmentHandler := handler.NewDepartmentHandler(r.departmentService, r.logger)
+	roleHandler := handler.NewRoleHandler(r.roleService, r.logger)
 
 	// API routes
 	api := r.Engine.Group("/api/web/v1")
@@ -74,4 +85,15 @@ func (r *Router) SetupRoutes() {
 	authorized.PUT("/departments/:id", departmentHandler.UpdateDepartment)
 	authorized.PATCH("/departments/:id/enabled", departmentHandler.UpdateDepartmentEnabled)
 	authorized.DELETE("/departments/:id", departmentHandler.DeleteDepartment)
+	authorized.GET("/departments/options", departmentHandler.GetDepartmentOptions)
+
+	// Role management routes
+	authorized.POST("/roles", roleHandler.CreateRole)
+	authorized.GET("/roles", roleHandler.ListRoles)
+	authorized.GET("/roles/:id", roleHandler.GetRole)
+	authorized.GET("/roles/:id/form", roleHandler.GetRoleFormData)
+	authorized.PUT("/roles/:id", roleHandler.UpdateRole)
+	authorized.PATCH("/roles/:id/enabled", roleHandler.UpdateRoleEnabled)
+	authorized.DELETE("/roles/:id", roleHandler.DeleteRole)
+	authorized.GET("/roles/options", roleHandler.GetRoleOptions)
 }

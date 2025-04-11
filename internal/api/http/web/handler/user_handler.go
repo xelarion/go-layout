@@ -54,7 +54,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, types.Success(resp).WithMessage("Created successfully"))
+	c.JSON(http.StatusCreated, types.Success(resp).WithMessage("created successfully"))
 }
 
 // ListUsers godoc
@@ -186,7 +186,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, types.Success(resp).WithMessage("Updated successfully"))
+	c.JSON(http.StatusOK, types.Success(resp).WithMessage("updated successfully"))
 }
 
 // UpdateUserEnabled godoc
@@ -218,7 +218,7 @@ func (h *UserHandler) UpdateUserEnabled(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, types.Success(resp).WithMessage("Operation successfully"))
+	c.JSON(http.StatusOK, types.Success(resp).WithMessage("operation successfully"))
 }
 
 // DeleteUser godoc
@@ -250,5 +250,5 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, types.Success(resp).WithMessage("Deleted successfully"))
+	c.JSON(http.StatusOK, types.Success(resp).WithMessage("deleted successfully"))
 }

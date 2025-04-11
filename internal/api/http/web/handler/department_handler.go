@@ -54,7 +54,7 @@ func (h *DepartmentHandler) CreateDepartment(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, types.Success(resp).WithMessage("Created successfully"))
+	c.JSON(http.StatusCreated, types.Success(resp).WithMessage("created successfully"))
 }
 
 // ListDepartments godoc
@@ -186,7 +186,7 @@ func (h *DepartmentHandler) UpdateDepartment(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, types.Success(resp).WithMessage("Updated successfully"))
+	c.JSON(http.StatusOK, types.Success(resp).WithMessage("updated successfully"))
 }
 
 // UpdateDepartmentEnabled godoc
@@ -218,7 +218,7 @@ func (h *DepartmentHandler) UpdateDepartmentEnabled(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, types.Success(resp).WithMessage("Operation successfully"))
+	c.JSON(http.StatusOK, types.Success(resp).WithMessage("operation successfully"))
 }
 
 // DeleteDepartment godoc
@@ -250,5 +250,36 @@ func (h *DepartmentHandler) DeleteDepartment(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, types.Success(resp).WithMessage("Deleted successfully"))
+	c.JSON(http.StatusOK, types.Success(resp).WithMessage("deleted successfully"))
+}
+
+// GetDepartmentOptions godoc
+//
+//	@ID				GetDepartmentOptions
+//	@Summary		Get Department Options
+//	@Description	Retrieves a single Department Options
+//	@Tags			department
+//	@Accept			json
+//	@Produce		json
+//	@Param			req	query		types.GetDepartmentOptionsReq						false	"req"
+//	@Success		200	{object}	types.Response{data=types.GetDepartmentOptionsResp}	"Success"
+//	@Failure		400	{object}	types.Response										"Bad request"
+//	@Failure		401	{object}	types.Response										"Unauthorized"
+//	@Failure		500	{object}	types.Response										"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/departments/options [get]
+func (h *DepartmentHandler) GetDepartmentOptions(c *gin.Context) {
+	var req types.GetDepartmentOptionsReq
+	if err := binding.Bind(c, &req, binding.Query); err != nil {
+		_ = c.Error(errs.WrapValidation(err, err.Error()))
+		return
+	}
+
+	resp, err := h.departmentService.GetDepartmentOptions(c.Request.Context(), &req)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, types.Success(resp))
 }

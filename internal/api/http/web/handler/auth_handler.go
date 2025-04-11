@@ -234,7 +234,7 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, types.Success(resp).WithMessage("Operation successfully"))
+	c.JSON(http.StatusOK, types.Success(resp).WithMessage("operation successfully"))
 }
 
 // GetCurrentUserInfo godoc
