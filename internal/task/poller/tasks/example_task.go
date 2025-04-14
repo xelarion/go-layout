@@ -28,7 +28,7 @@ func NewExampleHandler(deps *task.Dependencies, logger *zap.Logger) *ExampleHand
 
 // Register registers this handler with the poller.
 func (t *ExampleHandler) Register(p *poller.Poller) error {
-	// Runs every 30 seconds
+	// Runs every 1 hour
 	if err := p.Register("example-task", time.Hour, t.Execute); err != nil {
 		return fmt.Errorf("failed to register example task handler: %w", err)
 	}
