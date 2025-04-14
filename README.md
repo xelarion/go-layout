@@ -1,5 +1,7 @@
 # Go Layout
 
+[English](README.md) | [中文](README-zh.md)
+
 A scalable, high-performance, high-availability web application template built with Go.
 
 ## Features

@@ -1,5 +1,7 @@
 # Go 项目布局
 
+[English](README.md) | [中文](README-zh.md)
+
 一个可扩展、高性能、高可用性的 Go 语言 Web 应用程序模板。
 
 ## 功能特性
