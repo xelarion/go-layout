@@ -78,6 +78,7 @@ type GetUserFormDataResp struct {
 	PhoneNumber  string `json:"phone_number"`
 	Email        string `json:"email"`
 	RoleID       uint   `json:"role_id"`
+	RoleSlug     string `json:"role_slug"`
 	DepartmentID uint   `json:"department_id"`
 }
 

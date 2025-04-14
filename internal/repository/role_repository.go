@@ -72,6 +72,10 @@ func (r *RoleRepository) List(ctx context.Context, filters map[string]any, limit
 	return roles, int(total), nil
 }
 
+func (r *RoleRepository) IsExists(ctx context.Context, filters map[string]any, notFilters map[string]any) (bool, error) {
+	return IsExists(ctx, r.db, &model.Role{}, filters, notFilters)
+}
+
 // FindByID retrieves a role by ID.
 func (r *RoleRepository) FindByID(ctx context.Context, id uint) (*model.Role, error) {
 	var role model.Role
@@ -83,20 +87,6 @@ func (r *RoleRepository) FindByID(ctx context.Context, id uint) (*model.Role, er
 				WithMeta("id", id)
 		}
 		return nil, errs.WrapInternal(err, "failed to find role by ID")
-	}
-	return &role, nil
-}
-
-func (r *RoleRepository) FindByName(ctx context.Context, name string) (*model.Role, error) {
-	var role model.Role
-	err := r.db.WithContext(ctx).Where("name = ?", name).First(&role).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errs.NewBusiness("role not found").
-				WithReason(errs.ReasonNotFound).
-				WithMeta("name", name)
-		}
-		return nil, errs.WrapInternal(err, "failed to find role by name")
 	}
 	return &role, nil
 }
@@ -139,6 +129,7 @@ func (r *RoleRepository) CountUsersByRoleID(ctx context.Context, roleID uint) (i
 	err := r.db.WithContext(ctx).
 		Model(&model.User{}).
 		Where("role_id = ?", roleID).
+		Where("enabled = ?", true).
 		Count(&count).Error
 
 	if err != nil {

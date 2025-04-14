@@ -72,6 +72,11 @@ func (r *DepartmentRepository) List(ctx context.Context, filters map[string]any,
 	return departments, int(total), nil
 }
 
+// IsExists checks if a department exists in the database.
+func (r *DepartmentRepository) IsExists(ctx context.Context, filters map[string]any, notFilters map[string]any) (bool, error) {
+	return IsExists(ctx, r.db, &model.Department{}, filters, notFilters)
+}
+
 // FindByID retrieves a department by ID.
 func (r *DepartmentRepository) FindByID(ctx context.Context, id uint) (*model.Department, error) {
 	var department model.Department
@@ -83,20 +88,6 @@ func (r *DepartmentRepository) FindByID(ctx context.Context, id uint) (*model.De
 				WithMeta("id", id)
 		}
 		return nil, errs.WrapInternal(err, "failed to find department by ID")
-	}
-	return &department, nil
-}
-
-func (r *DepartmentRepository) FindByName(ctx context.Context, name string) (*model.Department, error) {
-	var department model.Department
-	err := r.db.WithContext(ctx).Where("name = ?", name).First(&department).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errs.NewBusiness("department not found").
-				WithReason(errs.ReasonNotFound).
-				WithMeta("name", name)
-		}
-		return nil, errs.WrapInternal(err, "failed to find department by name")
 	}
 	return &department, nil
 }
@@ -139,6 +130,7 @@ func (r *DepartmentRepository) CountUsersByDepartmentID(ctx context.Context, dep
 	err := r.db.WithContext(ctx).
 		Model(&model.User{}).
 		Where("department_id = ?", departmentID).
+		Where("enabled = ?", true).
 		Count(&count).Error
 
 	if err != nil {

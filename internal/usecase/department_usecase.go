@@ -39,8 +39,8 @@ type UpdateDepartmentParams struct {
 type DepartmentRepository interface {
 	Create(ctx context.Context, department *model.Department) error
 	List(ctx context.Context, filters map[string]any, limit, offset int, sortClause string) ([]*model.Department, int, error)
+	IsExists(ctx context.Context, filters map[string]any, notFilters map[string]any) (bool, error)
 	FindByID(ctx context.Context, id uint) (*model.Department, error)
-	FindByName(ctx context.Context, name string) (*model.Department, error)
 	Update(ctx context.Context, department *model.Department) error
 	Delete(ctx context.Context, id uint) error
 	CountUsersByDepartmentID(ctx context.Context, departmentID uint) (int64, error)
@@ -61,12 +61,12 @@ func NewDepartmentUseCase(repo DepartmentRepository) *DepartmentUseCase {
 // Create creates a new department.
 func (uc *DepartmentUseCase) Create(ctx context.Context, params CreateDepartmentParams) (uint, error) {
 	// Check if department already exists
-	_, err := uc.departmentRepo.FindByName(ctx, params.Name)
+	exists, err := uc.departmentRepo.IsExists(ctx, map[string]any{"name": params.Name}, nil)
 	if err != nil {
-		if !errs.IsReason(err, errs.ReasonNotFound) {
-			return 0, err
-		}
-	} else {
+		return 0, err
+	}
+
+	if exists {
 		return 0, errs.NewBusiness("department name already exists").
 			WithReason(errs.ReasonDuplicate)
 	}
@@ -134,6 +134,17 @@ func (uc *DepartmentUseCase) Update(ctx context.Context, params UpdateDepartment
 	department, err := uc.departmentRepo.FindByID(ctx, params.ID)
 	if err != nil {
 		return err
+	}
+
+	// Check if department already exists
+	exists, err := uc.departmentRepo.IsExists(ctx, map[string]any{"name": params.Name}, map[string]any{"id": params.ID})
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		return errs.NewBusiness("department name already exists").
+			WithReason(errs.ReasonDuplicate)
 	}
 
 	// Update fields that are explicitly set

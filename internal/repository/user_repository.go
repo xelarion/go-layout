@@ -73,6 +73,10 @@ func (r *UserRepository) List(ctx context.Context, filters map[string]any, limit
 	return users, int(total), nil
 }
 
+func (r *UserRepository) IsExists(ctx context.Context, filters map[string]any, notFilters map[string]any) (bool, error) {
+	return IsExists(ctx, r.db, &model.User{}, filters, notFilters)
+}
+
 // FindByID retrieves a user by ID.
 func (r *UserRepository) FindByID(ctx context.Context, id uint) (*model.User, error) {
 	var user model.User
@@ -84,21 +88,6 @@ func (r *UserRepository) FindByID(ctx context.Context, id uint) (*model.User, er
 				WithMeta("id", id)
 		}
 		return nil, errs.WrapInternal(err, "failed to find user by ID")
-	}
-	return &user, nil
-}
-
-// FindByEmail retrieves a user by email.
-func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*model.User, error) {
-	var user model.User
-	err := r.db.WithContext(ctx).Where("email = ?", email).First(&user).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errs.NewBusiness("user not found").
-				WithReason(errs.ReasonNotFound).
-				WithMeta("email", email)
-		}
-		return nil, errs.WrapInternal(err, "failed to find user by email")
 	}
 	return &user, nil
 }

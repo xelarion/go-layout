@@ -124,6 +124,7 @@ func (s *UserService) GetUserFormData(ctx context.Context, req *types.GetUserFor
 		PhoneNumber:  user.PhoneNumber,
 		Email:        user.Email,
 		RoleID:       user.RoleID,
+		RoleSlug:     user.RoleSlug,
 		DepartmentID: user.DepartmentID,
 	}, nil
 }

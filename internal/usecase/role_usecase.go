@@ -39,8 +39,8 @@ type UpdateRoleParams struct {
 type RoleRepository interface {
 	Create(ctx context.Context, role *model.Role) error
 	List(ctx context.Context, filters map[string]any, limit, offset int, sortClause string) ([]*model.Role, int, error)
+	IsExists(ctx context.Context, filters map[string]any, notFilters map[string]any) (bool, error)
 	FindByID(ctx context.Context, id uint) (*model.Role, error)
-	FindByName(ctx context.Context, name string) (*model.Role, error)
 	Update(ctx context.Context, role *model.Role) error
 	Delete(ctx context.Context, id uint) error
 	CountUsersByRoleID(ctx context.Context, roleID uint) (int64, error)
@@ -61,12 +61,12 @@ func NewRoleUseCase(repo RoleRepository) *RoleUseCase {
 // Create creates a new role.
 func (uc *RoleUseCase) Create(ctx context.Context, params CreateRoleParams) (uint, error) {
 	// Check if role already exists
-	_, err := uc.roleRepo.FindByName(ctx, params.Name)
+	exists, err := uc.roleRepo.IsExists(ctx, map[string]any{"name": params.Name}, nil)
 	if err != nil {
-		if !errs.IsReason(err, errs.ReasonNotFound) {
-			return 0, err
-		}
-	} else {
+		return 0, err
+	}
+
+	if exists {
 		return 0, errs.NewBusiness("role name already exists").
 			WithReason(errs.ReasonDuplicate)
 	}
@@ -130,6 +130,17 @@ func (uc *RoleUseCase) Update(ctx context.Context, params UpdateRoleParams) erro
 	role, err := uc.roleRepo.FindByID(ctx, params.ID)
 	if err != nil {
 		return err
+	}
+
+	// Check if role already exists
+	exists, err := uc.roleRepo.IsExists(ctx, map[string]any{"name": params.Name}, map[string]any{"id": params.ID})
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		return errs.NewBusiness("role name already exists").
+			WithReason(errs.ReasonDuplicate)
 	}
 
 	// Update fields that are explicitly set

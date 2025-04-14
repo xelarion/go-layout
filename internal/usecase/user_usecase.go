@@ -58,8 +58,8 @@ type UpdateUserParams struct {
 type UserRepository interface {
 	Create(ctx context.Context, user *model.User) error
 	List(ctx context.Context, filters map[string]any, limit, offset int, sortClause string) ([]*model.User, int, error)
+	IsExists(ctx context.Context, filters map[string]any, notFilters map[string]any) (bool, error)
 	FindByID(ctx context.Context, id uint) (*model.User, error)
-	FindByEmail(ctx context.Context, email string) (*model.User, error)
 	FindByUsername(ctx context.Context, username string) (*model.User, error)
 	Update(ctx context.Context, user *model.User) error
 	Delete(ctx context.Context, id uint) error
@@ -87,12 +87,12 @@ func NewUserUseCase(repo UserRepository, roleRepo RoleRepository, departmentRepo
 // Create creates a new user.
 func (uc *UserUseCase) Create(ctx context.Context, params CreateUserParams) (uint, error) {
 	// Check if user already exists
-	_, err := uc.userRepo.FindByUsername(ctx, params.Username)
+	exists, err := uc.userRepo.IsExists(ctx, map[string]any{"username": params.Username}, nil)
 	if err != nil {
-		if !errs.IsReason(err, errs.ReasonNotFound) {
-			return 0, err
-		}
-	} else {
+		return 0, err
+	}
+
+	if exists {
 		return 0, errs.NewBusiness("username already exists").
 			WithReason(errs.ReasonDuplicate)
 	}
@@ -196,6 +196,17 @@ func (uc *UserUseCase) Update(ctx context.Context, params UpdateUserParams) erro
 	user, err := uc.userRepo.FindByID(ctx, params.ID)
 	if err != nil {
 		return err
+	}
+
+	// Check if username already exists
+	exists, err := uc.userRepo.IsExists(ctx, map[string]any{"username": params.Username}, map[string]any{"id": params.ID})
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		return errs.NewBusiness("username already exists").
+			WithReason(errs.ReasonDuplicate)
 	}
 
 	// Update fields that are explicitly set
