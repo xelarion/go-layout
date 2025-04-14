@@ -69,7 +69,10 @@ func (s *Scheduler) Register(name, cronExpr string, task Task) error {
 		start := time.Now()
 
 		if err := task(ctx); err != nil {
-			s.logger.Error("Scheduled task failed",
+			s.logger.WithOptions(
+				zap.WithCaller(false),
+				zap.AddStacktrace(zap.FatalLevel),
+			).Error("Scheduled task failed",
 				zap.String("task", name),
 				zap.Error(err),
 				zap.String("stack_trace", errs.GetStack(err)),

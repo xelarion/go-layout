@@ -33,7 +33,7 @@ func NewPostgres(cfg *config.PG, log *zap.Logger) (*PostgresDB, error) {
 				SlowThreshold:             time.Second, // Log SQL slower than this threshold
 				LogLevel:                  logLevel,
 				IgnoreRecordNotFoundError: true,
-				Colorful:                  false,
+				Colorful:                  true,
 			},
 		),
 		NamingStrategy: schema.NamingStrategy{

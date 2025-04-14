@@ -155,7 +155,10 @@ func (p *Poller) executeTask(task *pollingTask) {
 	start := time.Now()
 
 	if err := task.task(execCtx); err != nil {
-		task.logger.Error("Polling task failed",
+		task.logger.WithOptions(
+			zap.WithCaller(false),
+			zap.AddStacktrace(zap.FatalLevel),
+		).Error("Polling task failed",
 			zap.Error(err),
 			zap.String("stack_trace", errs.GetStack(err)),
 			zap.Duration("duration", time.Since(start)))
