@@ -78,6 +78,44 @@ func main() {
 			if field.Type == "int64" && (field.ColumnName == "id" || strings.HasSuffix(field.ColumnName, "_id")) {
 				field.Type = "uint"
 			}
+
+			// change array fields to pq.StringArray / pg.XXXArray
+			types := field.GORMTag["type"]
+			/**
+			character varying(n)[] -> pq.StringArray
+			varchar(n)[] -> pq.StringArray
+			text[] -> pq.StringArray
+			integer[] -> pq.Int32Array
+			bigint[] -> pq.Int64Array
+			boolean[] -> pq.BoolArray
+			numeric[] -> pq.Float64Array
+			*/
+			if len(types) > 0 && strings.HasSuffix(types[0], "[]") {
+				// Remove length information and array suffix
+				baseType := strings.TrimSuffix(types[0], "[]")
+				// Remove length information in parentheses
+				if idx := strings.Index(baseType, "("); idx != -1 {
+					baseType = baseType[:idx]
+				}
+				// Trim spaces
+				baseType = strings.TrimSpace(baseType)
+
+				switch baseType {
+				case "character varying", "varchar", "text":
+					field.Type = "pq.StringArray"
+				case "integer", "int", "int4":
+					field.Type = "pq.Int32Array"
+				case "bigint", "int8":
+					field.Type = "pq.Int64Array"
+				case "boolean", "bool":
+					field.Type = "pq.BoolArray"
+				case "numeric", "decimal":
+					field.Type = "pq.Float64Array"
+				default:
+					field.Type = "pq.StringArray" // default to string array for unknown types
+				}
+			}
+
 			return field
 		}))
 	}
