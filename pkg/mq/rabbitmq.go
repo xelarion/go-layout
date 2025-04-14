@@ -109,11 +109,11 @@ func (r *RabbitMQ) StartConsumer(
 
 	// Start consuming messages in a goroutine to avoid blocking
 	go func() {
-		// consumer.Run会自动处理重连，只有当发生不可恢复的错误时才会返回
+		// consumer.Run automatically handles reconnection and only returns on unrecoverable errors
 		err := consumer.Run(handler)
 		if err != nil {
-			// 只记录错误，但不从map中删除consumer
-			// 这样保留了close时能正确关闭consumer的能力
+			// Only log the error but don't remove the consumer from the map
+			// This preserves the ability to properly close the consumer when needed
 			r.logger.Error("Consumer encountered unrecoverable error",
 				zap.String("queue", queueName),
 				zap.Error(err))
