@@ -62,13 +62,24 @@ migrate-fix:
 #
 # Code generation
 #
-.PHONY: gen-models
+.PHONY: gen-models gen-model
 
 # Generate models from database schema
 gen-models:
 	@echo "Generating models from database schema..."
 	@mkdir -p internal/model/gen
 	@go run tools/gen/main.go
+
+# Generate model for a specific table
+# Usage: make gen-model TABLE=table_name
+gen-model:
+	@if [ -z "$(TABLE)" ]; then \
+		echo "Error: TABLE parameter is required. Usage: make gen-model TABLE=table_name"; \
+		exit 1; \
+	fi
+	@echo "Generating model for table $(TABLE)..."
+	@mkdir -p internal/model/gen
+	@go run tools/gen/main.go -table $(TABLE)
 
 #
 # API documentation

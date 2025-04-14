@@ -2,6 +2,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,7 +15,81 @@ import (
 	"github.com/xelarion/go-layout/pkg/logger"
 )
 
+// TypeMapper handles the mapping of database types to Go types
+type TypeMapper struct {
+	// Maps base types (without array suffix) to their Go equivalents
+	arrayTypeMap map[string]string
+	// Maps regular types to their Go equivalents
+	typeMap map[string]string
+}
+
+// NewTypeMapper creates a new type mapper with predefined mappings
+func NewTypeMapper() *TypeMapper {
+	return &TypeMapper{
+		arrayTypeMap: map[string]string{
+			"character varying": "pq.StringArray",
+			"varchar":           "pq.StringArray",
+			"text":              "pq.StringArray",
+			"integer":           "pq.Int32Array",
+			"int":               "pq.Int32Array",
+			"int4":              "pq.Int32Array",
+			"bigint":            "pq.Int64Array",
+			"int8":              "pq.Int64Array",
+			"boolean":           "pq.BoolArray",
+			"bool":              "pq.BoolArray",
+			"numeric":           "pq.Float64Array",
+			"decimal":           "pq.Float64Array",
+		},
+		typeMap: map[string]string{
+			"json":                   "datatypes.JSON",
+			"jsonb":                  "datatypes.JSON",
+			"uuid":                   "datatypes.UUID",
+			"date":                   "datatypes.Date",
+			"time":                   "datatypes.Time",
+			"time without time zone": "datatypes.Time",
+			"time with time zone":    "datatypes.Time",
+		},
+	}
+}
+
+// MapFieldType maps a database type to its corresponding Go type
+func (tm *TypeMapper) MapFieldType(field gen.Field) string {
+	types := field.GORMTag["type"]
+	if len(types) == 0 {
+		return field.Type
+	}
+
+	typeStr := strings.ToLower(types[0])
+
+	// Handle array types
+	if strings.HasSuffix(typeStr, "[]") {
+		baseType := strings.TrimSuffix(typeStr, "[]")
+		// Remove length information in parentheses
+		if idx := strings.Index(baseType, "("); idx != -1 {
+			baseType = baseType[:idx]
+		}
+		baseType = strings.TrimSpace(baseType)
+
+		if goType, ok := tm.arrayTypeMap[baseType]; ok {
+			return goType
+		}
+		return "pq.StringArray" // default for unknown array types
+	}
+
+	// Handle non-array types
+	if goType, ok := tm.typeMap[typeStr]; ok {
+		return goType
+	}
+
+	return field.Type
+}
+
 func main() {
+	// Parse command line flags
+	var tableName string
+	flag.StringVar(&tableName, "table", "", "Specify a single table to generate model for")
+	flag.Parse()
+
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
@@ -55,6 +130,9 @@ func main() {
 		return
 	}
 
+	// Create type mapper
+	typeMapper := NewTypeMapper()
+
 	// Create gen configuration
 	g := gen.NewGenerator(gen.Config{
 		OutPath:           outputDir,
@@ -68,9 +146,27 @@ func main() {
 	// Use database connection
 	g.UseDB(db.DB)
 
-	// Find all tables (exclude system tables)
+	// Get tables to generate models for
 	var tables []string
-	db.DB.Raw("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name NOT IN ('goose_db_version', 'schema_migrations')").Find(&tables)
+	if tableName != "" {
+		// Generate model for a specific table
+		tables = []string{tableName}
+		fmt.Printf("Generating model for table: %s\n", tableName)
+	} else {
+		// Find all tables (exclude system tables)
+		db.DB.Raw("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name NOT IN ('goose_db_version', 'schema_migrations')").Find(&tables)
+		fmt.Printf("Generating models for all tables: %v\n", tables)
+	}
+
+	// Check if specified table exists
+	if tableName != "" {
+		var exists bool
+		db.DB.Raw("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = ?)", tableName).Scan(&exists)
+		if !exists {
+			fmt.Printf("Error: Table '%s' does not exist in the database\n", tableName)
+			return
+		}
+	}
 
 	for _, table := range tables {
 		g.GenerateModel(table, gen.FieldModify(func(field gen.Field) gen.Field {
@@ -79,41 +175,10 @@ func main() {
 				field.Type = "uint"
 			}
 
-			// change array fields to pq.StringArray / pg.XXXArray
-			types := field.GORMTag["type"]
-			/**
-			character varying(n)[] -> pq.StringArray
-			varchar(n)[] -> pq.StringArray
-			text[] -> pq.StringArray
-			integer[] -> pq.Int32Array
-			bigint[] -> pq.Int64Array
-			boolean[] -> pq.BoolArray
-			numeric[] -> pq.Float64Array
-			*/
-			if len(types) > 0 && strings.HasSuffix(types[0], "[]") {
-				// Remove length information and array suffix
-				baseType := strings.TrimSuffix(types[0], "[]")
-				// Remove length information in parentheses
-				if idx := strings.Index(baseType, "("); idx != -1 {
-					baseType = baseType[:idx]
-				}
-				// Trim spaces
-				baseType = strings.TrimSpace(baseType)
-
-				switch baseType {
-				case "character varying", "varchar", "text":
-					field.Type = "pq.StringArray"
-				case "integer", "int", "int4":
-					field.Type = "pq.Int32Array"
-				case "bigint", "int8":
-					field.Type = "pq.Int64Array"
-				case "boolean", "bool":
-					field.Type = "pq.BoolArray"
-				case "numeric", "decimal":
-					field.Type = "pq.Float64Array"
-				default:
-					field.Type = "pq.StringArray" // default to string array for unknown types
-				}
+			// Map database type to Go type
+			mappedType := typeMapper.MapFieldType(field)
+			if mappedType != field.Type {
+				field.Type = mappedType
 			}
 
 			return field
@@ -123,6 +188,10 @@ func main() {
 	// Execute the generator
 	g.Execute()
 
-	fmt.Println("Model generation completed. Generated models are in:", outputDir)
+	if tableName != "" {
+		fmt.Printf("Model generation completed for table '%s'. Generated model is in: %s\n", tableName, outputDir)
+	} else {
+		fmt.Println("Model generation completed for all tables. Generated models are in:", outputDir)
+	}
 	fmt.Println("You can now create extended models in internal/model/ directory.")
 }

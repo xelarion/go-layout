@@ -204,7 +204,17 @@ Error responses maintain the same structure:
    go run cmd/migrate/main.go -dir=db/migrations -verbose status
    ```
 
-5. Generate API documentation (optional)
+5. Generate database models
+
+   ```bash
+   # Generate models for all tables
+   make gen-models
+
+   # Generate model for a specific table (useful for team development)
+   make gen-model TABLE=users
+   ```
+
+6. Generate API documentation (optional)
 
    ```bash
    # First generate Swagger comments for handlers
@@ -217,13 +227,13 @@ Error responses maintain the same structure:
    make swagger-all
    ```
 
-6. Start the API server
+7. Start the API server
 
    ```bash
    go run cmd/web-api/main.go
    ```
 
-7. Start the task runner with desired components (all flags are optional)
+8. Start the task runner with desired components (all flags are optional)
 
    ```bash
    go run cmd/task/main.go --scheduler --poller --queue
@@ -333,6 +343,60 @@ make deploy-migrate-cluster
 ```
 
 The migration job runs as a Kubernetes job with `restartPolicy: Never` and `backoffLimit: 3`.
+
+## Model Generation
+
+This project uses GORM's model generation tool to automatically create Go structs from database tables. The generated models support various PostgreSQL data types, including arrays and JSON.
+
+### Supported Data Types
+
+The model generator has enhanced support for PostgreSQL data types:
+
+- **Basic Types**: All standard PostgreSQL types (integer, text, etc.)
+- **Array Types**: Arrays are mapped to appropriate Go types:
+  - `character varying[]`, `varchar[]`, `text[]` → `pq.StringArray`
+  - `integer[]`, `int[]` → `pq.Int32Array`
+  - `bigint[]` → `pq.Int64Array`
+  - `boolean[]` → `pq.BoolArray`
+  - `numeric[]`, `decimal[]` → `pq.Float64Array`
+- **JSON Types**: `json` and `jsonb` are mapped to `datatypes.JSON` from `github.com/go-gorm/datatypes`
+- **Special Types**:
+  - `uuid` → `datatypes.UUID`
+  - `date` → `datatypes.Date`
+  - `time` → `datatypes.Time`
+
+### Running the Model Generator
+
+You can generate models using the following commands:
+
+```bash
+# Generate models for all tables in the database
+make gen-models
+
+# Generate model for a specific table (useful for team development)
+make gen-model TABLE=users
+```
+
+### Working with Generated Models
+
+Generated models are placed in the `internal/model/gen` directory. For each generated model, you should create a corresponding extended model in the `internal/model` directory.
+
+Example of an extended model:
+
+```go
+package model
+
+import (
+    "github.com/xelarion/go-layout/internal/model/gen"
+)
+
+// User represents a user model.
+type User struct {
+    gen.User
+}
+```
+
+This approach allows you to add custom methods and properties to the models while maintaining the ability to regenerate the base models from the database schema.
 
 ## License
 

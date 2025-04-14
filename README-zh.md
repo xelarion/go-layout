@@ -204,7 +204,17 @@
    go run cmd/migrate/main.go -dir=db/migrations -verbose status
    ```
 
-5. 生成 API 文档（可选）
+5. 生成数据库模型
+
+   ```bash
+   # 生成所有表的模型
+   make gen-models
+
+   # 生成特定表的模型（适用于团队开发）
+   make gen-model TABLE=users
+   ```
+
+6. 生成 API 文档（可选）
 
    ```bash
    # 首先为处理器生成 Swagger 注释
@@ -217,13 +227,13 @@
    make swagger-all
    ```
 
-6. 启动 API 服务器
+7. 启动 API 服务器
 
    ```bash
    go run cmd/web-api/main.go
    ```
 
-7. 启动任务运行器，选择所需组件（所有标志都是可选的）
+8. 启动任务运行器，选择所需组件（所有标志都是可选的）
 
    ```bash
    go run cmd/task/main.go --scheduler --poller --queue
@@ -333,6 +343,60 @@ make deploy-migrate-cluster
 ```
 
 迁移作业作为 Kubernetes 作业运行，具有 `restartPolicy: Never` 和 `backoffLimit: 3`。
+
+## 模型生成
+
+本项目使用 GORM 的模型生成工具从数据库表自动创建 Go 结构体。生成的模型支持各种 PostgreSQL 数据类型，包括数组和 JSON。
+
+### 支持的数据类型
+
+模型生成器对 PostgreSQL 数据类型有增强支持：
+
+- **基本类型**：所有标准 PostgreSQL 类型（整数、文本等）
+- **数组类型**：数组被映射到适当的 Go 类型：
+  - `character varying[]`、`varchar[]`、`text[]` → `pq.StringArray`
+  - `integer[]`、`int[]` → `pq.Int32Array`
+  - `bigint[]` → `pq.Int64Array`
+  - `boolean[]` → `pq.BoolArray`
+  - `numeric[]`、`decimal[]` → `pq.Float64Array`
+- **JSON 类型**：`json` 和 `jsonb` 被映射到 `github.com/go-gorm/datatypes` 的 `datatypes.JSON`
+- **特殊类型**：
+  - `uuid` → `datatypes.UUID`
+  - `date` → `datatypes.Date`
+  - `time` → `datatypes.Time`
+
+### 运行模型生成器
+
+您可以使用以下命令生成模型：
+
+```bash
+# 生成数据库中所有表的模型
+make gen-models
+
+# 生成特定表的模型（适用于团队开发）
+make gen-model TABLE=users
+```
+
+### 使用生成的模型
+
+生成的模型位于 `internal/model/gen` 目录中。对于每个生成的模型，您应该在 `internal/model` 目录中创建一个相应的扩展模型。
+
+扩展模型示例：
+
+```go
+package model
+
+import (
+    "github.com/xelarion/go-layout/internal/model/gen"
+)
+
+// User 表示用户模型。
+type User struct {
+    gen.User
+}
+```
+
+这种方法允许您向模型添加自定义方法和属性，同时保持从数据库模式重新生成基本模型的能力。
 
 ## 许可证
 
