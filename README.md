@@ -149,7 +149,7 @@ All API responses follow a consistent structure:
 
 ```json
 {
-  "code": 200,
+  "code": 0,
   "message": "Success",
   "data": {},
   "meta": {}
@@ -160,8 +160,8 @@ Error responses maintain the same structure:
 
 ```json
 {
-  "code": 400,
-  "message": "Validation error"
+  "code": 1000,
+  "message": "Bad request"
 }
 ```
 
