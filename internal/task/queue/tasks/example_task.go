@@ -10,6 +10,7 @@ import (
 
 	"github.com/xelarion/go-layout/internal/task"
 	"github.com/xelarion/go-layout/internal/task/queue"
+	"github.com/xelarion/go-layout/pkg/errs"
 )
 
 // ExamplePayload is the payload for the example task.
@@ -33,29 +34,35 @@ func NewExampleHandler(deps *task.Dependencies, logger *zap.Logger) *ExampleHand
 
 // Register registers this handler with the queue.
 func (t *ExampleHandler) Register(q *queue.Manager) error {
-	if err := q.RegisterConsumer("example-handler", "example-queue", "example.task", queue.ConvertHandlerFunc(t.Execute)); err != nil {
+	if err := q.RegisterConsumer(
+		"example-handler",
+		"example-queue",
+		t.Execute,
+		queue.WithConsumerOptionsConcurrency(3),
+		//queue.WithConsumerOptionsDurable(true),
+		//queue.WithConsumerOptionsRoutingKey("example.task"),
+	); err != nil {
 		return fmt.Errorf("failed to register example task handler: %w", err)
 	}
 	return nil
 }
 
 // Execute runs the example task handler.
-func (t *ExampleHandler) Execute(ctx context.Context, rawPayload []byte) error {
+func (t *ExampleHandler) Execute(ctx context.Context, msg queue.Message) (queue.Action, error) {
 	var payload ExamplePayload
-	if err := json.Unmarshal(rawPayload, &payload); err != nil {
-		return fmt.Errorf("failed to unmarshal payload: %w", err)
+	if err := json.Unmarshal(msg.Body, &payload); err != nil {
+		return queue.NackDiscard, errs.WrapInternal(err, "failed to unmarshal payload")
 	}
-
-	t.logger.Info("Example queue task starting", zap.Uint("user_id", payload.UserID))
 
 	// Simple example of using dependencies
 	user, err := t.deps.UserRepo.FindByID(ctx, payload.UserID)
 	if err != nil {
-		t.logger.Error("Failed to find user", zap.Error(err), zap.Uint("user_id", payload.UserID))
-		return err
+		if errs.IsReason(err, errs.ReasonNotFound) {
+			return queue.NackDiscard, err
+		}
+		return queue.NackRequeue, err
 	}
 
 	t.logger.Info("Successfully processed user", zap.String("username", user.Username))
-	t.logger.Info("Example queue task completed")
-	return nil
+	return queue.Ack, nil
 }

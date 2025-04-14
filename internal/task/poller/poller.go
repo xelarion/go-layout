@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+
+	"github.com/xelarion/go-layout/pkg/errs"
 )
 
 // Task represents a polling task function.
@@ -155,6 +157,7 @@ func (p *Poller) executeTask(task *pollingTask) {
 	if err := task.task(execCtx); err != nil {
 		task.logger.Error("Polling task failed",
 			zap.Error(err),
+			zap.String("stack_trace", errs.GetStack(err)),
 			zap.Duration("duration", time.Since(start)))
 		return
 	}

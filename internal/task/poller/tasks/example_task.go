@@ -40,7 +40,6 @@ func (t *ExampleHandler) Execute(ctx context.Context) error {
 	// Simple example of using dependencies
 	_, count, err := t.deps.UserRepo.List(ctx, map[string]any{"enabled": true}, 10, 0, "")
 	if err != nil {
-		t.logger.Error("Failed to list users", zap.Error(err))
 		return err
 	}
 

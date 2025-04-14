@@ -8,6 +8,8 @@ import (
 
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
+
+	"github.com/xelarion/go-layout/pkg/errs"
 )
 
 // Task represents a function that can be scheduled.
@@ -70,6 +72,7 @@ func (s *Scheduler) Register(name, cronExpr string, task Task) error {
 			s.logger.Error("Scheduled task failed",
 				zap.String("task", name),
 				zap.Error(err),
+				zap.String("stack_trace", errs.GetStack(err)),
 				zap.Duration("duration", time.Since(start)))
 			return
 		}

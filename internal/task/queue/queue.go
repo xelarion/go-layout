@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/xelarion/go-layout/pkg/config"
+	"github.com/xelarion/go-layout/pkg/errs"
 	"github.com/xelarion/go-layout/pkg/mq"
 )
 
@@ -169,7 +170,6 @@ func WithConsumerOptionsRequeueDelay(delay time.Duration) func(*ConsumerOptions)
 func (qm *Manager) RegisterConsumer(
 	name string,
 	queueName string,
-	routingKey string,
 	handler Handler,
 	options ...func(*ConsumerOptions),
 ) error {
@@ -180,23 +180,22 @@ func (qm *Manager) RegisterConsumer(
 	if queueName == "" {
 		return fmt.Errorf("queue name cannot be empty")
 	}
-	if routingKey == "" {
-		return fmt.Errorf("routing key cannot be empty")
-	}
 	if handler == nil {
 		return fmt.Errorf("handler cannot be nil")
 	}
 
-	// Create logger with consumer context
-	consumerLogger := qm.logger.With(
-		zap.String("consumer", name),
-		zap.String("queue", queueName),
-		zap.String("routingKey", routingKey),
-	)
-
 	// Set up options
 	opts := DefaultConsumerOptions(queueName)
-	opts.RoutingKey = routingKey // Override default
+
+	// Create logger with consumer context
+	consumerLogger := qm.logger.WithOptions(
+		zap.WithCaller(false),
+		zap.AddStacktrace(zap.FatalLevel),
+	).With(
+		zap.String("consumer", name),
+		zap.String("queue", queueName),
+		zap.String("routingKey", opts.RoutingKey),
+	)
 
 	// Apply custom options
 	for _, option := range options {
@@ -227,7 +226,7 @@ func (qm *Manager) RegisterConsumer(
 				Declare:    true,
 				Bindings: []rabbitmq.Binding{
 					{
-						RoutingKey: routingKey,
+						RoutingKey: opts.RoutingKey,
 						BindingOptions: rabbitmq.BindingOptions{
 							Declare: true,
 						},
@@ -264,8 +263,9 @@ func (qm *Manager) RegisterConsumer(
 		// Log error if any
 		if err != nil {
 			consumerLogger.Error("Failed to process message",
-				zap.Error(err),
-				zap.String("messageID", msg.MessageID))
+				zap.String("error", err.Error()),
+				zap.String("stack_trace", errs.GetStack(err)),
+			)
 		}
 
 		// Determine rabbitmq action from our action
@@ -537,16 +537,4 @@ func (qm *Manager) ListConsumers() []string {
 		consumers = append(consumers, name)
 	}
 	return consumers
-}
-
-// ConvertHandlerFunc converts a simple handler function to a Message Handler.
-// This is a utility function to help migrate existing code.
-func ConvertHandlerFunc(fn func(ctx context.Context, msg []byte) error) Handler {
-	return func(ctx context.Context, msg Message) (Action, error) {
-		err := fn(ctx, msg.Body)
-		if err != nil {
-			return NackRequeue, err
-		}
-		return Ack, nil
-	}
 }

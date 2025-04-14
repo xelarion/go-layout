@@ -39,7 +39,6 @@ func (t *ExampleHandler) Execute(ctx context.Context) error {
 	// Simple example of using dependencies
 	user, err := t.deps.UserRepo.FindByID(ctx, 1)
 	if err != nil {
-		t.logger.Error("Failed to find user", zap.Error(err))
 		return err
 	}
 
