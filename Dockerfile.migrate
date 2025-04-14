@@ -32,7 +32,7 @@ WORKDIR /app
 COPY --from=builder /app/migrate .
 
 # Copy migrations
-COPY --from=builder /app/db/migrations /app/db/migrations
+COPY --from=builder /app/migrations /app/migrations
 
 # Copy configuration files
 ARG CONFIG_ENV=prod

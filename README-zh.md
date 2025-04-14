@@ -201,7 +201,7 @@
 
    # 或者直接使用 CLI 获取更多选项
    go run cmd/migrate/main.go up
-   go run cmd/migrate/main.go -dir=db/migrations -verbose status
+   go run cmd/migrate/main.go -dir=migrations -verbose status
    ```
 
 5. 生成数据库模型
@@ -281,7 +281,7 @@ make deploy-k3s
 
 ## 数据库迁移
 
-本项目使用 [Goose](https://github.com/pressly/goose) 进行数据库迁移管理。迁移文件以 SQL 编写，存储在 `db/migrations` 目录中。
+本项目使用 [Goose](https://github.com/pressly/goose) 进行数据库迁移管理。迁移文件以 SQL 编写，存储在 `migrations` 目录中。
 
 ### 迁移版本控制策略
 

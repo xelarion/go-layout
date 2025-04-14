@@ -14,7 +14,7 @@ import (
 
 func main() {
 	// Define flags
-	migrationsDir := flag.String("dir", "db/migrations", "Directory with migration files")
+	migrationsDir := flag.String("dir", "migrations", "Directory with migration files")
 	verbose := flag.Bool("verbose", false, "Enable verbose logging")
 	flag.Parse()
 

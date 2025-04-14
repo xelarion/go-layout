@@ -201,7 +201,7 @@ Error responses maintain the same structure:
 
    # Or use the CLI directly for more options
    go run cmd/migrate/main.go up
-   go run cmd/migrate/main.go -dir=db/migrations -verbose status
+   go run cmd/migrate/main.go -dir=migrations -verbose status
    ```
 
 5. Generate database models
@@ -281,7 +281,7 @@ make deploy-k3s
 
 ## Database Migrations
 
-This project uses [Goose](https://github.com/pressly/goose) for database migration management. Migration files are written in SQL and stored in the `db/migrations` directory.
+This project uses [Goose](https://github.com/pressly/goose) for database migration management. Migration files are written in SQL and stored in the `migrations` directory.
 
 ### Migration Versioning Strategy
 

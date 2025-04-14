@@ -56,4 +56,4 @@ deploy/k8s/
 scripts/
 
 # Database migration files (if they're applied separately)
-# db/migrations/
+# migrations/
