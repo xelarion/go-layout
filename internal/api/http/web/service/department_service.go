@@ -60,7 +60,7 @@ func (s *DepartmentService) ListDepartments(ctx context.Context, req *types.List
 			Name:        department.Name,
 			Description: department.Description,
 			Enabled:     department.Enabled,
-			CreatedAt:   department.CreatedAt,
+			CreatedAt:   types.Time(department.CreatedAt),
 			UserCount:   department.UserCount,
 		}
 		respResults = append(respResults, u)
@@ -84,7 +84,7 @@ func (s *DepartmentService) GetDepartment(ctx context.Context, req *types.GetDep
 		Name:        department.Name,
 		Description: department.Description,
 		Enabled:     department.Enabled,
-		CreatedAt:   department.CreatedAt,
+		CreatedAt:   types.Time(department.CreatedAt),
 	}, nil
 }
 

@@ -187,7 +187,7 @@ func loginResponse(c *gin.Context, code int, token string, expire time.Time) {
 
 	c.JSON(code, types.Success(types.LoginResp{
 		Token:     token,
-		Expire:    expire,
+		Expire:    types.Time(expire),
 		ExpiresIn: expiresIn,
 		TokenType: TokenType,
 	}))
@@ -205,7 +205,7 @@ func refreshResponse(c *gin.Context, code int, token string, expire time.Time) {
 
 	c.JSON(code, types.Success(types.RefreshTokenResp{
 		Token:     token,
-		Expire:    expire,
+		Expire:    types.Time(expire),
 		ExpiresIn: expiresIn,
 		TokenType: TokenType,
 	}))

@@ -1,7 +1,5 @@
 package types
 
-import "time"
-
 type NewCaptchaReq struct {
 }
 
@@ -40,7 +38,7 @@ type LoginResp struct {
 	// JWT token for authorization
 	Token string `json:"token"`
 	// Time when the token will expire
-	Expire time.Time `json:"expire"`
+	Expire Time `json:"expire"`
 	// Time in seconds until the token expires (useful for frontend countdown)
 	ExpiresIn int64 `json:"expires_in"`
 	// Type of token (always "Bearer" for JWT)
@@ -58,7 +56,7 @@ type RefreshTokenResp struct {
 	// New JWT token for authorization
 	Token string `json:"token"`
 	// Time when the token will expire
-	Expire time.Time `json:"expire"`
+	Expire Time `json:"expire"`
 	// Time in seconds until the token expires
 	ExpiresIn int64 `json:"expires_in"`
 	// Type of token (always "Bearer" for JWT)
@@ -77,10 +75,10 @@ type GetProfileReq struct {
 }
 
 type GetProfileResp struct {
-	ID        uint      `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
+	ID        uint   `json:"id"`
+	CreatedAt Time   `json:"created_at"`
+	Username  string `json:"username"`
+	Email     string `json:"email"`
 }
 
 // UpdateProfileReq represents profile update data.

@@ -105,7 +105,7 @@ func (s *AuthService) GetProfile(ctx context.Context, req *types.GetProfileReq) 
 
 	return &types.GetProfileResp{
 		ID:        user.ID,
-		CreatedAt: user.CreatedAt,
+		CreatedAt: types.Time(user.CreatedAt),
 		Username:  user.Username,
 		Email:     user.Email,
 	}, nil

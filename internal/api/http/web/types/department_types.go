@@ -1,7 +1,5 @@
 package types
 
-import "time"
-
 // Common department-related types
 
 // CreateDepartmentReq represents department creation request.
@@ -29,13 +27,14 @@ type ListDepartmentsResp struct {
 	Pagination PageResp                    `json:"pagination"`
 }
 
+// ListDepartmentsRespResult represents a single department in the list.
 type ListDepartmentsRespResult struct {
-	ID          uint      `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Enabled     bool      `json:"enabled"`
-	CreatedAt   time.Time `json:"created_at"`
-	UserCount   int64     `json:"user_count"`
+	ID          uint   `json:"id"`
+	CreatedAt   Time   `json:"created_at"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Enabled     bool   `json:"enabled"`
+	UserCount   int64  `json:"user_count"`
 }
 
 // GetDepartmentReq represents a request to get a specific department.
@@ -45,12 +44,12 @@ type GetDepartmentReq struct {
 
 // GetDepartmentResp represents a department object in responses.
 type GetDepartmentResp struct {
-	ID          uint      `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Enabled     bool      `json:"enabled"`
-	CreatedAt   time.Time `json:"created_at"`
-	UserCount   int64     `json:"user_count"`
+	ID          uint   `json:"id"`
+	CreatedAt   Time   `json:"created_at"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Enabled     bool   `json:"enabled"`
+	UserCount   int64  `json:"user_count"`
 }
 
 type GetDepartmentFormDataReq struct {

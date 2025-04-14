@@ -1,7 +1,5 @@
 package types
 
-import "time"
-
 // Common user-related types
 
 // CreateUserReq represents user creation request.
@@ -37,16 +35,16 @@ type ListUsersResp struct {
 }
 
 type ListUsersRespResult struct {
-	ID             uint      `json:"id"`
-	CreatedAt      time.Time `json:"created_at"`
-	Username       string    `json:"username"`
-	FullName       string    `json:"full_name"`
-	PhoneNumber    string    `json:"phone_number"`
-	Email          string    `json:"email"`
-	RoleName       string    `json:"role_name"`
-	RoleSlug       string    `json:"role_slug"`
-	Enabled        bool      `json:"enabled"`
-	DepartmentName string    `json:"department_name"`
+	ID             uint   `json:"id"`
+	CreatedAt      Time   `json:"created_at"`
+	Username       string `json:"username"`
+	FullName       string `json:"full_name"`
+	PhoneNumber    string `json:"phone_number"`
+	Email          string `json:"email"`
+	RoleName       string `json:"role_name"`
+	RoleSlug       string `json:"role_slug"`
+	Enabled        bool   `json:"enabled"`
+	DepartmentName string `json:"department_name"`
 }
 
 // GetUserReq represents a request to get a specific user.
@@ -56,16 +54,16 @@ type GetUserReq struct {
 
 // GetUserResp represents a user object in responses.
 type GetUserResp struct {
-	ID             uint      `json:"id"`
-	CreatedAt      time.Time `json:"created_at"`
-	Username       string    `json:"username"`
-	FullName       string    `json:"full_name"`
-	PhoneNumber    string    `json:"phone_number"`
-	Email          string    `json:"email"`
-	RoleName       string    `json:"role_name"`
-	RoleSlug       string    `json:"role_slug"`
-	Enabled        bool      `json:"enabled"`
-	DepartmentName string    `json:"department_name"`
+	ID             uint   `json:"id"`
+	CreatedAt      Time   `json:"created_at"`
+	Username       string `json:"username"`
+	FullName       string `json:"full_name"`
+	PhoneNumber    string `json:"phone_number"`
+	Email          string `json:"email"`
+	RoleName       string `json:"role_name"`
+	RoleSlug       string `json:"role_slug"`
+	Enabled        bool   `json:"enabled"`
+	DepartmentName string `json:"department_name"`
 }
 
 type GetUserFormDataReq struct {

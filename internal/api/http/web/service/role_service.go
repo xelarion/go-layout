@@ -60,7 +60,7 @@ func (s *RoleService) ListRoles(ctx context.Context, req *types.ListRolesReq) (*
 			Name:        role.Name,
 			Description: role.Description,
 			Enabled:     role.Enabled,
-			CreatedAt:   role.CreatedAt,
+			CreatedAt:   types.Time(role.CreatedAt),
 			UserCount:   role.UserCount,
 		}
 		respResults = append(respResults, u)
@@ -84,7 +84,7 @@ func (s *RoleService) GetRole(ctx context.Context, req *types.GetRoleReq) (*type
 		Name:        role.Name,
 		Description: role.Description,
 		Enabled:     role.Enabled,
-		CreatedAt:   role.CreatedAt,
+		CreatedAt:   types.Time(role.CreatedAt),
 	}, nil
 }
 

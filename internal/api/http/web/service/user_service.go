@@ -70,7 +70,7 @@ func (s *UserService) ListUsers(ctx context.Context, req *types.ListUsersReq) (*
 	for _, user := range users {
 		u := types.ListUsersRespResult{
 			ID:             user.ID,
-			CreatedAt:      user.CreatedAt,
+			CreatedAt:      types.Time(user.CreatedAt),
 			Username:       user.Username,
 			FullName:       user.FullName,
 			PhoneNumber:    user.PhoneNumber,
@@ -98,7 +98,7 @@ func (s *UserService) GetUser(ctx context.Context, req *types.GetUserReq) (*type
 
 	return &types.GetUserResp{
 		ID:             user.ID,
-		CreatedAt:      user.CreatedAt,
+		CreatedAt:      types.Time(user.CreatedAt),
 		Username:       user.Username,
 		FullName:       user.FullName,
 		PhoneNumber:    user.PhoneNumber,

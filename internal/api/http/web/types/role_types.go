@@ -1,7 +1,5 @@
 package types
 
-import "time"
-
 // Common role-related types
 
 // CreateRoleReq represents role creation request.
@@ -29,13 +27,14 @@ type ListRolesResp struct {
 	Pagination PageResp              `json:"pagination"`
 }
 
+// ListRolesRespResult represents a single role in the list.
 type ListRolesRespResult struct {
-	ID          uint      `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Enabled     bool      `json:"enabled"`
-	CreatedAt   time.Time `json:"created_at"`
-	UserCount   int64     `json:"user_count"`
+	ID          uint   `json:"id"`
+	CreatedAt   Time   `json:"created_at"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Enabled     bool   `json:"enabled"`
+	UserCount   int64  `json:"user_count"`
 }
 
 // GetRoleReq represents a request to get a specific role.
@@ -45,12 +44,12 @@ type GetRoleReq struct {
 
 // GetRoleResp represents a role object in responses.
 type GetRoleResp struct {
-	ID          uint      `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Enabled     bool      `json:"enabled"`
-	CreatedAt   time.Time `json:"created_at"`
-	UserCount   int64     `json:"user_count"`
+	ID          uint   `json:"id"`
+	CreatedAt   Time   `json:"created_at"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Enabled     bool   `json:"enabled"`
+	UserCount   int64  `json:"user_count"`
 }
 
 type GetRoleFormDataReq struct {
