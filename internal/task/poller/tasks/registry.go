@@ -4,6 +4,7 @@ package tasks
 import (
 	"go.uber.org/zap"
 
+	"github.com/xelarion/go-layout/internal/task"
 	"github.com/xelarion/go-layout/internal/task/poller"
 )
 
@@ -13,20 +14,20 @@ type TaskHandler interface {
 }
 
 // TaskHandlerConstructor defines a function type for creating task handlers
-type TaskHandlerConstructor func(*zap.Logger) TaskHandler
+type TaskHandlerConstructor func(*task.Dependencies, *zap.Logger) TaskHandler
 
 // taskRegistry holds all registered task handlers
 var taskRegistry = map[string]TaskHandlerConstructor{
-	"metrics-collect": func(logger *zap.Logger) TaskHandler {
-		return NewMetricsCollectHandler(logger)
+	"example-task": func(deps *task.Dependencies, logger *zap.Logger) TaskHandler {
+		return NewExampleHandler(deps, logger)
 	},
 	// Add new task constructors here
 }
 
 // RegisterAll registers all poller tasks with the provided poller
-func RegisterAll(p *poller.Poller, logger *zap.Logger) error {
+func RegisterAll(p *poller.Poller, deps *task.Dependencies, logger *zap.Logger) error {
 	for taskName, constructorFn := range taskRegistry {
-		taskHandler := constructorFn(logger)
+		taskHandler := constructorFn(deps, logger)
 		if err := taskHandler.Register(p); err != nil {
 			logger.Error("Failed to register poller handler",
 				zap.String("name", taskName),

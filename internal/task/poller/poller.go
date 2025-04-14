@@ -159,8 +159,7 @@ func (p *Poller) executeTask(task *pollingTask) {
 		return
 	}
 
-	// 直接使用Debug日志，不需要额外检查级别
-	task.logger.Debug("Polling task completed",
+	task.logger.Info("Polling task completed",
 		zap.Duration("duration", time.Since(start)))
 }
 
