@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"time"
 )
 
@@ -11,7 +12,7 @@ type Time time.Time
 
 // MarshalJSON implements the json.Marshaler interface.
 func (t Time) MarshalJSON() ([]byte, error) {
-	b := make([]byte, 0, len(timeFormat)+2)
+	b := make([]byte, 0, len(timeFormat)+len(`""`))
 	b = append(b, '"')
 	b = time.Time(t).AppendFormat(b, timeFormat)
 	b = append(b, '"')
@@ -20,12 +21,16 @@ func (t Time) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
 func (t *Time) UnmarshalJSON(data []byte) error {
-	if len(data) < 2 {
+	if string(data) == "null" {
 		return nil
 	}
-	parsed, err := time.Parse(timeFormat, string(data[1:len(data)-1]))
+	if len(data) < 2 || data[0] != '"' || data[len(data)-1] != '"' {
+		return errors.New("Time.UnmarshalJSON: input is not a JSON string")
+	}
+	data = data[len(`"`) : len(data)-len(`"`)]
+	parsed, err := time.Parse(timeFormat, string(data))
 	if err != nil {
-		return err
+		return errors.New("Time.UnmarshalJSON: " + err.Error())
 	}
 	*t = Time(parsed)
 	return nil
