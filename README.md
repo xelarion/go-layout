@@ -40,8 +40,7 @@ A scalable, high-performance, high-availability web application template built w
 ├── config/                        # Configuration files
 │   ├── dev/                       # Development environment configs
 │   └── prod/                      # Production environment configs
-├── db/                            # Database related files
-│   └── migrations/                # Database migration files
+├── migrations/                    # Database migration files
 ├── deploy/                        # Deployment configurations
 │   ├── config/                    # Deployment config files
 │   ├── k3s/                       # k3s deployment manifests
