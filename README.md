@@ -230,13 +230,13 @@ Error responses maintain the same structure:
 7. Start the API server
 
    ```bash
-   go run cmd/web-api/main.go
+   go run ./cmd/web-api
    ```
 
 8. Start the task runner with desired components (all flags are optional)
 
    ```bash
-   go run cmd/task/main.go --scheduler --poller --queue
+   go run ./cmd/task --scheduler --poller --queue
    ```
 
 ### Docker Deployment

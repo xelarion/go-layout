@@ -230,13 +230,13 @@
 7. 启动 API 服务器
 
    ```bash
-   go run cmd/web-api/main.go
+   go run ./cmd/web-api
    ```
 
 8. 启动任务运行器，选择所需组件（所有标志都是可选的）
 
    ```bash
-   go run cmd/task/main.go --scheduler --poller --queue
+   go run ./cmd/task --scheduler --poller --queue
    ```
 
 ### Docker 部署
