@@ -67,12 +67,13 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 	userUseCase := usecase.NewUserUseCase(userRepo, roleRepo, departmentRepo)
 	departmentUseCase := usecase.NewDepartmentUseCase(departmentRepo, userRepo)
 	roleUseCase := usecase.NewRoleUseCase(roleRepo, userRepo)
-
+	permissionUseCase := usecase.NewPermissionUseCase()
 	// Initialize services
 	departmentService := service.NewDepartmentService(departmentUseCase)
 	roleService := service.NewRoleService(roleUseCase)
 	userService := service.NewUserService(userUseCase)
-	authService := service.NewAuthService(userUseCase, logger)
+	authService := service.NewAuthService(userUseCase, roleUseCase, logger)
+	permissionService := service.NewPermissionService(permissionUseCase, roleUseCase)
 
 	// Initialize auth middleware
 	authMiddleware, err := middleware.NewAuthMiddleware(&cfg.JWT, userUseCase, logger)
@@ -80,8 +81,10 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 		return nil, fmt.Errorf("failed to create auth middleware: %w", err)
 	}
 
+	permissionMiddleware := middleware.NewPermissionMiddleware(roleUseCase, logger)
+
 	// Register API routes
-	webRouter := web.NewRouter(httpServer.Router(), authService, userService, departmentService, roleService, authMiddleware, logger)
+	webRouter := web.NewRouter(httpServer.Router(), authService, userService, departmentService, roleService, permissionService, authMiddleware, permissionMiddleware, logger)
 	webRouter.SetupRoutes()
 
 	// Register Swagger documentation routes (when swag is installed)

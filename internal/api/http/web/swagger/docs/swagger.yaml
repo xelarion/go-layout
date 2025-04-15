@@ -133,22 +133,35 @@ definitions:
       user_count:
         type: integer
     type: object
+  types.GetPermissionTreeResp:
+    properties:
+      permissions:
+        items:
+          $ref: '#/definitions/types.GetPermissionTreeRespPermission'
+        type: array
+    type: object
+  types.GetPermissionTreeRespPermission:
+    properties:
+      children:
+        description: Child permissions
+        items:
+          $ref: '#/definitions/types.GetPermissionTreeRespPermission'
+        type: array
+      id:
+        description: Permission identifier
+        type: string
+      name:
+        description: Permission name
+        type: string
+    type: object
   types.GetProfileResp:
     properties:
-      avatar:
-        type: string
       created_at:
         type: string
       email:
         type: string
       id:
         type: integer
-      permissions:
-        items:
-          type: string
-        type: array
-      role:
-        type: string
       username:
         type: string
     type: object
@@ -189,6 +202,13 @@ definitions:
         type: string
       value: {}
     type: object
+  types.GetRolePermissionsResp:
+    properties:
+      permissions:
+        items:
+          type: string
+        type: array
+    type: object
   types.GetRoleResp:
     properties:
       created_at:
@@ -218,6 +238,8 @@ definitions:
         type: string
       role_id:
         type: integer
+      role_slug:
+        type: string
       username:
         type: string
     type: object
@@ -288,6 +310,8 @@ definitions:
       id:
         type: integer
       name:
+        type: string
+      slug:
         type: string
       user_count:
         type: integer
@@ -471,6 +495,20 @@ definitions:
     - enabled
     type: object
   types.UpdateRoleEnabledResp:
+    type: object
+  types.UpdateRolePermissionsReq:
+    properties:
+      permissions:
+        items:
+          type: string
+        type: array
+      roleID:
+        type: integer
+    required:
+    - permissions
+    - roleID
+    type: object
+  types.UpdateRolePermissionsResp:
     type: object
   types.UpdateRoleReq:
     properties:
@@ -1070,6 +1108,47 @@ paths:
       summary: Logout
       tags:
       - auth
+  /permission-tree/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Permission Tree
+      operationId: GetPermissionTree
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetPermissionTreeResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Permission Tree
+      tags:
+      - permission
   /profile:
     get:
       consumes:
@@ -1225,6 +1304,139 @@ paths:
       summary: Refresh Token
       tags:
       - auth
+  /role:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new Role
+      operationId: CreateRole
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.CreateRoleReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.CreateRoleResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Role
+      tags:
+      - role
+  /role-permissions/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Role Permissions
+      operationId: GetRolePermissions
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - in: query
+        name: roleID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetRolePermissionsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Role Permissions
+      tags:
+      - permission
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing Role Permissions
+      operationId: UpdateRolePermissions
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateRolePermissionsReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UpdateRolePermissionsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Role Permissions
+      tags:
+      - permission
   /roles:
     get:
       consumes:
@@ -1292,47 +1504,6 @@ paths:
       security:
       - BearerAuth: []
       summary: List Roles
-      tags:
-      - role
-    post:
-      consumes:
-      - application/json
-      description: Creates a new Role
-      operationId: CreateRole
-      parameters:
-      - description: req
-        in: body
-        name: req
-        required: true
-        schema:
-          $ref: '#/definitions/types.CreateRoleReq'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Success
-          schema:
-            allOf:
-            - $ref: '#/definitions/types.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/types.CreateRoleResp'
-              type: object
-        "400":
-          description: Bad request
-          schema:
-            $ref: '#/definitions/types.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/types.Response'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/types.Response'
-      security:
-      - BearerAuth: []
-      summary: Create Role
       tags:
       - role
   /roles/{id}:

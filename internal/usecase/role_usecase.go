@@ -205,3 +205,26 @@ func (uc *RoleUseCase) GetRoleOptions(ctx context.Context) ([]*model.Role, error
 
 	return roles, nil
 }
+
+// UpdatePermissions updates role permissions
+func (uc *RoleUseCase) UpdatePermissions(ctx context.Context, roleID uint, permissions []string) error {
+	// Get the existing role
+	role, err := uc.roleRepo.FindByID(ctx, roleID)
+	if err != nil {
+		return err
+	}
+
+	// super admin cannot be updated
+	if role.Slug == enum.RoleSuperAdmin {
+		return errs.NewBusiness("super admin permissions cannot be updated").
+			WithReason(errs.ReasonInvalidState)
+	}
+
+	// Update permissions
+	role.Permissions = permissions
+
+	if err := uc.roleRepo.Update(ctx, role); err != nil {
+		return err
+	}
+	return nil
+}

@@ -16,13 +16,15 @@ import (
 
 type AuthService struct {
 	userUseCase *usecase.UserUseCase
+	roleUseCase *usecase.RoleUseCase
 	logger      *zap.Logger
 }
 
 // NewAuthService creates a new instance of AuthService.
-func NewAuthService(userUseCase *usecase.UserUseCase, logger *zap.Logger) *AuthService {
+func NewAuthService(userUseCase *usecase.UserUseCase, roleUseCase *usecase.RoleUseCase, logger *zap.Logger) *AuthService {
 	return &AuthService{
 		userUseCase: userUseCase,
+		roleUseCase: roleUseCase,
 		logger:      logger.Named("auth_service"),
 	}
 }
@@ -70,7 +72,7 @@ func (s *AuthService) ReloadCaptcha(ctx context.Context, req *types.ReloadCaptch
 func (s *AuthService) GetCurrentUserInfo(ctx context.Context, req *types.GetCurrentUserInfoReq) (*types.GetCurrentUserInfoResp, error) {
 	current := middleware.GetCurrent(ctx)
 	if current == nil {
-		return nil, errs.NewBusiness("invalid credentials").WithReason(errs.ReasonUnauthorized)
+		return nil, errs.NewBusiness("unauthorized").WithReason(errs.ReasonUnauthorized)
 	}
 
 	user, err := s.userUseCase.GetByID(ctx, current.UserID)
@@ -78,16 +80,16 @@ func (s *AuthService) GetCurrentUserInfo(ctx context.Context, req *types.GetCurr
 		return nil, err
 	}
 
+	// Get user role to fetch permissions
+	role, err := s.roleUseCase.GetByID(ctx, user.RoleID)
+	if err != nil {
+		return nil, err
+	}
+
 	return &types.GetCurrentUserInfoResp{
-		ID:       user.ID,
-		RoleSlug: current.RoleSlug,
-		Permissions: []string{
-			"page:home",
-			"menu:setting",
-			"page:roles",
-			"page:users",
-			"page:departments",
-		}, // TODO
+		ID:          user.ID,
+		RoleSlug:    current.RoleSlug,
+		Permissions: role.Permissions,
 	}, nil
 }
 
@@ -95,7 +97,7 @@ func (s *AuthService) GetCurrentUserInfo(ctx context.Context, req *types.GetCurr
 func (s *AuthService) GetProfile(ctx context.Context, req *types.GetProfileReq) (*types.GetProfileResp, error) {
 	current := middleware.GetCurrent(ctx)
 	if current == nil {
-		return nil, errs.NewBusiness("invalid credentials").WithReason(errs.ReasonUnauthorized)
+		return nil, errs.NewBusiness("unauthorized").WithReason(errs.ReasonUnauthorized)
 	}
 
 	user, err := s.userUseCase.GetByID(ctx, current.UserID)
@@ -115,7 +117,7 @@ func (s *AuthService) GetProfile(ctx context.Context, req *types.GetProfileReq) 
 func (s *AuthService) UpdateProfile(ctx context.Context, req *types.UpdateProfileReq) (*types.UpdateProfileResp, error) {
 	current := middleware.GetCurrent(ctx)
 	if current == nil {
-		return nil, errs.NewBusiness("invalid credentials").WithReason(errs.ReasonUnauthorized)
+		return nil, errs.NewBusiness("unauthorized").WithReason(errs.ReasonUnauthorized)
 	}
 
 	// First check if the user exists
