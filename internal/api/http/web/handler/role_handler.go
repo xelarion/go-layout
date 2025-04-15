@@ -117,11 +117,6 @@ func (h *RoleHandler) GetRole(c *gin.Context) {
 		return
 	}
 
-	if resp == nil {
-		c.JSON(http.StatusNotFound, types.Error(types.CodeNotFound, "Role not found"))
-		return
-	}
-
 	c.JSON(http.StatusOK, types.Success(resp))
 }
 
