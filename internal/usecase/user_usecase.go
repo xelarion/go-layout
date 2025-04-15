@@ -6,6 +6,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/xelarion/go-layout/internal/enum"
 	"github.com/xelarion/go-layout/internal/model"
 	"github.com/xelarion/go-layout/internal/model/gen"
 	"github.com/xelarion/go-layout/internal/util"
@@ -59,6 +60,7 @@ type UserRepository interface {
 	Create(ctx context.Context, user *model.User) error
 	List(ctx context.Context, filters map[string]any, limit, offset int, sortClause string) ([]*model.User, int, error)
 	IsExists(ctx context.Context, filters map[string]any, notFilters map[string]any) (bool, error)
+	Count(ctx context.Context, filters map[string]any, notFilters map[string]any) (int64, error)
 	FindByID(ctx context.Context, id uint) (*model.User, error)
 	FindByUsername(ctx context.Context, username string) (*model.User, error)
 	Update(ctx context.Context, user *model.User) error
@@ -97,6 +99,28 @@ func (uc *UserUseCase) Create(ctx context.Context, params CreateUserParams) (uin
 			WithReason(errs.ReasonDuplicate)
 	}
 
+	// Check is department enabled
+	department, err := uc.departmentRepo.FindByID(ctx, params.DepartmentID)
+	if err != nil {
+		return 0, err
+	}
+
+	if !department.Enabled {
+		return 0, errs.NewBusiness("department is disabled").
+			WithReason(errs.ReasonInvalidState)
+	}
+
+	// Check is role enabled
+	role, err := uc.roleRepo.FindByID(ctx, params.RoleID)
+	if err != nil {
+		return 0, err
+	}
+
+	if !role.Enabled {
+		return 0, errs.NewBusiness("role is disabled").
+			WithReason(errs.ReasonInvalidState)
+	}
+
 	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(params.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -132,7 +156,7 @@ func (uc *UserUseCase) List(ctx context.Context, filters map[string]any, limit, 
 		return nil, 0, err
 	}
 
-	var usersWithRoles []*User
+	records := make([]*User, 0, len(users))
 	for _, user := range users {
 		userWithRoles := &User{
 			User: user,
@@ -142,6 +166,7 @@ func (uc *UserUseCase) List(ctx context.Context, filters map[string]any, limit, 
 		if err != nil {
 			return nil, 0, err
 		}
+
 		userWithRoles.RoleName = role.Name
 		userWithRoles.RoleSlug = role.Slug
 
@@ -154,10 +179,10 @@ func (uc *UserUseCase) List(ctx context.Context, filters map[string]any, limit, 
 			userWithRoles.DepartmentName = department.Name
 		}
 
-		usersWithRoles = append(usersWithRoles, userWithRoles)
+		records = append(records, userWithRoles)
 	}
 
-	return usersWithRoles, count, nil
+	return records, count, nil
 }
 
 // GetByID retrieves a user by ID.
@@ -198,6 +223,11 @@ func (uc *UserUseCase) Update(ctx context.Context, params UpdateUserParams) erro
 		return err
 	}
 
+	userOldRole, err := uc.roleRepo.FindByID(ctx, user.RoleID)
+	if err != nil {
+		return err
+	}
+
 	// Check if username already exists
 	exists, err := uc.userRepo.IsExists(ctx, map[string]any{"username": params.Username}, map[string]any{"id": params.ID})
 	if err != nil {
@@ -207,6 +237,28 @@ func (uc *UserUseCase) Update(ctx context.Context, params UpdateUserParams) erro
 	if exists {
 		return errs.NewBusiness("username already exists").
 			WithReason(errs.ReasonDuplicate)
+	}
+
+	// Check is department enabled
+	department, err := uc.departmentRepo.FindByID(ctx, params.DepartmentID)
+	if err != nil {
+		return err
+	}
+
+	if !department.Enabled {
+		return errs.NewBusiness("department is disabled").
+			WithReason(errs.ReasonInvalidState)
+	}
+
+	// Check is role enabled
+	role, err := uc.roleRepo.FindByID(ctx, params.RoleID)
+	if err != nil {
+		return err
+	}
+
+	if !role.Enabled {
+		return errs.NewBusiness("role is disabled").
+			WithReason(errs.ReasonInvalidState)
 	}
 
 	// Update fields that are explicitly set
@@ -235,6 +287,12 @@ func (uc *UserUseCase) Update(ctx context.Context, params UpdateUserParams) erro
 	}
 
 	if params.EnabledSet {
+		// can't update super admin enabled
+		if userOldRole.Slug == enum.RoleSuperAdmin {
+			return errs.NewBusiness("can't update super admin enabled").
+				WithReason(errs.ReasonInvalidState)
+		}
+
 		user.Enabled = params.Enabled
 	}
 
@@ -243,6 +301,20 @@ func (uc *UserUseCase) Update(ctx context.Context, params UpdateUserParams) erro
 	}
 
 	if params.RoleIDSet {
+		if userOldRole.ID != params.RoleID {
+			// can't set super admin role
+			if role.Slug == enum.RoleSuperAdmin {
+				return errs.NewBusiness("can't set super admin role").
+					WithReason(errs.ReasonInvalidState)
+			}
+
+			// can't update super admin role
+			if userOldRole.Slug == enum.RoleSuperAdmin {
+				return errs.NewBusiness("can't update super admin role").
+					WithReason(errs.ReasonInvalidState)
+			}
+		}
+
 		user.RoleID = params.RoleID
 	}
 

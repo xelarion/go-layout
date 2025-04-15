@@ -76,6 +76,11 @@ func (r *RoleRepository) IsExists(ctx context.Context, filters map[string]any, n
 	return IsExists(ctx, r.db, &model.Role{}, filters, notFilters)
 }
 
+// Count counts the number of roles.
+func (r *RoleRepository) Count(ctx context.Context, filters map[string]any, notFilters map[string]any) (int64, error) {
+	return Count(ctx, r.db, &model.Role{}, filters, notFilters)
+}
+
 // FindByID retrieves a role by ID.
 func (r *RoleRepository) FindByID(ctx context.Context, id uint) (*model.Role, error) {
 	var role model.Role
@@ -121,19 +126,4 @@ func (r *RoleRepository) Delete(ctx context.Context, id uint) error {
 	}
 
 	return nil
-}
-
-// CountUsersByRoleID counts the number of users in a role.
-func (r *RoleRepository) CountUsersByRoleID(ctx context.Context, roleID uint) (int64, error) {
-	var count int64
-	err := r.db.WithContext(ctx).
-		Model(&model.User{}).
-		Where("role_id = ?", roleID).
-		Where("enabled = ?", true).
-		Count(&count).Error
-
-	if err != nil {
-		return 0, errs.WrapInternal(err, "failed to count users by role ID")
-	}
-	return count, nil
 }

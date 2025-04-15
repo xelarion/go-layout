@@ -77,6 +77,11 @@ func (r *DepartmentRepository) IsExists(ctx context.Context, filters map[string]
 	return IsExists(ctx, r.db, &model.Department{}, filters, notFilters)
 }
 
+// Count counts the number of departments.
+func (r *DepartmentRepository) Count(ctx context.Context, filters map[string]any, notFilters map[string]any) (int64, error) {
+	return Count(ctx, r.db, &model.Department{}, filters, notFilters)
+}
+
 // FindByID retrieves a department by ID.
 func (r *DepartmentRepository) FindByID(ctx context.Context, id uint) (*model.Department, error) {
 	var department model.Department
@@ -122,19 +127,4 @@ func (r *DepartmentRepository) Delete(ctx context.Context, id uint) error {
 	}
 
 	return nil
-}
-
-// CountUsersByDepartmentID counts the number of users in a department.
-func (r *DepartmentRepository) CountUsersByDepartmentID(ctx context.Context, departmentID uint) (int64, error) {
-	var count int64
-	err := r.db.WithContext(ctx).
-		Model(&model.User{}).
-		Where("department_id = ?", departmentID).
-		Where("enabled = ?", true).
-		Count(&count).Error
-
-	if err != nil {
-		return 0, errs.WrapInternal(err, "failed to count users by department ID")
-	}
-	return count, nil
 }

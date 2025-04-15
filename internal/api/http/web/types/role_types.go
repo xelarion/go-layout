@@ -32,6 +32,7 @@ type ListRolesRespResult struct {
 	ID          uint   `json:"id"`
 	CreatedAt   Time   `json:"created_at"`
 	Name        string `json:"name"`
+	Slug        string `json:"slug"`
 	Description string `json:"description"`
 	Enabled     bool   `json:"enabled"`
 	UserCount   int64  `json:"user_count"`

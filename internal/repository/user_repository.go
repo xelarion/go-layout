@@ -77,6 +77,10 @@ func (r *UserRepository) IsExists(ctx context.Context, filters map[string]any, n
 	return IsExists(ctx, r.db, &model.User{}, filters, notFilters)
 }
 
+func (r *UserRepository) Count(ctx context.Context, filters map[string]any, notFilters map[string]any) (int64, error) {
+	return Count(ctx, r.db, &model.User{}, filters, notFilters)
+}
+
 // FindByID retrieves a user by ID.
 func (r *UserRepository) FindByID(ctx context.Context, id uint) (*model.User, error) {
 	var user model.User

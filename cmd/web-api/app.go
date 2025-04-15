@@ -65,8 +65,8 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 
 	// Initialize usecases
 	userUseCase := usecase.NewUserUseCase(userRepo, roleRepo, departmentRepo)
-	departmentUseCase := usecase.NewDepartmentUseCase(departmentRepo)
-	roleUseCase := usecase.NewRoleUseCase(roleRepo)
+	departmentUseCase := usecase.NewDepartmentUseCase(departmentRepo, userRepo)
+	roleUseCase := usecase.NewRoleUseCase(roleRepo, userRepo)
 
 	// Initialize services
 	departmentService := service.NewDepartmentService(departmentUseCase)

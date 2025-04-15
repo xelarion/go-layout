@@ -40,21 +40,23 @@ type DepartmentRepository interface {
 	Create(ctx context.Context, department *model.Department) error
 	List(ctx context.Context, filters map[string]any, limit, offset int, sortClause string) ([]*model.Department, int, error)
 	IsExists(ctx context.Context, filters map[string]any, notFilters map[string]any) (bool, error)
+	Count(ctx context.Context, filters map[string]any, notFilters map[string]any) (int64, error)
 	FindByID(ctx context.Context, id uint) (*model.Department, error)
 	Update(ctx context.Context, department *model.Department) error
 	Delete(ctx context.Context, id uint) error
-	CountUsersByDepartmentID(ctx context.Context, departmentID uint) (int64, error)
 }
 
 // DepartmentUseCase implements business logic for department operations.
 type DepartmentUseCase struct {
 	departmentRepo DepartmentRepository
+	userRepo       UserRepository
 }
 
 // NewDepartmentUseCase creates a new instance of DepartmentUseCase.
-func NewDepartmentUseCase(repo DepartmentRepository) *DepartmentUseCase {
+func NewDepartmentUseCase(repo DepartmentRepository, userRepo UserRepository) *DepartmentUseCase {
 	return &DepartmentUseCase{
 		departmentRepo: repo,
+		userRepo:       userRepo,
 	}
 }
 
@@ -94,20 +96,20 @@ func (uc *DepartmentUseCase) List(ctx context.Context, filters map[string]any, l
 		return nil, 0, err
 	}
 
-	// Get user count for each department
-	departmentsWithUserCount := make([]*Department, 0, len(departments))
+	records := make([]*Department, 0, len(departments))
 	for _, dept := range departments {
-		userCount, err := uc.departmentRepo.CountUsersByDepartmentID(ctx, dept.ID)
+		userCount, err := uc.userRepo.Count(ctx, map[string]any{"department_id": dept.ID, "enabled": true}, nil)
 		if err != nil {
 			return nil, 0, err
 		}
-		departmentsWithUserCount = append(departmentsWithUserCount, &Department{
+
+		records = append(records, &Department{
 			Department: dept,
 			UserCount:  userCount,
 		})
 	}
 
-	return departmentsWithUserCount, count, nil
+	return records, count, nil
 }
 
 // GetByID retrieves a department by ID.
@@ -117,7 +119,7 @@ func (uc *DepartmentUseCase) GetByID(ctx context.Context, id uint) (*Department,
 		return nil, err
 	}
 
-	userCount, err := uc.departmentRepo.CountUsersByDepartmentID(ctx, id)
+	userCount, err := uc.userRepo.Count(ctx, map[string]any{"department_id": id, "enabled": true}, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -171,6 +173,17 @@ func (uc *DepartmentUseCase) Delete(ctx context.Context, id uint) error {
 	_, err := uc.departmentRepo.FindByID(ctx, id)
 	if err != nil {
 		return err
+	}
+
+	// Check if department has users
+	userExists, err := uc.userRepo.IsExists(ctx, map[string]any{"department_id": id, "enabled": true}, nil)
+	if err != nil {
+		return err
+	}
+
+	if userExists {
+		return errs.NewBusiness("department has users").
+			WithReason(errs.ReasonInvalidState)
 	}
 
 	if err := uc.departmentRepo.Delete(ctx, id); err != nil {

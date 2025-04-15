@@ -58,6 +58,7 @@ func (s *RoleService) ListRoles(ctx context.Context, req *types.ListRolesReq) (*
 		u := types.ListRolesRespResult{
 			ID:          role.ID,
 			Name:        role.Name,
+			Slug:        role.Slug,
 			Description: role.Description,
 			Enabled:     role.Enabled,
 			CreatedAt:   types.Time(role.CreatedAt),

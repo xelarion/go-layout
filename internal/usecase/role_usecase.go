@@ -4,6 +4,7 @@ package usecase
 import (
 	"context"
 
+	"github.com/xelarion/go-layout/internal/enum"
 	"github.com/xelarion/go-layout/internal/model"
 	"github.com/xelarion/go-layout/internal/model/gen"
 	"github.com/xelarion/go-layout/pkg/errs"
@@ -40,21 +41,23 @@ type RoleRepository interface {
 	Create(ctx context.Context, role *model.Role) error
 	List(ctx context.Context, filters map[string]any, limit, offset int, sortClause string) ([]*model.Role, int, error)
 	IsExists(ctx context.Context, filters map[string]any, notFilters map[string]any) (bool, error)
+	Count(ctx context.Context, filters map[string]any, notFilters map[string]any) (int64, error)
 	FindByID(ctx context.Context, id uint) (*model.Role, error)
 	Update(ctx context.Context, role *model.Role) error
 	Delete(ctx context.Context, id uint) error
-	CountUsersByRoleID(ctx context.Context, roleID uint) (int64, error)
 }
 
 // RoleUseCase implements business logic for role operations.
 type RoleUseCase struct {
 	roleRepo RoleRepository
+	userRepo UserRepository
 }
 
 // NewRoleUseCase creates a new instance of RoleUseCase.
-func NewRoleUseCase(repo RoleRepository) *RoleUseCase {
+func NewRoleUseCase(repo RoleRepository, userRepo UserRepository) *RoleUseCase {
 	return &RoleUseCase{
 		roleRepo: repo,
+		userRepo: userRepo,
 	}
 }
 
@@ -96,20 +99,20 @@ func (uc *RoleUseCase) List(ctx context.Context, filters map[string]any, limit, 
 		return nil, 0, err
 	}
 
-	// Get user count for each role
-	rolesWithUserCount := make([]*Role, 0, len(roles))
-	for _, dept := range roles {
-		userCount, err := uc.roleRepo.CountUsersByRoleID(ctx, dept.ID)
+	records := make([]*Role, 0, len(roles))
+	for _, role := range roles {
+		userCount, err := uc.userRepo.Count(ctx, map[string]any{"role_id": role.ID, "enabled": true}, nil)
 		if err != nil {
 			return nil, 0, err
 		}
-		rolesWithUserCount = append(rolesWithUserCount, &Role{
-			Role:      dept,
+
+		records = append(records, &Role{
+			Role:      role,
 			UserCount: userCount,
 		})
 	}
 
-	return rolesWithUserCount, count, nil
+	return records, count, nil
 }
 
 // GetByID retrieves a role by ID.
@@ -153,6 +156,12 @@ func (uc *RoleUseCase) Update(ctx context.Context, params UpdateRoleParams) erro
 	}
 
 	if params.EnabledSet {
+		// super admin cannot be updated
+		if role.Slug == enum.RoleSuperAdmin {
+			return errs.NewBusiness("super admin cannot be updated").
+				WithReason(errs.ReasonInvalidState)
+		}
+
 		role.Enabled = params.Enabled
 	}
 
@@ -167,6 +176,17 @@ func (uc *RoleUseCase) Delete(ctx context.Context, id uint) error {
 	_, err := uc.roleRepo.FindByID(ctx, id)
 	if err != nil {
 		return err
+	}
+
+	// Check if role has users
+	userExists, err := uc.userRepo.IsExists(ctx, map[string]any{"role_id": id, "enabled": true}, nil)
+	if err != nil {
+		return err
+	}
+
+	if userExists {
+		return errs.NewBusiness("role has users").
+			WithReason(errs.ReasonInvalidState)
 	}
 
 	if err := uc.roleRepo.Delete(ctx, id); err != nil {
