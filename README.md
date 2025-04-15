@@ -59,14 +59,13 @@ A scalable, high-performance, high-availability web application template built w
 │   │           ├── handler/       # API request handlers
 │   │           ├── middleware/    # HTTP middleware components
 │   │           ├── types/         # Request/response structures
-│   │           ├── service/       # Web API services
+│   │           ├── service/       # Web API service layer, coordinates between handlers and usecases
 │   │           ├── swagger/       # Swagger documentation
 │   │           └── router.go      # Route definitions
 │   ├── enum/                      # Enumeration constants
 │   ├── model/                     # Domain models
 │   │   └── gen/                   # Generated models
 │   ├── repository/                # Data access layer
-│   ├── service/                   # Service layer, coordinates between handlers and usecases
 │   ├── task/                      # Task management
 │   │   ├── poller/                # Polling task framework
 │   │   ├── queue/                 # Queue-based task framework

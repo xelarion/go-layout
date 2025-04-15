@@ -59,14 +59,13 @@
 │   │           ├── handler/       # API 请求处理器
 │   │           ├── middleware/    # HTTP 中间件组件
 │   │           ├── types/         # 请求/响应结构
-│   │           ├── service/       # Web API 服务
+│   │           ├── service/       # Web API 服务层，协调处理器和用例层之间的交互
 │   │           ├── swagger/       # Swagger 文档
 │   │           └── router.go      # 路由定义
 │   ├── enum/                      # 枚举常量
 │   ├── model/                     # 领域模型
 │   │   └── gen/                   # 生成的模型
 │   ├── repository/                # 数据访问层
-│   ├── service/                   # 服务层，协调处理器和用例层之间的交互
 │   ├── task/                      # 任务管理
 │   │   ├── poller/                # 轮询任务框架
 │   │   ├── queue/                 # 基于队列的任务框架
