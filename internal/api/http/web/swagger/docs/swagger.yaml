@@ -502,11 +502,8 @@ definitions:
         items:
           type: string
         type: array
-      roleID:
-        type: integer
     required:
     - permissions
-    - roleID
     type: object
   types.UpdateRolePermissionsResp:
     type: object
@@ -1108,18 +1105,12 @@ paths:
       summary: Logout
       tags:
       - auth
-  /permission-tree/{id}:
+  /permissions/tree:
     get:
       consumes:
       - application/json
       description: Retrieves a single Permission Tree
       operationId: GetPermissionTree
-      parameters:
-      - description: id
-        in: path
-        name: id
-        required: true
-        type: integer
       produces:
       - application/json
       responses:
@@ -1304,139 +1295,6 @@ paths:
       summary: Refresh Token
       tags:
       - auth
-  /role:
-    post:
-      consumes:
-      - application/json
-      description: Creates a new Role
-      operationId: CreateRole
-      parameters:
-      - description: req
-        in: body
-        name: req
-        required: true
-        schema:
-          $ref: '#/definitions/types.CreateRoleReq'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Success
-          schema:
-            allOf:
-            - $ref: '#/definitions/types.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/types.CreateRoleResp'
-              type: object
-        "400":
-          description: Bad request
-          schema:
-            $ref: '#/definitions/types.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/types.Response'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/types.Response'
-      security:
-      - BearerAuth: []
-      summary: Create Role
-      tags:
-      - role
-  /role-permissions/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Retrieves a single Role Permissions
-      operationId: GetRolePermissions
-      parameters:
-      - description: id
-        in: path
-        name: id
-        required: true
-        type: integer
-      - in: query
-        name: roleID
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Success
-          schema:
-            allOf:
-            - $ref: '#/definitions/types.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/types.GetRolePermissionsResp'
-              type: object
-        "400":
-          description: Bad request
-          schema:
-            $ref: '#/definitions/types.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/types.Response'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/types.Response'
-      security:
-      - BearerAuth: []
-      summary: Get Role Permissions
-      tags:
-      - permission
-    put:
-      consumes:
-      - application/json
-      description: Updates an existing Role Permissions
-      operationId: UpdateRolePermissions
-      parameters:
-      - description: id
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: req
-        in: body
-        name: req
-        required: true
-        schema:
-          $ref: '#/definitions/types.UpdateRolePermissionsReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Success
-          schema:
-            allOf:
-            - $ref: '#/definitions/types.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/types.UpdateRolePermissionsResp'
-              type: object
-        "400":
-          description: Bad request
-          schema:
-            $ref: '#/definitions/types.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/types.Response'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/types.Response'
-      security:
-      - BearerAuth: []
-      summary: Update Role Permissions
-      tags:
-      - permission
   /roles:
     get:
       consumes:
@@ -1504,6 +1362,47 @@ paths:
       security:
       - BearerAuth: []
       summary: List Roles
+      tags:
+      - role
+    post:
+      consumes:
+      - application/json
+      description: Creates a new Role
+      operationId: CreateRole
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.CreateRoleReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.CreateRoleResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Role
       tags:
       - role
   /roles/{id}:
@@ -1727,6 +1626,93 @@ paths:
       summary: Get Role Form Data
       tags:
       - role
+  /roles/{id}/permissions:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Role Permissions
+      operationId: GetRolePermissions
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetRolePermissionsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Role Permissions
+      tags:
+      - permission
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing Role Permissions
+      operationId: UpdateRolePermissions
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateRolePermissionsReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UpdateRolePermissionsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Role Permissions
+      tags:
+      - permission
   /roles/options:
     get:
       consumes:

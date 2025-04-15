@@ -17,7 +17,7 @@ type GetPermissionTreeRespPermission struct {
 
 // GetRolePermissionsReq is the request for getting role permissions
 type GetRolePermissionsReq struct {
-	RoleID uint `uri:"id" binding:"required"`
+	RoleID uint `uri:"id" binding:"required" swaggerignore:"true"`
 }
 
 // GetRolePermissionsResp is the response for getting role permissions
@@ -27,7 +27,7 @@ type GetRolePermissionsResp struct {
 
 // UpdateRolePermissionsReq is the request for updating role permissions
 type UpdateRolePermissionsReq struct {
-	RoleID      uint     `uri:"id" binding:"required"`
+	RoleID      uint     `uri:"id" binding:"required" swaggerignore:"true"`
 	Permissions []string `json:"permissions" binding:"required"`
 }
 

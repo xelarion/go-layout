@@ -183,7 +183,7 @@ var (
 	// Regular expressions - compiled once for performance
 	pathParamRegex   = regexp.MustCompile(`\{([^}]+)\}`)
 	camelCaseRegex   = regexp.MustCompile(`([a-z0-9])([A-Z])`)
-	apiRouteRegex    = regexp.MustCompile(`(api|authorized)\.(GET|POST|PUT|PATCH|DELETE)\("([^"]+)", ([a-zA-Z0-9]+)\.([a-zA-Z0-9]+)\)`)
+	apiRouteRegex    = regexp.MustCompile(`(api|authorized)\.(GET|POST|PUT|PATCH|DELETE)\("([^"]+)".*,\s*([a-zA-Z0-9]+)\.([a-zA-Z0-9]+)\)`)
 	routerParamRegex = regexp.MustCompile(`:([^/]+)`)
 
 	// Slice of common prefixes for path determination
