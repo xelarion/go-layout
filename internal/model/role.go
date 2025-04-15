@@ -18,12 +18,12 @@ func (u *Role) IsSuperAdmin() bool {
 
 // HasPermission checks if the role has specific permission
 func (u *Role) HasPermission(perm string) bool {
-	checker := permission.NewRolePermissionChecker(u.Slug, u.Permissions)
-	return checker.HasPermission(perm)
+	checker := permission.NewRoleChecker(u.Slug, u.Permissions)
+	return checker.Has(perm)
 }
 
 // HasAnyPermission checks if the role has any of the given permissions
 func (u *Role) HasAnyPermission(perms ...string) bool {
-	checker := permission.NewRolePermissionChecker(u.Slug, u.Permissions)
-	return checker.HasAnyPermission(perms...)
+	checker := permission.NewRoleChecker(u.Slug, u.Permissions)
+	return checker.HasAny(perms...)
 }

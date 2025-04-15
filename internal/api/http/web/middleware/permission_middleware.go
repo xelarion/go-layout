@@ -44,18 +44,20 @@ func (m *PermissionMiddleware) Check(permissions ...string) gin.HandlerFunc {
 			return
 		}
 
-		// If only one permission is provided, check for that specific permission
+		// Check permissions based on count
+		hasPermission := false
 		if len(permissions) == 1 {
-			if !role.HasPermission(permissions[0]) {
-				c.AbortWithStatusJSON(http.StatusForbidden, types.Error(types.CodeForbidden, "Access denied"))
-				return
-			}
+			hasPermission = role.HasPermission(permissions[0])
 		} else if len(permissions) > 1 {
-			// If multiple permissions are provided, check if the user has any of them
-			if !role.HasAnyPermission(permissions...) {
-				c.AbortWithStatusJSON(http.StatusForbidden, types.Error(types.CodeForbidden, "Access denied"))
-				return
-			}
+			hasPermission = role.HasAnyPermission(permissions...)
+		} else {
+			// No permissions specified means allow access
+			hasPermission = true
+		}
+
+		if !hasPermission {
+			c.AbortWithStatusJSON(http.StatusForbidden, types.Error(types.CodeForbidden, "Access denied"))
+			return
 		}
 
 		c.Next()

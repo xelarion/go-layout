@@ -98,6 +98,21 @@
 - **用例层（Usecase）**：包含独立于 API 层的核心业务逻辑。根据依赖倒置原则定义仓库接口。
 - **仓库层（Repository）**：管理数据访问和数据库交互。
 
+### 权限系统
+
+应用程序实现了基于角色的权限系统进行访问控制：
+
+- **权限定义**：权限在 `permission` 包中定义为常量（如 `user:list`、`role:update`）
+- **权限树**：权限组织为层次结构，通过 `/api/v1/permissions/tree` 端点提供
+- **权限使用**：API 端点通过中间件进行保护：
+  ```go
+  // 单一权限检查
+  router.GET("/users", permMW.Check(permission.UserList), handler.ListUsers)
+
+  // 多权限检查（满足其中任意一个即可访问）
+  router.GET("/users/:id", permMW.Check(permission.UserDetail, permission.UserUpdate), handler.GetUser)
+  ```
+
 ### 中间件系统
 
 应用程序包含多个中间件组件：

@@ -98,6 +98,21 @@ A scalable, high-performance, high-availability web application template built w
 - **Usecase Layer**: Contains core business logic independent of the API layer. Defines Repository interfaces as per the dependency inversion principle.
 - **Repository Layer**: Manages data access and database interactions.
 
+### Permission System
+
+The application implements a role-based permission system for access control:
+
+- **Permission Definition**: Permissions are defined as constants in the `permission` package (e.g., `user:list`, `role:update`)
+- **Permission Tree**: Permissions are organized in a hierarchical structure exposed via the `/api/v1/permissions/tree` endpoint
+- **Permission Usage**: API endpoints are protected using middleware:
+  ```go
+  // Single permission check
+  router.GET("/users", permMW.Check(permission.UserList), handler.ListUsers)
+
+  // Multiple permissions check (any of them grants access)
+  router.GET("/users/:id", permMW.Check(permission.UserDetail, permission.UserUpdate), handler.GetUser)
+  ```
+
 ### Middleware System
 
 The application includes multiple middleware components:

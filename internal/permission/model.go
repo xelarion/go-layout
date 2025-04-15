@@ -6,8 +6,3 @@ type Node struct {
 	Name     string  `json:"name"`               // Permission name
 	Children []*Node `json:"children,omitempty"` // Child permissions
 }
-
-// TreeNode represents a node in the permission tree
-type TreeNode struct {
-	Node
-}
