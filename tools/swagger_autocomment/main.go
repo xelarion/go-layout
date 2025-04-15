@@ -19,15 +19,16 @@ import (
 
 // Config holds configuration options for the Swagger comment generator.
 type Config struct {
-	HandlerDir     string   // Directory containing handler files
-	OutputDir      string   // Output directory for generated files
-	SecurityScheme string   // Security scheme for Swagger docs
-	RouterFile     string   // Router file to extract routes from
-	TypesPaths     []string // Paths to search for type definitions
-	HandlerPattern string   // Pattern to match handler files
-	Verbose        bool     // Whether to output verbose logs
-	Concurrency    int      // Number of concurrent workers
-	ApiPrefix      string   // API prefix for paths
+	HandlerDir     string          // Directory containing handler files
+	OutputDir      string          // Output directory for generated files
+	SecurityScheme string          // Security scheme for Swagger docs
+	RouterFile     string          // Router file to extract routes from
+	TypesPaths     []string        // Paths to search for type definitions
+	HandlerPattern string          // Pattern to match handler files
+	Verbose        bool            // Whether to output verbose logs
+	Concurrency    int             // Number of concurrent workers
+	ApiPrefix      string          // API prefix for paths
+	SecurityGroups map[string]bool // Map of route group names to whether they require authentication (e.g. {"api": false, "authorized": true})
 }
 
 // NewDefaultConfig creates a new configuration with default values
@@ -47,6 +48,7 @@ func NewDefaultConfig() *Config {
 		Concurrency:    cpuCount,
 		ApiPrefix:      "",
 		Verbose:        true,
+		SecurityGroups: map[string]bool{"api": false, "authorized": true},
 	}
 }
 
@@ -72,6 +74,11 @@ func (cfg *Config) SetupFlags() {
 	var typesPaths string
 	defaultTypesPaths := strings.Join(cfg.TypesPaths, ",")
 	flag.StringVar(&typesPaths, "types", defaultTypesPaths, "Comma-separated list of glob patterns for type definition files")
+
+	// Security groups configuration
+	var securityGroups string
+	defaultSecurityGroups := formatSecurityGroups(cfg.SecurityGroups)
+	flag.StringVar(&securityGroups, "security-groups", defaultSecurityGroups, "Security groups configuration in format 'group1:secured,group2:unsecured'")
 
 	// Add help flags
 	help := flag.Bool("help", false, "Print detailed usage information")
@@ -102,6 +109,10 @@ func (cfg *Config) SetupFlags() {
 		fmt.Println("    -types \"./internal/api/http/wx-api/types/*.go,./pkg/types/*.go\" \\")
 		fmt.Println("    -api-prefix \"/wx-api\" \\")
 		fmt.Println("    -concurrency 8")
+		fmt.Println()
+		fmt.Println("  # Configure custom security groups")
+		fmt.Println("  go run tools/swagger_autocomment/main.go \\")
+		fmt.Println("    -security-groups \"v1:unsecured,private:secured,admin:secured\"")
 		fmt.Println()
 		fmt.Println("  # Run in silent mode (minimal output)")
 		fmt.Println("  go run tools/swagger_autocomment/main.go -silent")
@@ -137,6 +148,11 @@ func (cfg *Config) SetupFlags() {
 		cfg.TypesPaths = strings.Split(typesPaths, ",")
 	}
 
+	// Process security groups
+	if securityGroups != "" {
+		cfg.SecurityGroups = parseSecurityGroups(securityGroups)
+	}
+
 	// Use handler directory as output directory if not specified
 	if cfg.OutputDir == "" {
 		cfg.OutputDir = cfg.HandlerDir
@@ -146,6 +162,57 @@ func (cfg *Config) SetupFlags() {
 	if *silent {
 		cfg.Verbose = false
 	}
+}
+
+// formatSecurityGroups formats the security groups map as a comma-separated string
+func formatSecurityGroups(groups map[string]bool) string {
+	var parts []string
+	for group, secured := range groups {
+		securityStatus := "unsecured"
+		if secured {
+			securityStatus = "secured"
+		}
+		parts = append(parts, fmt.Sprintf("%s:%s", group, securityStatus))
+	}
+	return strings.Join(parts, ",")
+}
+
+// parseSecurityGroups parses a comma-separated string of security groups into a map
+func parseSecurityGroups(groupsStr string) map[string]bool {
+	result := make(map[string]bool)
+	parts := strings.Split(groupsStr, ",")
+
+	for _, part := range parts {
+		if part == "" {
+			continue
+		}
+
+		groupParts := strings.Split(part, ":")
+		if len(groupParts) != 2 {
+			fmt.Printf("Warning: Invalid security group format '%s', expected 'group:secured' or 'group:unsecured'\n", part)
+			continue
+		}
+
+		group := strings.TrimSpace(groupParts[0])
+		securityStatus := strings.TrimSpace(groupParts[1])
+
+		if group == "" {
+			fmt.Println("Warning: Empty group name in security groups configuration")
+			continue
+		}
+
+		switch strings.ToLower(securityStatus) {
+		case "secured", "true", "yes":
+			result[group] = true
+		case "unsecured", "false", "no":
+			result[group] = false
+		default:
+			fmt.Printf("Warning: Invalid security status '%s' for group '%s', using 'unsecured'\n", securityStatus, group)
+			result[group] = false
+		}
+	}
+
+	return result
 }
 
 // RouteInfo stores information about an API route
@@ -183,14 +250,7 @@ var (
 	// Regular expressions - compiled once for performance
 	pathParamRegex   = regexp.MustCompile(`\{([^}]+)\}`)
 	camelCaseRegex   = regexp.MustCompile(`([a-z0-9])([A-Z])`)
-	apiRouteRegex    = regexp.MustCompile(`(api|authorized)\.(GET|POST|PUT|PATCH|DELETE)\("([^"]+)".*,\s*([a-zA-Z0-9]+)\.([a-zA-Z0-9]+)\)`)
 	routerParamRegex = regexp.MustCompile(`:([^/]+)`)
-
-	// Slice of common prefixes for path determination
-	pathPrefixes = []string{"get-", "list-", "create-", "update-", "delete-", "handle-"}
-
-	// Common patterns for public endpoints
-	publicPatterns = []string{"Login", "Register", "Captcha", "Public"}
 )
 
 // FileCache provides caching for parsed files to avoid repeated parsing
@@ -383,10 +443,9 @@ func NewSwaggerGenerator(config *Config) (*SwaggerGenerator, error) {
 	fileCache := NewFileCache()
 
 	// Extract routes from router file
-	routes, err := extractRoutes(config.RouterFile)
-	if err != nil && config.Verbose {
-		fmt.Printf("Warning: Could not extract routes from router file: %v\n", err)
-		fmt.Println("Will use function name analysis to determine routes.")
+	routes, err := extractRoutes(config.RouterFile, config)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting routes: %v", err)
 	}
 
 	// Create type finder
@@ -418,6 +477,12 @@ func (sg *SwaggerGenerator) Run() (FileStats, error) {
 	if len(handlerFiles) == 0 {
 		return totalStats, fmt.Errorf("no handler files found in %s matching pattern %s",
 			sg.config.HandlerDir, sg.config.HandlerPattern)
+	}
+
+	// Verify that we have route information
+	if len(sg.routes) == 0 {
+		return totalStats, fmt.Errorf("no routes could be extracted from %s. Make sure the router file is correctly formatted and RouteGroups configuration is correct",
+			sg.config.RouterFile)
 	}
 
 	if sg.config.Verbose {
@@ -616,6 +681,10 @@ func printConfig(config *Config, routesCount int) {
 	fmt.Printf("  Security scheme: %s\n", config.SecurityScheme)
 	fmt.Printf("  Concurrency: %d\n", config.Concurrency)
 	fmt.Printf("  Type paths: %s\n", strings.Join(config.TypesPaths, ", "))
+
+	// Print security groups
+	fmt.Printf("  Security groups: %s\n", formatSecurityGroups(config.SecurityGroups))
+
 	fmt.Printf("  Extracted %d routes from router file\n", routesCount)
 	fmt.Println()
 }
@@ -661,7 +730,7 @@ func printFileStats(filePath string, stats FileStats) {
 }
 
 // extractRoutes extracts routes from the router file
-func extractRoutes(routerFile string) (map[string]RouteInfo, error) {
+func extractRoutes(routerFile string, config *Config) (map[string]RouteInfo, error) {
 	routes := make(map[string]RouteInfo)
 
 	// Read the router file
@@ -670,15 +739,28 @@ func extractRoutes(routerFile string) (map[string]RouteInfo, error) {
 		return routes, fmt.Errorf("error reading router file: %v", err)
 	}
 
+	// Build regex pattern for route groups
+	groupNames := make([]string, 0, len(config.SecurityGroups))
+	for group := range config.SecurityGroups {
+		groupNames = append(groupNames, regexp.QuoteMeta(group))
+	}
+
+	groupPattern := strings.Join(groupNames, "|")
+	apiRouteRegex := regexp.MustCompile(fmt.Sprintf(`(%s)\.(GET|HEAD|POST|PUT|PATCH|DELETE|CONNECT|OPTIONS|TRACE)\("([^"]+)".*,\s*([a-zA-Z0-9]+)\.([a-zA-Z0-9]+)\)`, groupPattern))
+
 	// Extract all route registrations
 	matches := apiRouteRegex.FindAllStringSubmatch(string(content), -1)
+
+	if len(matches) == 0 {
+		return routes, fmt.Errorf("no routes found in router file. Please check if your RouteGroups configuration matches the groups in your router file")
+	}
 
 	for _, match := range matches {
 		if len(match) < 6 {
 			continue
 		}
 
-		group := match[1]   // api or authorized
+		group := match[1]   // route group
 		method := match[2]  // HTTP method
 		path := match[3]    // Path
 		handler := match[5] // Handler function name
@@ -686,11 +768,18 @@ func extractRoutes(routerFile string) (map[string]RouteInfo, error) {
 		// Convert path params from :id to {id}
 		convertedPath := routerParamRegex.ReplaceAllString(path, "{$1}")
 
+		// Check if this group is secured
+		isSecured, exists := config.SecurityGroups[group]
+		if !exists {
+			// This shouldn't happen due to our regex, but just in case
+			isSecured = false
+		}
+
 		routes[handler] = RouteInfo{
 			Path:      convertedPath,
 			Method:    strings.ToLower(method),
 			Handler:   handler,
-			IsSecured: group == "authorized",
+			IsSecured: isSecured,
 		}
 	}
 
@@ -854,22 +943,40 @@ func generateSwaggerComment(funcDecl *ast.FuncDecl, config *Config, routes map[s
 	handlerName := funcDecl.Name.Name
 	receiverType := getReceiverType(funcDecl)
 
-	// Get route info from router file if available
+	// Get route info from router file
 	routeInfo, exists := routes[handlerName]
 
-	// Determine HTTP method and path
-	var method, path string
-	var isSecured bool
+	if !exists {
+		// Log warning if verbose
+		if config.Verbose {
+			fmt.Printf("  Warning: No route found for handler %s. This endpoint might not be registered in the router.\n", handlerName)
+		}
 
-	if exists {
-		method = routeInfo.Method
-		path = routeInfo.Path
-		isSecured = routeInfo.IsSecured
-	} else {
-		// Fallback to function name analysis
-		method = determineHTTPMethod(handlerName)
-		path = determinePath(handlerName)
+		// We could return a minimal comment here, but that might be misleading
+		// Instead, generate a comment with placeholder values and a warning
+		var comment strings.Builder
+		comment.WriteString(fmt.Sprintf("// %s godoc\n", handlerName))
+		comment.WriteString("//\n") // gofmt requires an empty line
+		comment.WriteString(fmt.Sprintf("// @ID %s\n", handlerName))
+		comment.WriteString(fmt.Sprintf("// @Summary %s\n", generateSummary(handlerName)))
+		comment.WriteString(fmt.Sprintf("// @Description %s\n", generateDescription(handlerName)))
+		comment.WriteString("// @Tags " + determineTagFromHandler(receiverType) + "\n")
+		comment.WriteString("// @Accept json\n")
+		comment.WriteString("// @Produce json\n")
+		comment.WriteString("// @Param req query object false \"req\"\n")
+		comment.WriteString("// @Success 200 {object} types.Response \"Success\"\n")
+		comment.WriteString("// @Failure 400 {object} types.Response \"Bad request\"\n")
+		comment.WriteString("// @Failure 500 {object} types.Response \"Internal server error\"\n")
+		comment.WriteString("// @Router ROUTE_NOT_FOUND [get]\n")
+		comment.WriteString("// WARNING: This handler was not found in the router. Please check the router.go file.\n")
+
+		return comment.String()
 	}
+
+	// Use info from the router
+	method := routeInfo.Method
+	path := routeInfo.Path
+	isSecured := routeInfo.IsSecured
 
 	// Add API prefix if configured
 	if config.ApiPrefix != "" && !strings.HasPrefix(path, config.ApiPrefix) {
@@ -904,7 +1011,7 @@ func generateSwaggerComment(funcDecl *ast.FuncDecl, config *Config, routes map[s
 	comment.WriteString("// @Failure 500 {object} types.Response \"Internal server error\"\n")
 
 	// Add security if applicable
-	if isSecured || (!exists && isLikelySecured(handlerName)) {
+	if isSecured {
 		comment.WriteString(fmt.Sprintf("// @Security %s\n", config.SecurityScheme))
 	}
 
@@ -1038,54 +1145,16 @@ func updateFileWithComment(filePath string, funcDecl *ast.FuncDecl, comment stri
 	return nil
 }
 
-// determineHTTPMethod determines the HTTP method based on the function name
-func determineHTTPMethod(handlerName string) string {
-	switch {
-	case strings.HasPrefix(handlerName, "Create") || strings.HasPrefix(handlerName, "Add"):
-		return "post"
-	case strings.HasPrefix(handlerName, "Update") || strings.HasPrefix(handlerName, "Modify"):
-		return "put"
-	case strings.HasPrefix(handlerName, "Patch") || strings.HasPrefix(handlerName, "Partial"):
-		return "patch"
-	case strings.HasPrefix(handlerName, "Delete") || strings.HasPrefix(handlerName, "Remove"):
-		return "delete"
+// determineStatusCode determines the HTTP status code based on the method
+func determineStatusCode(method string) int {
+	switch method {
+	case "post":
+		return 201 // Created
+	case "delete":
+		return 204 // No Content
 	default:
-		return "get" // Default to GET for Get/List/Find methods
+		return 200 // OK
 	}
-}
-
-// determinePath determines the API path based on the function name
-func determinePath(handlerName string) string {
-	// Convert camel case to kebab case
-	path := camelCaseRegex.ReplaceAllString(handlerName, "$1-$2")
-	path = strings.ToLower(path)
-
-	// Remove common prefixes
-	for _, prefix := range pathPrefixes {
-		path = strings.TrimPrefix(path, prefix)
-	}
-
-	// Add ID parameter for single-item operations
-	if strings.Contains(handlerName, "ById") ||
-		(strings.HasPrefix(handlerName, "Get") && !strings.HasPrefix(handlerName, "List")) ||
-		strings.HasPrefix(handlerName, "Update") ||
-		strings.HasPrefix(handlerName, "Delete") {
-
-		// Extract resource name
-		resourceName := path
-		if strings.Contains(resourceName, "-by-id") {
-			resourceName = strings.Split(resourceName, "-by-id")[0]
-		}
-		return "/" + resourceName + "/{id}"
-	}
-
-	// Special case for List operations
-	if strings.HasPrefix(handlerName, "List") {
-		resourceName := strings.TrimPrefix(path, "list-")
-		return "/" + resourceName
-	}
-
-	return "/" + path
 }
 
 // generateSummary generates a summary for a handler method
@@ -1124,27 +1193,4 @@ func generateDescription(handlerName string) string {
 func determineTagFromHandler(handlerName string) string {
 	// Remove Handler suffix and convert to lowercase
 	return strings.ToLower(strings.TrimSuffix(handlerName, "Handler"))
-}
-
-// determineStatusCode determines the HTTP status code based on the method
-func determineStatusCode(method string) int {
-	switch method {
-	case "post":
-		return 201 // Created
-	case "delete":
-		return 204 // No Content
-	default:
-		return 200 // OK
-	}
-}
-
-// isLikelySecured determines if a handler is likely secured based on its name
-func isLikelySecured(handlerName string) bool {
-	for _, pattern := range publicPatterns {
-		if strings.Contains(handlerName, pattern) {
-			return false
-		}
-	}
-
-	return true
 }
