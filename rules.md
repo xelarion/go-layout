@@ -150,6 +150,9 @@
 - **Git Commit Guidelines**:
   - Follow the Conventional Commits specification (e.g., feat(xxx): add new feature, fix: resolve bug) with optional scopes and clear descriptions.
 
+- **Code Changes Scope**:
+  - Do not modify functionality or logic unrelated to the current change.
+
 ---
 
 ### Additional Recommendations
