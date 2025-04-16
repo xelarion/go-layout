@@ -127,10 +127,10 @@
 - **Documentation**:
   - Maintain up-to-date documentation for all modules and components.
   - Provide clear setup, usage, and contribution guidelines.
-  - Use English for code and comments (except for communications outside of code), with README files provided in both English (`README.md`) and Chinese (`README-zh.md`).
+  - Use English for code and comments, with README files provided in English (`README.md`).
 
 - **Code Style & Comments**:
-  - Ensure that all code and comments are written in English (excluding conversational exchanges, which are in Chinese).
+  - Ensure that all code and comments are written in English.
   - Follow principles of clean, modular, and well-documented code to ensure readability and ease of extension.
 
 ---
