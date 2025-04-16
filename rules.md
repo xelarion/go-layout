@@ -79,6 +79,12 @@
 
 - **Database Migration**:
   - Manage database schema migrations using [github.com/golang-migrate/migrate/v4](https://github.com/golang-migrate/migrate).
+  - Follow the workflow for creating new database tables:
+    1. Create migration files for the new table
+    2. Execute `make migrate` to create the database tables
+    3. Run `make gen-model TABLE=table_name` to generate model structures in `internal/model/gen/`
+    4. Create corresponding model files in `internal/model/` directory that embed the generated structures
+    5. Proceed with implementing the business logic
 
 - **Dependency Management**:
   - Use Go Modules (`go.mod` and `go.sum`) for dependency management.
