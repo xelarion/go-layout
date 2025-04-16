@@ -19,7 +19,7 @@ const (
 	RoleUpdateEnabled = "role/enabled" // Update role enabled
 	RoleDelete        = "role/delete"  // Delete role
 
-	PermissionUpdate = "permission/update" // Update permission\
+	PermissionUpdate = "permission/update" // Update permission
 
 	UserList          = "user/list"    // User list
 	UserDetail        = "user/detail"  // User detail
