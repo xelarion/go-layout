@@ -60,8 +60,8 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db.DB, redis.Client)
-	departmentRepo := repository.NewDepartmentRepository(db.DB, redis.Client)
-	roleRepo := repository.NewRoleRepository(db.DB, redis.Client)
+	departmentRepo := repository.NewDepartmentRepository(db.DB)
+	roleRepo := repository.NewRoleRepository(db.DB)
 
 	// Initialize usecases
 	userUseCase := usecase.NewUserUseCase(userRepo, roleRepo, departmentRepo)

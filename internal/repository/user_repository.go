@@ -55,7 +55,7 @@ func (r *UserRepository) List(ctx context.Context, filters map[string]any, limit
 	}
 
 	var total int64
-	if err := query.Model(&model.User{}).Count(&total).Error; err != nil {
+	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, errs.WrapInternal(err, "failed to count users")
 	}
 

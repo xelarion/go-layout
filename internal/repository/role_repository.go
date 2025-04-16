@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"github.com/xelarion/go-layout/internal/model"
@@ -14,15 +13,13 @@ import (
 
 // RoleRepository is an implementation of the role repository.
 type RoleRepository struct {
-	db  *gorm.DB
-	rds *redis.Client
+	db *gorm.DB
 }
 
 // NewRoleRepository creates a new instance of role repository.
-func NewRoleRepository(db *gorm.DB, rds *redis.Client) *RoleRepository {
+func NewRoleRepository(db *gorm.DB) *RoleRepository {
 	return &RoleRepository{
-		db:  db,
-		rds: rds,
+		db: db,
 	}
 }
 
@@ -54,7 +51,7 @@ func (r *RoleRepository) List(ctx context.Context, filters map[string]any, limit
 	}
 
 	var total int64
-	if err := query.Model(&model.Role{}).Count(&total).Error; err != nil {
+	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, errs.WrapInternal(err, "failed to count roles")
 	}
 

@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"github.com/xelarion/go-layout/internal/model"
@@ -14,15 +13,13 @@ import (
 
 // DepartmentRepository is an implementation of the department repository.
 type DepartmentRepository struct {
-	db  *gorm.DB
-	rds *redis.Client
+	db *gorm.DB
 }
 
 // NewDepartmentRepository creates a new instance of department repository.
-func NewDepartmentRepository(db *gorm.DB, rds *redis.Client) *DepartmentRepository {
+func NewDepartmentRepository(db *gorm.DB) *DepartmentRepository {
 	return &DepartmentRepository{
-		db:  db,
-		rds: rds,
+		db: db,
 	}
 }
 
@@ -54,7 +51,7 @@ func (r *DepartmentRepository) List(ctx context.Context, filters map[string]any,
 	}
 
 	var total int64
-	if err := query.Model(&model.Department{}).Count(&total).Error; err != nil {
+	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, errs.WrapInternal(err, "failed to count departments")
 	}
 
