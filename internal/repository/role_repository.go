@@ -97,8 +97,8 @@ func (r *RoleRepository) FindByID(ctx context.Context, id uint) (*model.Role, er
 }
 
 // Update updates a role.
-func (r *RoleRepository) Update(ctx context.Context, role *model.Role) error {
-	result := r.db.WithContext(ctx).Save(role)
+func (r *RoleRepository) Update(ctx context.Context, role *model.Role, params map[string]any) error {
+	result := r.db.WithContext(ctx).Model(role).Updates(params)
 	if result.Error != nil {
 		return errs.WrapInternal(result.Error, "failed to update role")
 	}

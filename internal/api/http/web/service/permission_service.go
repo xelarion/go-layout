@@ -3,11 +3,9 @@ package service
 import (
 	"context"
 
-	"github.com/xelarion/go-layout/internal/api/http/web/middleware"
 	"github.com/xelarion/go-layout/internal/api/http/web/types"
 	"github.com/xelarion/go-layout/internal/permission"
 	"github.com/xelarion/go-layout/internal/usecase"
-	"github.com/xelarion/go-layout/pkg/errs"
 )
 
 // PermissionService handles permission related business logic
@@ -78,19 +76,6 @@ func (s *PermissionService) GetRolePermissions(ctx context.Context, req *types.G
 
 // UpdateRolePermissions updates the permissions for a role
 func (s *PermissionService) UpdateRolePermissions(ctx context.Context, req *types.UpdateRolePermissionsReq) (*types.UpdateRolePermissionsResp, error) {
-	// Get current context
-	current := middleware.GetCurrent(ctx)
-	if current == nil {
-		return nil, errs.NewBusiness("unauthorized")
-	}
-
-	// Check if user is trying to modify super admin role
-	if role, err := s.roleUseCase.GetByID(ctx, req.RoleID); err != nil {
-		return nil, err
-	} else if role.IsSuperAdmin() {
-		return nil, errs.NewBusiness("cannot modify super admin role permissions")
-	}
-
 	// Update role permissions
 	if err := s.roleUseCase.UpdatePermissions(ctx, req.RoleID, req.Permissions); err != nil {
 		return nil, err

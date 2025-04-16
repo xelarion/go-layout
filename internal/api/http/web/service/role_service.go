@@ -105,12 +105,6 @@ func (s *RoleService) GetRoleFormData(ctx context.Context, req *types.GetRoleFor
 
 // UpdateRole updates a role.
 func (s *RoleService) UpdateRole(ctx context.Context, req *types.UpdateRoleReq) (*types.UpdateRoleResp, error) {
-	// First check if the role exists
-	_, err := s.roleUseCase.GetByID(ctx, req.ID)
-	if err != nil {
-		return nil, err
-	}
-
 	// Create update params
 	params := usecase.UpdateRoleParams{
 		ID: req.ID,
@@ -131,20 +125,7 @@ func (s *RoleService) UpdateRole(ctx context.Context, req *types.UpdateRoleReq) 
 
 // UpdateRoleEnabled updates a role's enabled status.
 func (s *RoleService) UpdateRoleEnabled(ctx context.Context, req *types.UpdateRoleEnabledReq) (*types.UpdateRoleResp, error) {
-	// First check if the role exists
-	_, err := s.roleUseCase.GetByID(ctx, req.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create update params with only the enabled status
-	params := usecase.UpdateRoleParams{
-		ID:         req.ID,
-		Enabled:    *req.Enabled,
-		EnabledSet: true,
-	}
-
-	if err := s.roleUseCase.Update(ctx, params); err != nil {
+	if err := s.roleUseCase.UpdateEnabled(ctx, req.ID, *req.Enabled); err != nil {
 		return nil, err
 	}
 

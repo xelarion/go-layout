@@ -131,12 +131,6 @@ func (s *UserService) GetUserFormData(ctx context.Context, req *types.GetUserFor
 
 // UpdateUser updates a user.
 func (s *UserService) UpdateUser(ctx context.Context, req *types.UpdateUserReq) (*types.UpdateUserResp, error) {
-	// First check if the user exists
-	_, err := s.userUseCase.GetByID(ctx, req.ID)
-	if err != nil {
-		return nil, err
-	}
-
 	// Create update params
 	params := usecase.UpdateUserParams{
 		ID: req.ID,
@@ -174,20 +168,7 @@ func (s *UserService) UpdateUser(ctx context.Context, req *types.UpdateUserReq) 
 
 // UpdateUserEnabled updates a user's enabled status.
 func (s *UserService) UpdateUserEnabled(ctx context.Context, req *types.UpdateUserEnabledReq) (*types.UpdateUserResp, error) {
-	// First check if the user exists
-	_, err := s.userUseCase.GetByID(ctx, req.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create update params with only the enabled status
-	params := usecase.UpdateUserParams{
-		ID:         req.ID,
-		Enabled:    *req.Enabled,
-		EnabledSet: true,
-	}
-
-	if err := s.userUseCase.Update(ctx, params); err != nil {
+	if err := s.userUseCase.UpdateEnabled(ctx, req.ID, *req.Enabled); err != nil {
 		return nil, err
 	}
 

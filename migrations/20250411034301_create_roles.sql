@@ -23,7 +23,7 @@ COMMENT ON COLUMN roles.enabled IS 'Role enabled status';
 COMMENT ON COLUMN roles.permissions IS 'Role permissions';
 
 INSERT INTO roles (name, slug, description, enabled, permissions)
-VALUES ('Super Admin', 'super_admin', 'Super admin role', TRUE, '{}')
+VALUES ('Super Admin', 'super_admin', 'Super admin role', TRUE, '{*}')
 ON CONFLICT DO NOTHING;
 
 -- +goose StatementEnd

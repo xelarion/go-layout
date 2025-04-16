@@ -76,6 +76,9 @@ func Error(logger *zap.Logger) gin.HandlerFunc {
 			case errs.ReasonUnauthorized:
 				httpStatus = http.StatusUnauthorized
 				respCode = types.CodeUnauthorized
+			case errs.ReasonUserDisabled:
+				httpStatus = http.StatusForbidden
+				respCode = types.CodeUserDisabled
 			case errs.ReasonForbidden:
 				httpStatus = http.StatusForbidden
 				respCode = types.CodeForbidden

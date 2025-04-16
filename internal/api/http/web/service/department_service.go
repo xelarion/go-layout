@@ -104,12 +104,6 @@ func (s *DepartmentService) GetDepartmentFormData(ctx context.Context, req *type
 
 // UpdateDepartment updates a department.
 func (s *DepartmentService) UpdateDepartment(ctx context.Context, req *types.UpdateDepartmentReq) (*types.UpdateDepartmentResp, error) {
-	// First check if the department exists
-	_, err := s.departmentUseCase.GetByID(ctx, req.ID)
-	if err != nil {
-		return nil, err
-	}
-
 	// Create update params
 	params := usecase.UpdateDepartmentParams{
 		ID: req.ID,
@@ -130,20 +124,7 @@ func (s *DepartmentService) UpdateDepartment(ctx context.Context, req *types.Upd
 
 // UpdateDepartmentEnabled updates a department's enabled status.
 func (s *DepartmentService) UpdateDepartmentEnabled(ctx context.Context, req *types.UpdateDepartmentEnabledReq) (*types.UpdateDepartmentResp, error) {
-	// First check if the department exists
-	_, err := s.departmentUseCase.GetByID(ctx, req.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create update params with only the enabled status
-	params := usecase.UpdateDepartmentParams{
-		ID:         req.ID,
-		Enabled:    *req.Enabled,
-		EnabledSet: true,
-	}
-
-	if err := s.departmentUseCase.Update(ctx, params); err != nil {
+	if err := s.departmentUseCase.UpdateEnabled(ctx, req.ID, *req.Enabled); err != nil {
 		return nil, err
 	}
 

@@ -27,12 +27,10 @@ type UpdateDepartmentParams struct {
 	ID          uint
 	Name        string
 	Description string
-	Enabled     bool
 
 	// Fields to track which values are explicitly set
 	NameSet        bool
 	DescriptionSet bool
-	EnabledSet     bool
 }
 
 // DepartmentRepository defines methods for department data access.
@@ -42,7 +40,7 @@ type DepartmentRepository interface {
 	IsExists(ctx context.Context, filters map[string]any, notFilters map[string]any) (bool, error)
 	Count(ctx context.Context, filters map[string]any, notFilters map[string]any) (int64, error)
 	FindByID(ctx context.Context, id uint) (*model.Department, error)
-	Update(ctx context.Context, department *model.Department) error
+	Update(ctx context.Context, department *model.Department, params map[string]any) error
 	Delete(ctx context.Context, id uint) error
 }
 
@@ -138,33 +136,45 @@ func (uc *DepartmentUseCase) Update(ctx context.Context, params UpdateDepartment
 		return err
 	}
 
-	// Check if department already exists
-	exists, err := uc.departmentRepo.IsExists(ctx, map[string]any{"name": params.Name}, map[string]any{"id": params.ID})
+	updates := map[string]any{}
+
+	// Update fields that are explicitly set
+	if params.NameSet {
+		// Check if department already exists
+		exists, err := uc.departmentRepo.IsExists(ctx, map[string]any{"name": params.Name}, map[string]any{"id": params.ID})
+		if err != nil {
+			return err
+		}
+
+		if exists {
+			return errs.NewBusiness("department name already exists").
+				WithReason(errs.ReasonDuplicate)
+		}
+
+		updates["name"] = params.Name
+	}
+
+	if params.DescriptionSet {
+		updates["description"] = params.Description
+	}
+
+	if err := uc.departmentRepo.Update(ctx, department, updates); err != nil {
+		return err
+	}
+	return nil
+}
+
+// UpdateEnabled updates department enabled.
+func (uc *DepartmentUseCase) UpdateEnabled(ctx context.Context, id uint, enabled bool) error {
+	department, err := uc.departmentRepo.FindByID(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	if exists {
-		return errs.NewBusiness("department name already exists").
-			WithReason(errs.ReasonDuplicate)
-	}
-
-	// Update fields that are explicitly set
-	if params.NameSet {
-		department.Name = params.Name
-	}
-
-	if params.DescriptionSet {
-		department.Description = params.Description
-	}
-
-	if params.EnabledSet {
-		department.Enabled = params.Enabled
-	}
-
-	if err := uc.departmentRepo.Update(ctx, department); err != nil {
+	if err := uc.departmentRepo.Update(ctx, department, map[string]any{"enabled": enabled}); err != nil {
 		return err
 	}
+
 	return nil
 }
 

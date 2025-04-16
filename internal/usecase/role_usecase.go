@@ -4,7 +4,8 @@ package usecase
 import (
 	"context"
 
-	"github.com/xelarion/go-layout/internal/enum"
+	"github.com/lib/pq"
+
 	"github.com/xelarion/go-layout/internal/model"
 	"github.com/xelarion/go-layout/internal/model/gen"
 	"github.com/xelarion/go-layout/pkg/errs"
@@ -28,12 +29,10 @@ type UpdateRoleParams struct {
 	ID          uint
 	Name        string
 	Description string
-	Enabled     bool
 
 	// Fields to track which values are explicitly set
 	NameSet        bool
 	DescriptionSet bool
-	EnabledSet     bool
 }
 
 // RoleRepository defines methods for role data access.
@@ -43,7 +42,7 @@ type RoleRepository interface {
 	IsExists(ctx context.Context, filters map[string]any, notFilters map[string]any) (bool, error)
 	Count(ctx context.Context, filters map[string]any, notFilters map[string]any) (int64, error)
 	FindByID(ctx context.Context, id uint) (*model.Role, error)
-	Update(ctx context.Context, role *model.Role) error
+	Update(ctx context.Context, role *model.Role, params map[string]any) error
 	Delete(ctx context.Context, id uint) error
 }
 
@@ -135,39 +134,53 @@ func (uc *RoleUseCase) Update(ctx context.Context, params UpdateRoleParams) erro
 		return err
 	}
 
-	// Check if role already exists
-	exists, err := uc.roleRepo.IsExists(ctx, map[string]any{"name": params.Name}, map[string]any{"id": params.ID})
+	updates := map[string]any{}
+
+	// Update fields that are explicitly set
+	if params.NameSet {
+		// Check if role already exists
+		exists, err := uc.roleRepo.IsExists(ctx, map[string]any{"name": params.Name}, map[string]any{"id": params.ID})
+		if err != nil {
+			return err
+		}
+
+		if exists {
+			return errs.NewBusiness("role name already exists").
+				WithReason(errs.ReasonDuplicate)
+		}
+
+		updates["name"] = params.Name
+	}
+
+	if params.DescriptionSet {
+		updates["description"] = params.Description
+	}
+
+	if err := uc.roleRepo.Update(ctx, role, updates); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UpdateEnabled updates role enabled.
+func (uc *RoleUseCase) UpdateEnabled(ctx context.Context, id uint, enabled bool) error {
+	// Get the existing role
+	role, err := uc.roleRepo.FindByID(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	if exists {
-		return errs.NewBusiness("role name already exists").
-			WithReason(errs.ReasonDuplicate)
+	// super admin cannot be updated
+	if role.IsSuperAdmin() {
+		return errs.NewBusiness("super admin cannot be updated").
+			WithReason(errs.ReasonInvalidState)
 	}
 
-	// Update fields that are explicitly set
-	if params.NameSet {
-		role.Name = params.Name
-	}
-
-	if params.DescriptionSet {
-		role.Description = params.Description
-	}
-
-	if params.EnabledSet {
-		// super admin cannot be updated
-		if role.Slug == enum.RoleSuperAdmin {
-			return errs.NewBusiness("super admin cannot be updated").
-				WithReason(errs.ReasonInvalidState)
-		}
-
-		role.Enabled = params.Enabled
-	}
-
-	if err := uc.roleRepo.Update(ctx, role); err != nil {
+	if err := uc.roleRepo.Update(ctx, role, map[string]any{"enabled": enabled}); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -215,16 +228,15 @@ func (uc *RoleUseCase) UpdatePermissions(ctx context.Context, roleID uint, permi
 	}
 
 	// super admin cannot be updated
-	if role.Slug == enum.RoleSuperAdmin {
+	if role.IsSuperAdmin() {
 		return errs.NewBusiness("super admin permissions cannot be updated").
 			WithReason(errs.ReasonInvalidState)
 	}
 
 	// Update permissions
-	role.Permissions = permissions
-
-	if err := uc.roleRepo.Update(ctx, role); err != nil {
+	if err := uc.roleRepo.Update(ctx, role, map[string]any{"permissions": pq.StringArray(permissions)}); err != nil {
 		return err
 	}
+
 	return nil
 }

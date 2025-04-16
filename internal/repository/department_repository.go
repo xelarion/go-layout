@@ -98,8 +98,8 @@ func (r *DepartmentRepository) FindByID(ctx context.Context, id uint) (*model.De
 }
 
 // Update updates a department.
-func (r *DepartmentRepository) Update(ctx context.Context, department *model.Department) error {
-	result := r.db.WithContext(ctx).Save(department)
+func (r *DepartmentRepository) Update(ctx context.Context, department *model.Department, params map[string]any) error {
+	result := r.db.WithContext(ctx).Model(department).Updates(params)
 	if result.Error != nil {
 		return errs.WrapInternal(result.Error, "failed to update department")
 	}

@@ -77,39 +77,37 @@ func (r *Router) SetupRoutes() {
 	authorized.PUT("/profile", authHandler.UpdateProfile)
 	authorized.GET("/users/current", authHandler.GetCurrentUserInfo)
 
-	// Permission tree
-	authorized.GET("/permissions/tree", permissionHandler.GetPermissionTree)
-
-	// User management routes
-	authorized.POST("/users", r.permMW.Check(permission.UserCreate), userHandler.CreateUser)
-	authorized.GET("/users", r.permMW.Check(permission.UserList), userHandler.ListUsers)
-	authorized.GET("/users/:id", r.permMW.Check(permission.UserDetail, permission.UserUpdate), userHandler.GetUser)
-	authorized.GET("/users/:id/form", r.permMW.Check(permission.UserDetail, permission.UserUpdate), userHandler.GetUserFormData)
-	authorized.PUT("/users/:id", r.permMW.Check(permission.UserUpdate), userHandler.UpdateUser)
-	authorized.PATCH("/users/:id/enabled", r.permMW.Check(permission.UserUpdate), userHandler.UpdateUserEnabled)
-	authorized.DELETE("/users/:id", r.permMW.Check(permission.UserDelete), userHandler.DeleteUser)
-
 	// Department management routes
 	authorized.POST("/departments", r.permMW.Check(permission.DepartmentCreate), departmentHandler.CreateDepartment)
 	authorized.GET("/departments", r.permMW.Check(permission.DepartmentList), departmentHandler.ListDepartments)
-	authorized.GET("/departments/:id", r.permMW.Check(permission.DepartmentDetail, permission.DepartmentUpdate), departmentHandler.GetDepartment)
-	authorized.GET("/departments/:id/form", r.permMW.Check(permission.DepartmentDetail, permission.DepartmentUpdate), departmentHandler.GetDepartmentFormData)
+	authorized.GET("/departments/:id", r.permMW.Check(permission.DepartmentDetail), departmentHandler.GetDepartment)
+	authorized.GET("/departments/:id/form", r.permMW.Check(permission.DepartmentUpdate), departmentHandler.GetDepartmentFormData)
 	authorized.PUT("/departments/:id", r.permMW.Check(permission.DepartmentUpdate), departmentHandler.UpdateDepartment)
-	authorized.PATCH("/departments/:id/enabled", r.permMW.Check(permission.DepartmentUpdate), departmentHandler.UpdateDepartmentEnabled)
+	authorized.PATCH("/departments/:id/enabled", r.permMW.Check(permission.DepartmentUpdateEnabled), departmentHandler.UpdateDepartmentEnabled)
 	authorized.DELETE("/departments/:id", r.permMW.Check(permission.DepartmentDelete), departmentHandler.DeleteDepartment)
-	authorized.GET("/departments/options", r.permMW.Check(permission.DepartmentList), departmentHandler.GetDepartmentOptions)
+	authorized.GET("/departments/options", r.permMW.Check(permission.UserCreate, permission.UserUpdate), departmentHandler.GetDepartmentOptions)
 
 	// Role management routes
 	authorized.POST("/roles", r.permMW.Check(permission.RoleCreate), roleHandler.CreateRole)
 	authorized.GET("/roles", r.permMW.Check(permission.RoleList), roleHandler.ListRoles)
-	authorized.GET("/roles/:id", r.permMW.Check(permission.RoleDetail, permission.RoleUpdate), roleHandler.GetRole)
-	authorized.GET("/roles/:id/form", r.permMW.Check(permission.RoleDetail, permission.RoleUpdate), roleHandler.GetRoleFormData)
+	authorized.GET("/roles/:id", r.permMW.Check(permission.RoleDetail), roleHandler.GetRole)
+	authorized.GET("/roles/:id/form", r.permMW.Check(permission.RoleUpdate), roleHandler.GetRoleFormData)
 	authorized.PUT("/roles/:id", r.permMW.Check(permission.RoleUpdate), roleHandler.UpdateRole)
-	authorized.PATCH("/roles/:id/enabled", r.permMW.Check(permission.RoleUpdate), roleHandler.UpdateRoleEnabled)
+	authorized.PATCH("/roles/:id/enabled", r.permMW.Check(permission.RoleUpdateEnabled), roleHandler.UpdateRoleEnabled)
 	authorized.DELETE("/roles/:id", r.permMW.Check(permission.RoleDelete), roleHandler.DeleteRole)
-	authorized.GET("/roles/options", r.permMW.Check(permission.RoleList), roleHandler.GetRoleOptions)
-
+	authorized.GET("/roles/options", r.permMW.Check(permission.UserCreate, permission.UserUpdate), roleHandler.GetRoleOptions)
 	// Role permissions routes
-	authorized.GET("/roles/:id/permissions", r.permMW.Check(permission.RoleDetail, permission.PermissionUpdate), permissionHandler.GetRolePermissions)
+	authorized.GET("/roles/:id/permissions", r.permMW.Check(permission.PermissionUpdate), permissionHandler.GetRolePermissions)
 	authorized.PUT("/roles/:id/permissions", r.permMW.Check(permission.PermissionUpdate), permissionHandler.UpdateRolePermissions)
+	// Permission tree
+	authorized.GET("/permissions/tree", r.permMW.Check(permission.PermissionUpdate), permissionHandler.GetPermissionTree)
+
+	// User management routes
+	authorized.POST("/users", r.permMW.Check(permission.UserCreate), userHandler.CreateUser)
+	authorized.GET("/users", r.permMW.Check(permission.UserList), userHandler.ListUsers)
+	authorized.GET("/users/:id", r.permMW.Check(permission.UserDetail), userHandler.GetUser)
+	authorized.GET("/users/:id/form", r.permMW.Check(permission.UserUpdate), userHandler.GetUserFormData)
+	authorized.PUT("/users/:id", r.permMW.Check(permission.UserUpdate), userHandler.UpdateUser)
+	authorized.PATCH("/users/:id/enabled", r.permMW.Check(permission.UserUpdateEnabled), userHandler.UpdateUserEnabled)
+	authorized.DELETE("/users/:id", r.permMW.Check(permission.UserDelete), userHandler.DeleteUser)
 }

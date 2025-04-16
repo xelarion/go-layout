@@ -177,6 +177,10 @@ func unauthorized(c *gin.Context, code int, message string) {
 		respCode = types.CodeUnauthorized
 	}
 
+	if message == "user account is disabled" {
+		respCode = types.CodeUserDisabled
+	}
+
 	c.JSON(code, types.Error(respCode, message))
 }
 

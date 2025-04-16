@@ -112,8 +112,8 @@ func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*
 }
 
 // Update updates a user.
-func (r *UserRepository) Update(ctx context.Context, user *model.User) error {
-	result := r.db.WithContext(ctx).Save(user)
+func (r *UserRepository) Update(ctx context.Context, user *model.User, params map[string]any) error {
+	result := r.db.WithContext(ctx).Model(user).Updates(params)
 	if result.Error != nil {
 		return errs.WrapInternal(result.Error, "failed to update user")
 	}

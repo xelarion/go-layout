@@ -120,12 +120,6 @@ func (s *AuthService) UpdateProfile(ctx context.Context, req *types.UpdateProfil
 		return nil, errs.NewBusiness("unauthorized").WithReason(errs.ReasonUnauthorized)
 	}
 
-	// First check if the user exists
-	_, err := s.userUseCase.GetByID(ctx, current.UserID)
-	if err != nil {
-		return nil, err
-	}
-
 	// Create update params
 	params := usecase.UpdateUserParams{
 		ID: current.UserID,

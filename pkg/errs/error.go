@@ -34,8 +34,9 @@ const (
 
 	// Permission related errors
 
-	ReasonUnauthorized = "UNAUTHORIZED" // Not authenticated (not logged in)
-	ReasonForbidden    = "FORBIDDEN"    // Access denied (no permission)
+	ReasonUnauthorized = "UNAUTHORIZED"  // Not authenticated (not logged in)
+	ReasonUserDisabled = "USER_DISABLED" // User account is disabled
+	ReasonForbidden    = "FORBIDDEN"     // Access denied (no permission)
 
 	// Client errors
 

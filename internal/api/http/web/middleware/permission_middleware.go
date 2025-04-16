@@ -56,7 +56,7 @@ func (m *PermissionMiddleware) Check(permissions ...string) gin.HandlerFunc {
 		}
 
 		if !hasPermission {
-			c.AbortWithStatusJSON(http.StatusForbidden, types.Error(types.CodeForbidden, "Access denied"))
+			c.AbortWithStatusJSON(http.StatusForbidden, types.Error(types.CodeForbidden, "access denied"))
 			return
 		}
 
