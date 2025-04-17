@@ -75,32 +75,26 @@ func (uc *RoleUseCase) Create(ctx context.Context, params CreateRoleParams) (uin
 			WithReason(errs.ReasonDuplicate)
 	}
 
-	var roleID uint
+	role := &model.Role{
+		Role: gen.Role{
+			Name:        params.Name,
+			Slug:        "",
+			Description: params.Description,
+			Enabled:     params.Enabled,
+			Permissions: []string{},
+		},
+	}
 	err = uc.tx.Transaction(ctx, func(ctx context.Context) error {
-		// Create role
-		role := &model.Role{
-			Role: gen.Role{
-				Name:        params.Name,
-				Slug:        "",
-				Description: params.Description,
-				Enabled:     params.Enabled,
-				Permissions: []string{},
-			},
-		}
-
 		if err := uc.roleRepo.Create(ctx, role); err != nil {
 			return err
 		}
-
-		roleID = role.ID
 		return nil
 	})
-
 	if err != nil {
 		return 0, err
 	}
 
-	return roleID, nil
+	return role.ID, nil
 }
 
 // List returns a list of roles with pagination and filtering.

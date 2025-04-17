@@ -146,24 +146,24 @@
 ```go
 // Create 创建一个新部门。
 func (uc *DepartmentUseCase) Create(ctx context.Context, params CreateDepartmentParams) (uint, error) {
-    var departmentID uint
-    err = uc.tx.Transaction(ctx, func(ctx context.Context) error {
-        department := &model.Department{
-            Department: gen.Department{
-                Name:        params.Name,
-                Description: params.Description,
-            },
-        }
+	department := &model.Department{
+		Department: gen.Department{
+			Name:        params.Name,
+			Description: params.Description,
+			Enabled:     params.Enabled,
+		},
+	}
+	err := uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		if err := uc.departmentRepo.Create(ctx, department); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return 0, err
+	}
 
-        if err := uc.departmentRepo.Create(ctx, department); err != nil {
-            return err
-        }
-
-        departmentID = department.ID
-        return nil
-    })
-
-    return departmentID, err
+	return department.ID, nil
 }
 ```
 

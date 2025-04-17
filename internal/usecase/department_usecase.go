@@ -73,30 +73,24 @@ func (uc *DepartmentUseCase) Create(ctx context.Context, params CreateDepartment
 			WithReason(errs.ReasonDuplicate)
 	}
 
-	var departmentID uint
+	department := &model.Department{
+		Department: gen.Department{
+			Name:        params.Name,
+			Description: params.Description,
+			Enabled:     params.Enabled,
+		},
+	}
 	err = uc.tx.Transaction(ctx, func(ctx context.Context) error {
-		// Create department
-		department := &model.Department{
-			Department: gen.Department{
-				Name:        params.Name,
-				Description: params.Description,
-				Enabled:     params.Enabled,
-			},
-		}
-
 		if err := uc.departmentRepo.Create(ctx, department); err != nil {
 			return err
 		}
-
-		departmentID = department.ID
 		return nil
 	})
-
 	if err != nil {
 		return 0, err
 	}
 
-	return departmentID, nil
+	return department.ID, nil
 }
 
 // List returns a list of departments with pagination and filtering.

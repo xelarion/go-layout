@@ -132,26 +132,22 @@ func (uc *UserUseCase) Create(ctx context.Context, params CreateUserParams) (uin
 		return 0, errs.WrapInternal(err, "failed to hash password")
 	}
 
-	var userID uint
+	user := &model.User{
+		User: gen.User{
+			Username:     params.Username,
+			Password:     string(hashedPassword),
+			FullName:     params.FullName,
+			PhoneNumber:  params.PhoneNumber,
+			Email:        params.Email,
+			Enabled:      params.Enabled,
+			DepartmentID: params.DepartmentID,
+			RoleID:       params.RoleID,
+		},
+	}
 	err = uc.tx.Transaction(ctx, func(ctx context.Context) error {
-		user := &model.User{
-			User: gen.User{
-				Username:     params.Username,
-				Password:     string(hashedPassword),
-				FullName:     params.FullName,
-				PhoneNumber:  params.PhoneNumber,
-				Email:        params.Email,
-				Enabled:      params.Enabled,
-				DepartmentID: params.DepartmentID,
-				RoleID:       params.RoleID,
-			},
-		}
-
 		if err := uc.userRepo.Create(ctx, user); err != nil {
 			return err
 		}
-
-		userID = user.ID
 		return nil
 	})
 
@@ -159,7 +155,7 @@ func (uc *UserUseCase) Create(ctx context.Context, params CreateUserParams) (uin
 		return 0, err
 	}
 
-	return userID, nil
+	return user.ID, nil
 }
 
 // List returns a list of users with pagination and filtering.
