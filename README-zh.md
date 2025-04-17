@@ -133,6 +133,40 @@
 - **错误分类**：对错误进行分类，对应相应的 HTTP 状态码
 - **结构化日志**：详细的错误日志记录，格式一致
 
+### 事务管理
+
+应用程序实现了清晰的事务管理方法：
+
+- **事务接口**：在用例层定义了简单接口用于界定事务边界
+- **上下文传播**：事务通过上下文传递以保持一致状态
+- **依赖注入**：事务管理器注入到用例中便于测试
+
+事务使用示例：
+
+```go
+// Create 创建一个新部门。
+func (uc *DepartmentUseCase) Create(ctx context.Context, params CreateDepartmentParams) (uint, error) {
+    var departmentID uint
+    err = uc.tx.Transaction(ctx, func(ctx context.Context) error {
+        department := &model.Department{
+            Department: gen.Department{
+                Name:        params.Name,
+                Description: params.Description,
+            },
+        }
+
+        if err := uc.departmentRepo.Create(ctx, department); err != nil {
+            return err
+        }
+
+        departmentID = department.ID
+        return nil
+    })
+
+    return departmentID, err
+}
+```
+
 ### 任务系统架构
 
 应用程序包含一个健壮的任务系统，具有三种任务执行模型：

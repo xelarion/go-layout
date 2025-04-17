@@ -133,6 +133,40 @@ The application implements a comprehensive error handling system:
 - **Error Categorization**: Categorization of errors with corresponding HTTP status codes
 - **Structured Logging**: Detailed error logging with consistent formatting
 
+### Transaction Management
+
+The application implements a clean transaction management approach:
+
+- **Transaction Interface**: A simple interface in the usecase layer that defines transaction boundaries
+- **Context Propagation**: Transactions are passed through context for consistent state
+- **Dependency Injection**: Transaction manager is injected into usecases for testability
+
+Example transaction usage:
+
+```go
+// Create creates a new department.
+func (uc *DepartmentUseCase) Create(ctx context.Context, params CreateDepartmentParams) (uint, error) {
+    var departmentID uint
+    err = uc.tx.Transaction(ctx, func(ctx context.Context) error {
+        department := &model.Department{
+            Department: gen.Department{
+                Name:        params.Name,
+                Description: params.Description,
+            },
+        }
+
+        if err := uc.departmentRepo.Create(ctx, department); err != nil {
+            return err
+        }
+
+        departmentID = department.ID
+        return nil
+    })
+
+    return departmentID, err
+}
+```
+
 ### Task System Architecture
 
 The application contains a robust task system with three task execution models:
