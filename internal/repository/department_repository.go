@@ -8,24 +8,27 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/xelarion/go-layout/internal/model"
+	"github.com/xelarion/go-layout/internal/usecase"
 	"github.com/xelarion/go-layout/pkg/errs"
 )
 
+var _ usecase.DepartmentRepository = (*DepartmentRepository)(nil)
+
 // DepartmentRepository is an implementation of the department repository.
 type DepartmentRepository struct {
-	db *gorm.DB
+	data *Data
 }
 
 // NewDepartmentRepository creates a new instance of department repository.
-func NewDepartmentRepository(db *gorm.DB) *DepartmentRepository {
+func NewDepartmentRepository(data *Data) *DepartmentRepository {
 	return &DepartmentRepository{
-		db: db,
+		data: data,
 	}
 }
 
 // Create adds a new department to the database.
 func (r *DepartmentRepository) Create(ctx context.Context, department *model.Department) error {
-	if err := r.db.WithContext(ctx).Create(department).Error; err != nil {
+	if err := r.data.DB(ctx).Create(department).Error; err != nil {
 		return errs.WrapInternal(err, "failed to create department")
 	}
 	return nil
@@ -33,7 +36,7 @@ func (r *DepartmentRepository) Create(ctx context.Context, department *model.Dep
 
 // List retrieves departments with pagination and filtering.
 func (r *DepartmentRepository) List(ctx context.Context, filters map[string]any, limit, offset int, sortClause string) ([]*model.Department, int, error) {
-	query := r.db.WithContext(ctx).Model(&model.Department{})
+	query := r.data.DB(ctx).Model(&model.Department{})
 
 	for field, value := range filters {
 		if value == nil {
@@ -71,18 +74,18 @@ func (r *DepartmentRepository) List(ctx context.Context, filters map[string]any,
 
 // IsExists checks if a department exists in the database.
 func (r *DepartmentRepository) IsExists(ctx context.Context, filters map[string]any, notFilters map[string]any) (bool, error) {
-	return IsExists(ctx, r.db, &model.Department{}, filters, notFilters)
+	return IsExists(ctx, r.data.DB(ctx), &model.Department{}, filters, notFilters)
 }
 
 // Count counts the number of departments.
 func (r *DepartmentRepository) Count(ctx context.Context, filters map[string]any, notFilters map[string]any) (int64, error) {
-	return Count(ctx, r.db, &model.Department{}, filters, notFilters)
+	return Count(ctx, r.data.DB(ctx), &model.Department{}, filters, notFilters)
 }
 
 // FindByID retrieves a department by ID.
 func (r *DepartmentRepository) FindByID(ctx context.Context, id uint) (*model.Department, error) {
 	var department model.Department
-	err := r.db.WithContext(ctx).First(&department, id).Error
+	err := r.data.DB(ctx).First(&department, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errs.NewBusiness("department not found").
@@ -96,7 +99,7 @@ func (r *DepartmentRepository) FindByID(ctx context.Context, id uint) (*model.De
 
 // Update updates a department.
 func (r *DepartmentRepository) Update(ctx context.Context, department *model.Department, params map[string]any) error {
-	result := r.db.WithContext(ctx).Model(department).Updates(params)
+	result := r.data.DB(ctx).Model(department).Updates(params)
 	if result.Error != nil {
 		return errs.WrapInternal(result.Error, "failed to update department")
 	}
@@ -112,7 +115,7 @@ func (r *DepartmentRepository) Update(ctx context.Context, department *model.Dep
 
 // Delete removes a department by ID.
 func (r *DepartmentRepository) Delete(ctx context.Context, id uint) error {
-	result := r.db.WithContext(ctx).Delete(&model.Department{}, id)
+	result := r.data.DB(ctx).Delete(&model.Department{}, id)
 	if result.Error != nil {
 		return errs.WrapInternal(result.Error, "failed to delete department")
 	}

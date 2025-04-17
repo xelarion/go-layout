@@ -48,13 +48,15 @@ type RoleRepository interface {
 
 // RoleUseCase implements business logic for role operations.
 type RoleUseCase struct {
+	tx       Transaction
 	roleRepo RoleRepository
 	userRepo UserRepository
 }
 
 // NewRoleUseCase creates a new instance of RoleUseCase.
-func NewRoleUseCase(repo RoleRepository, userRepo UserRepository) *RoleUseCase {
+func NewRoleUseCase(tx Transaction, repo RoleRepository, userRepo UserRepository) *RoleUseCase {
 	return &RoleUseCase{
+		tx:       tx,
 		roleRepo: repo,
 		userRepo: userRepo,
 	}
@@ -73,22 +75,32 @@ func (uc *RoleUseCase) Create(ctx context.Context, params CreateRoleParams) (uin
 			WithReason(errs.ReasonDuplicate)
 	}
 
-	// Create role
-	role := &model.Role{
-		Role: gen.Role{
-			Name:        params.Name,
-			Slug:        "",
-			Description: params.Description,
-			Enabled:     params.Enabled,
-			Permissions: []string{},
-		},
-	}
+	var roleID uint
+	err = uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		// Create role
+		role := &model.Role{
+			Role: gen.Role{
+				Name:        params.Name,
+				Slug:        "",
+				Description: params.Description,
+				Enabled:     params.Enabled,
+				Permissions: []string{},
+			},
+		}
 
-	if err := uc.roleRepo.Create(ctx, role); err != nil {
+		if err := uc.roleRepo.Create(ctx, role); err != nil {
+			return err
+		}
+
+		roleID = role.ID
+		return nil
+	})
+
+	if err != nil {
 		return 0, err
 	}
 
-	return role.ID, nil
+	return roleID, nil
 }
 
 // List returns a list of roles with pagination and filtering.
@@ -156,11 +168,12 @@ func (uc *RoleUseCase) Update(ctx context.Context, params UpdateRoleParams) erro
 		updates["description"] = params.Description
 	}
 
-	if err := uc.roleRepo.Update(ctx, role, updates); err != nil {
-		return err
-	}
-
-	return nil
+	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		if err := uc.roleRepo.Update(ctx, role, updates); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // UpdateEnabled updates role enabled.
@@ -177,15 +190,17 @@ func (uc *RoleUseCase) UpdateEnabled(ctx context.Context, id uint, enabled bool)
 			WithReason(errs.ReasonInvalidState)
 	}
 
-	if err := uc.roleRepo.Update(ctx, role, map[string]any{"enabled": enabled}); err != nil {
-		return err
-	}
-
-	return nil
+	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		if err := uc.roleRepo.Update(ctx, role, map[string]any{"enabled": enabled}); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // Delete removes a role.
 func (uc *RoleUseCase) Delete(ctx context.Context, id uint) error {
+	// Check if role exists
 	_, err := uc.roleRepo.FindByID(ctx, id)
 	if err != nil {
 		return err
@@ -202,11 +217,12 @@ func (uc *RoleUseCase) Delete(ctx context.Context, id uint) error {
 			WithReason(errs.ReasonInvalidState)
 	}
 
-	if err := uc.roleRepo.Delete(ctx, id); err != nil {
-		return err
-	}
-
-	return nil
+	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		if err := uc.roleRepo.Delete(ctx, id); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // GetRoleOptions retrieves a list of roles for options.
@@ -233,10 +249,10 @@ func (uc *RoleUseCase) UpdatePermissions(ctx context.Context, roleID uint, permi
 			WithReason(errs.ReasonInvalidState)
 	}
 
-	// Update permissions
-	if err := uc.roleRepo.Update(ctx, role, map[string]any{"permissions": pq.StringArray(permissions)}); err != nil {
-		return err
-	}
-
-	return nil
+	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		if err := uc.roleRepo.Update(ctx, role, map[string]any{"permissions": pq.StringArray(permissions)}); err != nil {
+			return err
+		}
+		return nil
+	})
 }

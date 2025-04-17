@@ -27,10 +27,13 @@ type Dependencies struct {
 // NewDependencies creates a new dependencies instance with all required dependencies.
 func NewDependencies(db *gorm.DB, redisClient *redis.Client, logger *zap.Logger) *Dependencies {
 	// Create repositories
-	userRepo := repository.NewUserRepository(db, redisClient)
+	data := repository.NewData(db, redisClient)
+	userRepo := repository.NewUserRepository(data)
+	roleRepo := repository.NewRoleRepository(data)
+	departmentRepo := repository.NewDepartmentRepository(data)
 
 	// Create usecases
-	userUseCase := usecase.NewUserUseCase(userRepo, nil, nil)
+	userUseCase := usecase.NewUserUseCase(data, userRepo, roleRepo, departmentRepo)
 
 	return &Dependencies{
 		// Core infrastructure

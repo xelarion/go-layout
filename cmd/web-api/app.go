@@ -58,15 +58,17 @@ func initApp(cfg *config.Config, logger *zap.Logger) (*app.App, error) {
 	httpServer.Router().Use(middleware.Recovery(logger))
 	httpServer.Router().Use(middleware.Error(logger))
 
+	// Initialize data
+	data := repository.NewData(db.DB, redis.Client)
 	// Initialize repositories
-	userRepo := repository.NewUserRepository(db.DB, redis.Client)
-	departmentRepo := repository.NewDepartmentRepository(db.DB)
-	roleRepo := repository.NewRoleRepository(db.DB)
+	userRepo := repository.NewUserRepository(data)
+	departmentRepo := repository.NewDepartmentRepository(data)
+	roleRepo := repository.NewRoleRepository(data)
 
 	// Initialize usecases
-	userUseCase := usecase.NewUserUseCase(userRepo, roleRepo, departmentRepo)
-	departmentUseCase := usecase.NewDepartmentUseCase(departmentRepo, userRepo)
-	roleUseCase := usecase.NewRoleUseCase(roleRepo, userRepo)
+	userUseCase := usecase.NewUserUseCase(data, userRepo, roleRepo, departmentRepo)
+	departmentUseCase := usecase.NewDepartmentUseCase(data, departmentRepo, userRepo)
+	roleUseCase := usecase.NewRoleUseCase(data, roleRepo, userRepo)
 	permissionUseCase := usecase.NewPermissionUseCase()
 	// Initialize services
 	departmentService := service.NewDepartmentService(departmentUseCase)

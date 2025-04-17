@@ -46,13 +46,15 @@ type DepartmentRepository interface {
 
 // DepartmentUseCase implements business logic for department operations.
 type DepartmentUseCase struct {
+	tx             Transaction
 	departmentRepo DepartmentRepository
 	userRepo       UserRepository
 }
 
 // NewDepartmentUseCase creates a new instance of DepartmentUseCase.
-func NewDepartmentUseCase(repo DepartmentRepository, userRepo UserRepository) *DepartmentUseCase {
+func NewDepartmentUseCase(tx Transaction, repo DepartmentRepository, userRepo UserRepository) *DepartmentUseCase {
 	return &DepartmentUseCase{
+		tx:             tx,
 		departmentRepo: repo,
 		userRepo:       userRepo,
 	}
@@ -71,20 +73,30 @@ func (uc *DepartmentUseCase) Create(ctx context.Context, params CreateDepartment
 			WithReason(errs.ReasonDuplicate)
 	}
 
-	// Create department
-	department := &model.Department{
-		Department: gen.Department{
-			Name:        params.Name,
-			Description: params.Description,
-			Enabled:     params.Enabled,
-		},
-	}
+	var departmentID uint
+	err = uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		// Create department
+		department := &model.Department{
+			Department: gen.Department{
+				Name:        params.Name,
+				Description: params.Description,
+				Enabled:     params.Enabled,
+			},
+		}
 
-	if err := uc.departmentRepo.Create(ctx, department); err != nil {
+		if err := uc.departmentRepo.Create(ctx, department); err != nil {
+			return err
+		}
+
+		departmentID = department.ID
+		return nil
+	})
+
+	if err != nil {
 		return 0, err
 	}
 
-	return department.ID, nil
+	return departmentID, nil
 }
 
 // List returns a list of departments with pagination and filtering.
@@ -158,10 +170,12 @@ func (uc *DepartmentUseCase) Update(ctx context.Context, params UpdateDepartment
 		updates["description"] = params.Description
 	}
 
-	if err := uc.departmentRepo.Update(ctx, department, updates); err != nil {
-		return err
-	}
-	return nil
+	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		if err := uc.departmentRepo.Update(ctx, department, updates); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // UpdateEnabled updates department enabled.
@@ -171,15 +185,17 @@ func (uc *DepartmentUseCase) UpdateEnabled(ctx context.Context, id uint, enabled
 		return err
 	}
 
-	if err := uc.departmentRepo.Update(ctx, department, map[string]any{"enabled": enabled}); err != nil {
-		return err
-	}
-
-	return nil
+	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		if err = uc.departmentRepo.Update(ctx, department, map[string]any{"enabled": enabled}); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // Delete removes a department.
 func (uc *DepartmentUseCase) Delete(ctx context.Context, id uint) error {
+	// Check if department exists
 	_, err := uc.departmentRepo.FindByID(ctx, id)
 	if err != nil {
 		return err
@@ -196,11 +212,12 @@ func (uc *DepartmentUseCase) Delete(ctx context.Context, id uint) error {
 			WithReason(errs.ReasonInvalidState)
 	}
 
-	if err := uc.departmentRepo.Delete(ctx, id); err != nil {
-		return err
-	}
-
-	return nil
+	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		if err := uc.departmentRepo.Delete(ctx, id); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // GetDepartmentOptions retrieves a list of departments for options.

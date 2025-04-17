@@ -69,14 +69,16 @@ type UserRepository interface {
 
 // UserUseCase implements business logic for user operations.
 type UserUseCase struct {
+	tx             Transaction
 	userRepo       UserRepository
 	roleRepo       RoleRepository
 	departmentRepo DepartmentRepository
 }
 
 // NewUserUseCase creates a new instance of UserUseCase.
-func NewUserUseCase(repo UserRepository, roleRepo RoleRepository, departmentRepo DepartmentRepository) *UserUseCase {
+func NewUserUseCase(tx Transaction, repo UserRepository, roleRepo RoleRepository, departmentRepo DepartmentRepository) *UserUseCase {
 	return &UserUseCase{
+		tx:             tx,
 		userRepo:       repo,
 		roleRepo:       roleRepo,
 		departmentRepo: departmentRepo,
@@ -130,26 +132,34 @@ func (uc *UserUseCase) Create(ctx context.Context, params CreateUserParams) (uin
 		return 0, errs.WrapInternal(err, "failed to hash password")
 	}
 
-	// Create user
-	user := &model.User{
-		User: gen.User{
-			Username:     params.Username,
-			Password:     string(hashedPassword),
-			FullName:     params.FullName,
-			PhoneNumber:  params.PhoneNumber,
-			Email:        params.Email,
-			Enabled:      params.Enabled,
-			DepartmentID: params.DepartmentID,
-			RoleID:       params.RoleID,
-		},
-	}
+	var userID uint
+	err = uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		user := &model.User{
+			User: gen.User{
+				Username:     params.Username,
+				Password:     string(hashedPassword),
+				FullName:     params.FullName,
+				PhoneNumber:  params.PhoneNumber,
+				Email:        params.Email,
+				Enabled:      params.Enabled,
+				DepartmentID: params.DepartmentID,
+				RoleID:       params.RoleID,
+			},
+		}
 
-	err = uc.userRepo.Create(ctx, user)
+		if err := uc.userRepo.Create(ctx, user); err != nil {
+			return err
+		}
+
+		userID = user.ID
+		return nil
+	})
+
 	if err != nil {
 		return 0, err
 	}
 
-	return user.ID, nil
+	return userID, nil
 }
 
 // List returns a list of users with pagination and filtering.
@@ -313,11 +323,12 @@ func (uc *UserUseCase) Update(ctx context.Context, params UpdateUserParams) erro
 		updates["role_id"] = params.RoleID
 	}
 
-	if err := uc.userRepo.Update(ctx, user, updates); err != nil {
-		return err
-	}
-
-	return nil
+	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		if err := uc.userRepo.Update(ctx, user, updates); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // UpdateEnabled updates user enabled.
@@ -338,11 +349,12 @@ func (uc *UserUseCase) UpdateEnabled(ctx context.Context, id uint, enabled bool)
 			WithReason(errs.ReasonInvalidState)
 	}
 
-	if err := uc.userRepo.Update(ctx, user, map[string]any{"enabled": enabled}); err != nil {
-		return err
-	}
-
-	return nil
+	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		if err := uc.userRepo.Update(ctx, user, map[string]any{"enabled": enabled}); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // Delete removes a user.
@@ -352,11 +364,12 @@ func (uc *UserUseCase) Delete(ctx context.Context, id uint) error {
 		return err
 	}
 
-	if err := uc.userRepo.Delete(ctx, id); err != nil {
-		return err
-	}
-
-	return nil
+	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		if err := uc.userRepo.Delete(ctx, id); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // Login authenticates a user.

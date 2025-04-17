@@ -6,30 +6,30 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"github.com/xelarion/go-layout/internal/model"
+	"github.com/xelarion/go-layout/internal/usecase"
 	"github.com/xelarion/go-layout/pkg/errs"
 )
 
+var _ usecase.UserRepository = (*UserRepository)(nil)
+
 // UserRepository is an implementation of the user repository.
 type UserRepository struct {
-	db  *gorm.DB
-	rds *redis.Client
+	data *Data
 }
 
 // NewUserRepository creates a new instance of user repository.
-func NewUserRepository(db *gorm.DB, rds *redis.Client) *UserRepository {
+func NewUserRepository(data *Data) *UserRepository {
 	return &UserRepository{
-		db:  db,
-		rds: rds,
+		data: data,
 	}
 }
 
 // Create adds a new user to the database.
 func (r *UserRepository) Create(ctx context.Context, user *model.User) error {
-	if err := r.db.WithContext(ctx).Create(user).Error; err != nil {
+	if err := r.data.DB(ctx).Create(user).Error; err != nil {
 		return errs.WrapInternal(err, "failed to create user")
 	}
 	return nil
@@ -37,7 +37,7 @@ func (r *UserRepository) Create(ctx context.Context, user *model.User) error {
 
 // List retrieves users with pagination and filtering.
 func (r *UserRepository) List(ctx context.Context, filters map[string]any, limit, offset int, sortClause string) ([]*model.User, int, error) {
-	query := r.db.WithContext(ctx).Model(&model.User{})
+	query := r.data.DB(ctx).Model(&model.User{})
 
 	for field, value := range filters {
 		if value == nil {
@@ -74,17 +74,17 @@ func (r *UserRepository) List(ctx context.Context, filters map[string]any, limit
 }
 
 func (r *UserRepository) IsExists(ctx context.Context, filters map[string]any, notFilters map[string]any) (bool, error) {
-	return IsExists(ctx, r.db, &model.User{}, filters, notFilters)
+	return IsExists(ctx, r.data.DB(ctx), &model.User{}, filters, notFilters)
 }
 
 func (r *UserRepository) Count(ctx context.Context, filters map[string]any, notFilters map[string]any) (int64, error) {
-	return Count(ctx, r.db, &model.User{}, filters, notFilters)
+	return Count(ctx, r.data.DB(ctx), &model.User{}, filters, notFilters)
 }
 
 // FindByID retrieves a user by ID.
 func (r *UserRepository) FindByID(ctx context.Context, id uint) (*model.User, error) {
 	var user model.User
-	err := r.db.WithContext(ctx).First(&user, id).Error
+	err := r.data.DB(ctx).First(&user, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errs.NewBusiness("user not found").
@@ -99,7 +99,7 @@ func (r *UserRepository) FindByID(ctx context.Context, id uint) (*model.User, er
 // FindByUsername retrieves a user by username.
 func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*model.User, error) {
 	var user model.User
-	err := r.db.WithContext(ctx).Where("username = ?", username).First(&user).Error
+	err := r.data.DB(ctx).Where("username = ?", username).First(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errs.NewBusiness("user not found").
@@ -113,7 +113,7 @@ func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*
 
 // Update updates a user.
 func (r *UserRepository) Update(ctx context.Context, user *model.User, params map[string]any) error {
-	result := r.db.WithContext(ctx).Model(user).Updates(params)
+	result := r.data.DB(ctx).Model(user).Updates(params)
 	if result.Error != nil {
 		return errs.WrapInternal(result.Error, "failed to update user")
 	}
@@ -129,7 +129,7 @@ func (r *UserRepository) Update(ctx context.Context, user *model.User, params ma
 
 // Delete removes a user by ID.
 func (r *UserRepository) Delete(ctx context.Context, id uint) error {
-	result := r.db.WithContext(ctx).Delete(&model.User{}, id)
+	result := r.data.DB(ctx).Delete(&model.User{}, id)
 	if result.Error != nil {
 		return errs.WrapInternal(result.Error, "failed to delete user")
 	}
@@ -145,7 +145,7 @@ func (r *UserRepository) Delete(ctx context.Context, id uint) error {
 
 // SetRSAPrivateKey sets the RSA private key in the cache.
 func (r *UserRepository) SetRSAPrivateKey(ctx context.Context, cacheKey string, privateKey []byte) error {
-	err := r.rds.Set(ctx, cacheKey, privateKey, 0).Err()
+	err := r.data.rds.Set(ctx, cacheKey, privateKey, 0).Err()
 	if err != nil {
 		return errs.WrapInternal(err, "failed to set RSA private key in cache")
 	}
@@ -153,7 +153,7 @@ func (r *UserRepository) SetRSAPrivateKey(ctx context.Context, cacheKey string, 
 }
 
 func (r *UserRepository) GetRSAPrivateKey(ctx context.Context, cacheKey string) ([]byte, error) {
-	key, err := r.rds.Get(ctx, cacheKey).Bytes()
+	key, err := r.data.rds.Get(ctx, cacheKey).Bytes()
 	if err != nil {
 		return nil, errs.WrapInternal(err, "failed to get RSA private key from cache")
 	}
@@ -162,7 +162,7 @@ func (r *UserRepository) GetRSAPrivateKey(ctx context.Context, cacheKey string) 
 
 // DeleteRSAPrivateKey removes the RSA private key from the cache.
 func (r *UserRepository) DeleteRSAPrivateKey(ctx context.Context, cacheKey string) error {
-	err := r.rds.Del(ctx, cacheKey).Err()
+	err := r.data.rds.Del(ctx, cacheKey).Err()
 	if err != nil {
 		return errs.WrapInternal(err, "failed to delete RSA private key from cache")
 	}
