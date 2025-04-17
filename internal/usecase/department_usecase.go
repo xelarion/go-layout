@@ -101,14 +101,14 @@ func (uc *DepartmentUseCase) List(ctx context.Context, filters map[string]any, l
 	}
 
 	records := make([]*Department, 0, len(departments))
-	for _, dept := range departments {
-		userCount, err := uc.userRepo.Count(ctx, map[string]any{"department_id": dept.ID, "enabled": true}, nil)
+	for _, department := range departments {
+		userCount, err := uc.userRepo.Count(ctx, map[string]any{"department_id": department.ID, "enabled": true}, nil)
 		if err != nil {
 			return nil, 0, err
 		}
 
 		records = append(records, &Department{
-			Department: dept,
+			Department: department,
 			UserCount:  userCount,
 		})
 	}
