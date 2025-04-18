@@ -46,10 +46,10 @@ func (r *DepartmentRepository) List(ctx context.Context, filters map[string]any,
 		switch field {
 		case "name":
 			if str, ok := value.(string); ok {
-				query = query.Where(field+" LIKE ?", "%"+str+"%")
+				query = query.Where("departments.name LIKE ?", "%"+str+"%")
 			}
 		default:
-			query = query.Where(field+" = ?", value)
+			query = query.Where("departments."+field+" = ?", value)
 		}
 	}
 

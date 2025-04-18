@@ -47,10 +47,10 @@ func (r *UserRepository) List(ctx context.Context, filters map[string]any, limit
 		switch field {
 		case "key":
 			if str, ok := value.(string); ok {
-				query = query.Where("username LIKE @key OR full_name LIKE @key", sql.Named("key", "%"+str+"%"))
+				query = query.Where("users.username LIKE @key OR users.full_name LIKE @key", sql.Named("key", "%"+str+"%"))
 			}
 		default:
-			query = query.Where(field+" = ?", value)
+			query = query.Where("users."+field+" = ?", value)
 		}
 	}
 
