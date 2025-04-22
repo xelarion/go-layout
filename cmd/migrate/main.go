@@ -8,8 +8,8 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
-	"github.com/xelarion/go-layout/pkg/config"
-	"github.com/xelarion/go-layout/pkg/migrate"
+	"github.com/xelarion/go-layout/internal/config"
+	"github.com/xelarion/go-layout/internal/migrate"
 )
 
 func main() {

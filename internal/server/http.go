@@ -10,6 +10,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+
+	"github.com/xelarion/go-layout/internal/config"
 )
 
 // HTTPConfig holds configuration for the HTTP server.
@@ -30,11 +32,10 @@ type HTTPServer struct {
 	server *http.Server
 	router *gin.Engine
 	logger *zap.Logger
-	config *HTTPConfig
 }
 
 // NewHTTPServer creates a new HTTP server instance.
-func NewHTTPServer(config *HTTPConfig, logger *zap.Logger) *HTTPServer {
+func NewHTTPServer(config *config.HTTP, logger *zap.Logger) *HTTPServer {
 	// Set Gin mode
 	gin.SetMode(config.Mode)
 
@@ -44,7 +45,6 @@ func NewHTTPServer(config *HTTPConfig, logger *zap.Logger) *HTTPServer {
 	return &HTTPServer{
 		router: router,
 		logger: logger,
-		config: config,
 		server: &http.Server{
 			Addr:         fmt.Sprintf("%s:%d", config.Host, config.Port),
 			Handler:      router,

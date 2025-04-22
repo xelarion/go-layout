@@ -10,9 +10,9 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/xelarion/go-layout/internal/config"
+	"github.com/xelarion/go-layout/internal/logger"
 	"github.com/xelarion/go-layout/pkg/app"
-	"github.com/xelarion/go-layout/pkg/config"
-	"github.com/xelarion/go-layout/pkg/logger"
 )
 
 // Command line flags for controlling which task types are enabled

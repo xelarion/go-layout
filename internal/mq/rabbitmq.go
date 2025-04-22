@@ -9,7 +9,7 @@ import (
 	"github.com/wagslane/go-rabbitmq"
 	"go.uber.org/zap"
 
-	"github.com/xelarion/go-layout/pkg/config"
+	"github.com/xelarion/go-layout/internal/config"
 )
 
 // RabbitMQ represents a RabbitMQ client instance.

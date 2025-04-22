@@ -8,9 +8,9 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/xelarion/go-layout/internal/config"
+	"github.com/xelarion/go-layout/internal/logger"
 	"github.com/xelarion/go-layout/pkg/app"
-	"github.com/xelarion/go-layout/pkg/config"
-	"github.com/xelarion/go-layout/pkg/logger"
 )
 
 func main() {
@@ -29,7 +29,7 @@ func main() {
 	defer zapLogger.Sync()
 
 	// Initialize the application
-	apiApp, err := initApp(cfg, zapLogger.Logger)
+	apiApp, err := initApp(&cfg.PG, &cfg.Redis, &cfg.HTTP, &cfg.JWT, zapLogger.Logger)
 	if err != nil {
 		zapLogger.Logger.Fatal("Failed to initialize Web API application", zap.Error(err))
 	}

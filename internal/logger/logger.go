@@ -7,7 +7,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/xelarion/go-layout/pkg/config"
+	"github.com/xelarion/go-layout/internal/config"
 )
 
 // Logger is a wrapper around zap.Logger with additional methods.

@@ -9,7 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
-	"github.com/xelarion/go-layout/pkg/config"
+	"github.com/xelarion/go-layout/internal/config"
 )
 
 // Redis represents a Redis client instance.

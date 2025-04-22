@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 
-	"github.com/xelarion/go-layout/pkg/config"
+	"github.com/xelarion/go-layout/internal/config"
 )
 
 // PostgresDB represents a PostgreSQL database connection.

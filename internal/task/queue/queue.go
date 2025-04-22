@@ -11,9 +11,9 @@ import (
 	"github.com/wagslane/go-rabbitmq"
 	"go.uber.org/zap"
 
-	"github.com/xelarion/go-layout/pkg/config"
+	"github.com/xelarion/go-layout/internal/config"
+	"github.com/xelarion/go-layout/internal/mq"
 	"github.com/xelarion/go-layout/pkg/errs"
-	"github.com/xelarion/go-layout/pkg/mq"
 )
 
 // Action represents the action to take after processing a message.

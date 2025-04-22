@@ -7,6 +7,10 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/xelarion/go-layout/internal/cache"
+	"github.com/xelarion/go-layout/internal/config"
+	"github.com/xelarion/go-layout/internal/database"
+	"github.com/xelarion/go-layout/internal/mq"
 	"github.com/xelarion/go-layout/internal/task"
 	"github.com/xelarion/go-layout/internal/task/poller"
 	pollerTasks "github.com/xelarion/go-layout/internal/task/poller/tasks"
@@ -15,10 +19,6 @@ import (
 	"github.com/xelarion/go-layout/internal/task/scheduler"
 	schedulerTasks "github.com/xelarion/go-layout/internal/task/scheduler/tasks"
 	"github.com/xelarion/go-layout/pkg/app"
-	"github.com/xelarion/go-layout/pkg/cache"
-	"github.com/xelarion/go-layout/pkg/config"
-	"github.com/xelarion/go-layout/pkg/database"
-	"github.com/xelarion/go-layout/pkg/mq"
 )
 
 // initApp initializes the Task application with all needed resources.
