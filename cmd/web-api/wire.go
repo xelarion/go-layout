@@ -12,6 +12,7 @@ import (
 	"github.com/xelarion/go-layout/internal/api/http/web/middleware"
 	"github.com/xelarion/go-layout/internal/api/http/web/service"
 	"github.com/xelarion/go-layout/internal/api/http/web/swagger"
+	"github.com/xelarion/go-layout/internal/api/http/web/handler"
 	"github.com/xelarion/go-layout/internal/infra/config"
 	httpServer "github.com/xelarion/go-layout/internal/infra/server/http"
 	"github.com/xelarion/go-layout/internal/repository"
@@ -26,6 +27,7 @@ func initApp(cfgPG *config.PG, cfgRedis *config.Redis, cfgRabbitMQ *config.Rabbi
 		repository.ProviderSet,
 		usecase.ProviderSet,
 		service.ProviderSet,
+		handler.ProviderSet,
 		middleware.NewAuthMiddleware,
 		middleware.NewPermissionMiddleware,
 		web.NewRouter,

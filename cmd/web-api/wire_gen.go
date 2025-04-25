@@ -8,6 +8,7 @@ package main
 
 import (
 	"github.com/xelarion/go-layout/internal/api/http/web"
+	"github.com/xelarion/go-layout/internal/api/http/web/handler"
 	"github.com/xelarion/go-layout/internal/api/http/web/middleware"
 	"github.com/xelarion/go-layout/internal/api/http/web/service"
 	"github.com/xelarion/go-layout/internal/api/http/web/swagger"
@@ -33,21 +34,26 @@ func initApp(cfgPG *config.PG, cfgRedis *config.Redis, cfgRabbitMQ *config.Rabbi
 	roleRepository := repository.NewRoleRepository(data)
 	departmentRepository := repository.NewDepartmentRepository(data)
 	userUseCase := usecase.NewUserUseCase(transaction, userRepository, roleRepository, departmentRepository)
-	roleUseCase := usecase.NewRoleUseCase(transaction, roleRepository, userRepository)
-	authService := service.NewAuthService(userUseCase, roleUseCase, logger)
-	userService := service.NewUserService(userUseCase)
-	departmentUseCase := usecase.NewDepartmentUseCase(transaction, departmentRepository, userRepository)
-	departmentService := service.NewDepartmentService(departmentUseCase)
-	roleService := service.NewRoleService(roleUseCase)
-	permissionUseCase := usecase.NewPermissionUseCase()
-	permissionService := service.NewPermissionService(permissionUseCase, roleUseCase)
 	ginJWTMiddleware, err := middleware.NewAuthMiddleware(cfgJWT, userUseCase, logger)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
+	roleUseCase := usecase.NewRoleUseCase(transaction, roleRepository, userRepository)
 	permissionMiddleware := middleware.NewPermissionMiddleware(roleUseCase, logger)
-	router := web.NewRouter(authService, userService, departmentService, roleService, permissionService, ginJWTMiddleware, permissionMiddleware, logger)
+	authService := service.NewAuthService(userUseCase, roleUseCase, logger)
+	authHandler := handler.NewAuthHandler(authService, ginJWTMiddleware, logger)
+	userService := service.NewUserService(userUseCase)
+	userHandler := handler.NewUserHandler(userService, logger)
+	departmentUseCase := usecase.NewDepartmentUseCase(transaction, departmentRepository, userRepository)
+	departmentService := service.NewDepartmentService(departmentUseCase)
+	departmentHandler := handler.NewDepartmentHandler(departmentService, logger)
+	roleService := service.NewRoleService(roleUseCase)
+	roleHandler := handler.NewRoleHandler(roleService, logger)
+	permissionUseCase := usecase.NewPermissionUseCase()
+	permissionService := service.NewPermissionService(permissionUseCase, roleUseCase)
+	permissionHandler := handler.NewPermissionHandler(permissionService, logger)
+	router := web.NewRouter(logger, ginJWTMiddleware, permissionMiddleware, authHandler, userHandler, departmentHandler, roleHandler, permissionHandler)
 	swaggerRouter := swagger.NewRouter()
 	server := provideHTTPServer(cfgHTTP, logger, router, swaggerRouter)
 	appApp := newApp(logger, server)
