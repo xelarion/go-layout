@@ -97,7 +97,6 @@ func (p *Poller) Unregister(name string) {
 			<-task.done // Wait for the task to complete
 		}
 		delete(p.tasks, name)
-		p.logger.Info("Task unregistered", zap.String("task", name))
 	}
 }
 
@@ -116,7 +115,6 @@ func (p *Poller) Start() {
 	}
 
 	p.started = true
-	p.logger.Info("Poller started")
 }
 
 // runTask runs a polling task at the specified interval.
@@ -129,8 +127,6 @@ func (p *Poller) runTask(task *pollingTask) {
 	ticker := time.NewTicker(task.interval)
 	defer ticker.Stop()
 
-	task.logger.Info("Starting polling task", zap.Duration("interval", task.interval))
-
 	// Execute task immediately on start
 	p.executeTask(task)
 
@@ -139,7 +135,6 @@ func (p *Poller) runTask(task *pollingTask) {
 		case <-ticker.C:
 			p.executeTask(task)
 		case <-task.ctx.Done():
-			task.logger.Info("Polling task stopped")
 			return
 		}
 	}
@@ -181,7 +176,6 @@ func (p *Poller) Stop() {
 
 	p.cancel()  // Cancel the parent context
 	p.wg.Wait() // Wait for all tasks to complete
-	p.logger.Info("Poller stopped")
 }
 
 // ListTasks returns a list of all registered task names.

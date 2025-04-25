@@ -2,6 +2,8 @@
 package tasks
 
 import (
+	"fmt"
+
 	"go.uber.org/zap"
 
 	"github.com/xelarion/go-layout/internal/task"
@@ -29,12 +31,8 @@ func RegisterAll(p *poller.Poller, deps *task.Dependencies, logger *zap.Logger) 
 	for taskName, constructorFn := range taskRegistry {
 		taskHandler := constructorFn(deps, logger)
 		if err := taskHandler.Register(p); err != nil {
-			logger.Error("Failed to register poller handler",
-				zap.String("name", taskName),
-				zap.Error(err))
-			return err
+			return fmt.Errorf("failed to register poller handler %s: %w", taskName, err)
 		}
-		logger.Info("Registered poller handler", zap.String("name", taskName))
 	}
 	return nil
 }

@@ -10,9 +10,9 @@ import (
 
 	"gorm.io/gen"
 
-	"github.com/xelarion/go-layout/internal/config"
-	"github.com/xelarion/go-layout/internal/database"
-	"github.com/xelarion/go-layout/internal/logger"
+	"github.com/xelarion/go-layout/internal/infra/config"
+	"github.com/xelarion/go-layout/internal/infra/database"
+	"github.com/xelarion/go-layout/internal/infra/logger"
 )
 
 // TypeMapper handles the mapping of database types to Go types

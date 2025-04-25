@@ -11,8 +11,8 @@ import (
 	"github.com/wagslane/go-rabbitmq"
 	"go.uber.org/zap"
 
-	"github.com/xelarion/go-layout/internal/config"
-	"github.com/xelarion/go-layout/internal/mq"
+	"github.com/xelarion/go-layout/internal/infra/config"
+	"github.com/xelarion/go-layout/internal/infra/mq"
 	"github.com/xelarion/go-layout/pkg/errs"
 )
 
@@ -454,11 +454,6 @@ func (qm *Manager) PublishTask(
 		opts.Exchange = qm.exchange
 	}
 
-	publishLogger := qm.logger.With(
-		zap.String("exchange", opts.Exchange),
-		zap.String("routing_key", routingKey),
-	)
-
 	// Convert our PublishOptions to rabbitmq.PublishOptions
 	rabbitOpts := []func(*rabbitmq.PublishOptions){
 		rabbitmq.WithPublishOptionsExchange(opts.Exchange),
@@ -500,11 +495,9 @@ func (qm *Manager) PublishTask(
 	)
 
 	if err != nil {
-		publishLogger.Error("Failed to publish task", zap.Error(err))
 		return fmt.Errorf("failed to publish task: %w", err)
 	}
 
-	publishLogger.Info("Task published successfully")
 	return nil
 }
 
@@ -518,7 +511,6 @@ func (qm *Manager) StopConsumer(name string) {
 	if queueName, exists := qm.consumers[name]; exists {
 		qm.rmq.StopConsumer(queueName)
 		delete(qm.consumers, name)
-		qm.logger.Info("Consumer stopped", zap.String("consumer", name))
 	}
 }
 
@@ -527,7 +519,6 @@ func (qm *Manager) StopAllConsumers() {
 	for name := range qm.consumers {
 		qm.StopConsumer(name)
 	}
-	qm.logger.Info("All consumers stopped")
 }
 
 // ListConsumers returns a list of all registered consumer names.

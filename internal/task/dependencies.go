@@ -2,9 +2,7 @@
 package task
 
 import (
-	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
-	"gorm.io/gorm"
 
 	"github.com/xelarion/go-layout/internal/repository"
 	"github.com/xelarion/go-layout/internal/usecase"
@@ -13,9 +11,8 @@ import (
 // Dependencies contains all dependencies needed by tasks.
 type Dependencies struct {
 	// Core infrastructure (unexported)
-	db          *gorm.DB
-	redisClient *redis.Client
-	logger      *zap.Logger
+	data   *repository.Data
+	logger *zap.Logger
 
 	// Repositories
 	UserRepo usecase.UserRepository
@@ -25,9 +22,8 @@ type Dependencies struct {
 }
 
 // NewDependencies creates a new dependencies instance with all required dependencies.
-func NewDependencies(db *gorm.DB, redisClient *redis.Client, logger *zap.Logger) *Dependencies {
+func NewDependencies(data *repository.Data, logger *zap.Logger) (*Dependencies, error) {
 	// Create repositories
-	data := repository.NewData(db, redisClient)
 	userRepo := repository.NewUserRepository(data)
 	roleRepo := repository.NewRoleRepository(data)
 	departmentRepo := repository.NewDepartmentRepository(data)
@@ -35,11 +31,10 @@ func NewDependencies(db *gorm.DB, redisClient *redis.Client, logger *zap.Logger)
 	// Create usecases
 	userUseCase := usecase.NewUserUseCase(data, userRepo, roleRepo, departmentRepo)
 
-	return &Dependencies{
+	deps := &Dependencies{
 		// Core infrastructure
-		db:          db,
-		redisClient: redisClient,
-		logger:      logger,
+		data:   data,
+		logger: logger,
 
 		// Repositories
 		UserRepo: userRepo,
@@ -47,16 +42,13 @@ func NewDependencies(db *gorm.DB, redisClient *redis.Client, logger *zap.Logger)
 		// Usecases
 		UserUseCase: userUseCase,
 	}
+
+	return deps, nil
 }
 
-// DB returns the database connection
-func (d *Dependencies) DB() *gorm.DB {
-	return d.db
-}
-
-// RedisClient returns the Redis client
-func (d *Dependencies) RedisClient() *redis.Client {
-	return d.redisClient
+// Data returns the data access layer
+func (d *Dependencies) Data() *repository.Data {
+	return d.data
 }
 
 // Logger returns the logger

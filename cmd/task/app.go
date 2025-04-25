@@ -7,10 +7,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/xelarion/go-layout/internal/cache"
-	"github.com/xelarion/go-layout/internal/config"
-	"github.com/xelarion/go-layout/internal/database"
-	"github.com/xelarion/go-layout/internal/mq"
+	"github.com/xelarion/go-layout/internal/infra/config"
+	"github.com/xelarion/go-layout/internal/repository"
 	"github.com/xelarion/go-layout/internal/task"
 	"github.com/xelarion/go-layout/internal/task/poller"
 	pollerTasks "github.com/xelarion/go-layout/internal/task/poller/tasks"
@@ -22,153 +20,129 @@ import (
 )
 
 // initApp initializes the Task application with all needed resources.
-// It sets up database connections, message queues, and all task runners based on
-// the provided flag values.
-func initApp(cfg *config.Config, logger *zap.Logger, enableScheduler, enablePoller, enableQueue *bool) (*app.App, error) {
-	logger.Info("Initializing Task application")
-
-	// Connect to database
-	db, err := database.NewPostgres(&cfg.PG, logger)
+// It sets up database connections, message queues, and all task runners.
+func initApp(cfgPG *config.PG, cfgRedis *config.Redis, cfgRabbitMQ *config.RabbitMQ, logger *zap.Logger) (*app.App, func(), error) {
+	// Initialize data with connections
+	data, dataCleanup, err := repository.NewData(cfgPG, cfgRedis, cfgRabbitMQ, logger)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
+		return nil, nil, fmt.Errorf("failed to initialize data: %w", err)
 	}
-	logger.Info("Connected to database successfully")
 
-	// Initialize redis connection
-	redis, err := cache.NewRedis(&cfg.Redis, logger)
+	// Initialize dependencies - this manages all connections and their cleanup
+	dependencies, err := task.NewDependencies(data, logger)
 	if err != nil {
-		// Clean up database before returning
-		if closeErr := db.Close(); closeErr != nil {
-			logger.Error("Failed to close database connection during error handling", zap.Error(closeErr))
-		}
-		return nil, fmt.Errorf("failed to connect to redis: %w", err)
+		dataCleanup()
+		return nil, nil, fmt.Errorf("failed to initialize dependencies: %w", err)
 	}
-	logger.Info("Connected to redis successfully")
-
-	// Create task dependencies
-	dependencies := task.NewDependencies(db.DB, redis.Client, logger)
 
 	// Initialize task components
 	var (
 		taskScheduler *scheduler.Scheduler
 		taskPoller    *poller.Poller
 		queueManager  *queue.Manager
-		rabbitMQ      *mq.RabbitMQ
 	)
 
-	// Initialize RabbitMQ if queue is enabled
-	if *enableQueue {
-		rabbitMQ, err = mq.NewRabbitMQ(&cfg.RabbitMQ, logger)
-		if err != nil {
-			// Clean up database before returning
-			if closeErr := db.Close(); closeErr != nil {
-				logger.Error("Failed to close database connection during error handling", zap.Error(closeErr))
-			}
-			return nil, fmt.Errorf("failed to connect to RabbitMQ: %w", err)
-		}
-		logger.Info("Connected to RabbitMQ successfully")
-
-		// Initialize queue manager
-		queueManager = queue.NewManager(rabbitMQ, &cfg.RabbitMQ, logger)
+	// Initialize scheduler
+	taskScheduler = scheduler.NewScheduler(scheduler.Config{
+		Logger: logger,
+	})
+	// Register all scheduler tasks with dependencies
+	if err := schedulerTasks.RegisterAll(taskScheduler, dependencies, logger); err != nil {
+		dataCleanup()
+		return nil, nil, err
 	}
 
-	// Initialize scheduler if enabled
-	if *enableScheduler {
-		taskScheduler = scheduler.NewScheduler(scheduler.Config{
-			Logger: logger,
-		})
-
-		// Register all scheduler tasks with dependencies
-		if err := schedulerTasks.RegisterAll(taskScheduler, dependencies, logger); err != nil {
-			logger.Error("Failed to register scheduler tasks", zap.Error(err))
-		}
+	// Initialize poller
+	taskPoller = poller.NewPoller(logger)
+	// Register all poller tasks with dependencies
+	if err := pollerTasks.RegisterAll(taskPoller, dependencies, logger); err != nil {
+		dataCleanup()
+		return nil, nil, err
 	}
 
-	// Initialize poller if enabled
-	if *enablePoller {
-		taskPoller = poller.NewPoller(logger)
-
-		// Register all poller tasks with dependencies
-		if err := pollerTasks.RegisterAll(taskPoller, dependencies, logger); err != nil {
-			logger.Error("Failed to register poller tasks", zap.Error(err))
-		}
+	// Initialize queue manager using RabbitMQ from dependencies
+	queueManager = queue.NewManager(data.RabbitMQ(), cfgRabbitMQ, logger)
+	// Register all queue tasks with dependencies
+	if err := queueTasks.RegisterAll(queueManager, dependencies, logger); err != nil {
+		dataCleanup()
+		return nil, nil, err
 	}
 
-	// Initialize queue processors if enabled
-	if *enableQueue && queueManager != nil {
-		// Register all queue tasks with dependencies
-		if err := queueTasks.RegisterAll(queueManager, dependencies, logger); err != nil {
-			logger.Error("Failed to register queue tasks", zap.Error(err))
-		}
-	}
-
-	// Create the application with start and stop functions
-	logger.Info("Creating Task application")
-	taskApp := app.NewApp(
-		"task",
-		"Task Service",
-		"0.1.0",
+	// Create a custom server that implements app.Server
+	ts := newTaskServer(
+		taskScheduler,
+		taskPoller,
 		logger,
-		app.WithStartFunc(func(ctx context.Context) error {
-			logger.Info("Starting Task service")
-
-			// Start scheduler if enabled
-			if *enableScheduler && taskScheduler != nil {
-				logger.Info("Starting scheduler")
-				taskScheduler.Start()
-			}
-
-			// Start poller if enabled
-			if *enablePoller && taskPoller != nil {
-				logger.Info("Starting poller")
-				taskPoller.Start()
-			}
-
-			// Block until context is done
-			<-ctx.Done()
-
-			return nil
-		}),
-		app.WithStopFunc(func(ctx context.Context) error {
-			logger.Info("Stopping Task service")
-
-			// Stop poller if enabled
-			if *enablePoller && taskPoller != nil {
-				logger.Info("Stopping poller")
-				taskPoller.Stop()
-			}
-
-			// Stop scheduler if enabled
-			if *enableScheduler && taskScheduler != nil {
-				logger.Info("Stopping scheduler")
-				taskScheduler.Stop()
-			}
-
-			// Close RabbitMQ connection if initialized
-			if rabbitMQ != nil {
-				logger.Info("Closing RabbitMQ connection")
-				rabbitMQ.Close()
-			}
-
-			// Close database connection
-			if err := db.Close(); err != nil {
-				logger.Error("Error closing database connection", zap.Error(err))
-			} else {
-				logger.Info("Database connection closed successfully")
-			}
-
-			// Close redis connection
-			if err := redis.Close(); err != nil {
-				logger.Error("Error closing redis connection", zap.Error(err))
-			} else {
-				logger.Info("Redis connection closed successfully")
-			}
-
-			logger.Info("Task service stopped successfully")
-			return nil
-		}),
 	)
 
-	logger.Info("Task application initialized successfully")
-	return taskApp, nil
+	// Create application using the newApp function
+	appInstance := newApp(logger, ts)
+
+	// Create a combined cleanup function
+	cleanup := func() {
+		dataCleanup()
+	}
+
+	return appInstance, cleanup, nil
+}
+
+// taskServer implements app.Server for Task service
+type taskServer struct {
+	scheduler *scheduler.Scheduler
+	poller    *poller.Poller
+	logger    *zap.Logger
+	ctx       context.Context
+	cancel    context.CancelFunc
+}
+
+func newTaskServer(
+	scheduler *scheduler.Scheduler,
+	poller *poller.Poller,
+	logger *zap.Logger,
+) *taskServer {
+	ctx, cancel := context.WithCancel(context.Background())
+	return &taskServer{
+		scheduler: scheduler,
+		poller:    poller,
+		logger:    logger,
+		ctx:       ctx,
+		cancel:    cancel,
+	}
+}
+
+// Start implements app.Server interface
+func (s *taskServer) Start(ctx context.Context) error {
+	// Start scheduler
+	if s.scheduler != nil {
+		s.scheduler.Start()
+	}
+
+	// Start poller
+	if s.poller != nil {
+		s.poller.Start()
+	}
+
+	// Block until context is done
+	<-s.ctx.Done()
+	return nil
+}
+
+// Stop implements app.Server interface
+func (s *taskServer) Stop(ctx context.Context) error {
+	// Stop poller
+	if s.poller != nil {
+		s.poller.Stop()
+	}
+
+	// Stop scheduler
+	if s.scheduler != nil {
+		s.scheduler.Stop()
+	}
+
+	// Signal the task server to stop
+	if s.cancel != nil {
+		s.cancel()
+	}
+
+	return nil
 }

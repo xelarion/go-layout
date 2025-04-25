@@ -75,8 +75,11 @@ type JWT struct {
 
 // Log holds the logging related configuration.
 type Log struct {
-	Level  string `env:"LOG_LEVEL" envDefault:"info"`  // Available options: debug, info, warn, error
-	Format string `env:"LOG_FORMAT" envDefault:"json"` // Available options: json, console
+	Level           string `env:"LOG_LEVEL" envDefault:"info"`           // Available options: debug, info, warn, error
+	Format          string `env:"LOG_FORMAT" envDefault:"json"`          // Available options: json, console
+	EnableSampling  bool   `env:"LOG_ENABLE_SAMPLING" envDefault:"true"` // Enable log sampling to reduce volume
+	SamplingInitial int    `env:"LOG_SAMPLING_INITIAL" envDefault:"100"` // Sample first N entries with the same message
+	SamplingAfter   int    `env:"LOG_SAMPLING_AFTER" envDefault:"100"`   // Sample every N entries after Initial
 }
 
 // Load loads the configuration from environment variables.

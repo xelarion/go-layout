@@ -9,7 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
-	"github.com/xelarion/go-layout/internal/config"
+	"github.com/xelarion/go-layout/internal/infra/config"
 )
 
 // Redis represents a Redis client instance.
@@ -20,8 +20,6 @@ type Redis struct {
 
 // NewRedis creates a new Redis client instance.
 func NewRedis(cfg *config.Redis, logger *zap.Logger) (*Redis, error) {
-	logger = logger.Named("redis")
-
 	opts, err := redis.ParseURL(cfg.URL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse Redis URL: %w", err)
@@ -42,13 +40,9 @@ func NewRedis(cfg *config.Redis, logger *zap.Logger) (*Redis, error) {
 		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
 	}
 
-	logger.Info("Connected to Redis",
-		zap.String("url", cfg.URL),
-		zap.Int("pool_size", cfg.PoolSize))
-
 	return &Redis{
 		Client: client,
-		logger: logger,
+		logger: logger.Named("redis"),
 	}, nil
 }
 

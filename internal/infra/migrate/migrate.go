@@ -8,7 +8,7 @@ import (
 
 	"github.com/pressly/goose/v3"
 
-	"github.com/xelarion/go-layout/internal/config"
+	"github.com/xelarion/go-layout/internal/infra/config"
 )
 
 // Migrator handles database migrations using goose.

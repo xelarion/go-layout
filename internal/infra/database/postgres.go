@@ -11,17 +11,18 @@ import (
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 
-	"github.com/xelarion/go-layout/internal/config"
+	"github.com/xelarion/go-layout/internal/infra/config"
 )
 
 // PostgresDB represents a PostgreSQL database connection.
 type PostgresDB struct {
-	DB *gorm.DB
+	DB     *gorm.DB
+	logger *zap.Logger
 }
 
 // NewPostgres creates a new PostgreSQL database connection.
 func NewPostgres(cfg *config.PG, log *zap.Logger) (*PostgresDB, error) {
-	logLevel := logger.Silent
+	logLevel := logger.Warn
 	if log.Core().Enabled(zap.DebugLevel) {
 		logLevel = logger.Info
 	}
@@ -59,7 +60,10 @@ func NewPostgres(cfg *config.PG, log *zap.Logger) (*PostgresDB, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	return &PostgresDB{DB: db}, nil
+	return &PostgresDB{
+		DB:     db,
+		logger: log.Named("postgres"),
+	}, nil
 }
 
 // Close closes the database connection.
@@ -78,5 +82,5 @@ type zapGormWriter struct {
 
 // Printf implements the gorm logger interface.
 func (w *zapGormWriter) Printf(format string, args ...any) {
-	w.log.Sugar().Debugf(format, args...)
+	w.log.Sugar().Infof(format, args...)
 }
