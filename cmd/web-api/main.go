@@ -49,7 +49,7 @@ func main() {
 	defer zapLogger.Sync()
 
 	// Initialize the application
-	a, cleanup, err := initApp(&cfg.PG, &cfg.Redis, &cfg.HTTP, &cfg.JWT, zapLogger.Logger)
+	a, cleanup, err := initApp(&cfg.PG, &cfg.Redis, &cfg.RabbitMQ, &cfg.HTTP, &cfg.JWT, zapLogger.Logger)
 	if err != nil {
 		zapLogger.Panic("Failed to initialize application", zap.Error(err))
 	}

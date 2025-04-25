@@ -20,7 +20,7 @@ type RoleRepository struct {
 }
 
 // NewRoleRepository creates a new instance of role repository.
-func NewRoleRepository(data *Data) *RoleRepository {
+func NewRoleRepository(data *Data) usecase.RoleRepository {
 	return &RoleRepository{
 		data: data,
 	}

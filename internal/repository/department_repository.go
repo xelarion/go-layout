@@ -20,7 +20,7 @@ type DepartmentRepository struct {
 }
 
 // NewDepartmentRepository creates a new instance of department repository.
-func NewDepartmentRepository(data *Data) *DepartmentRepository {
+func NewDepartmentRepository(data *Data) usecase.DepartmentRepository {
 	return &DepartmentRepository{
 		data: data,
 	}

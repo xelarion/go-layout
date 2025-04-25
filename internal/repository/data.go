@@ -13,6 +13,7 @@ import (
 	"github.com/xelarion/go-layout/internal/infra/config"
 	"github.com/xelarion/go-layout/internal/infra/database"
 	"github.com/xelarion/go-layout/internal/infra/mq"
+	"github.com/xelarion/go-layout/internal/usecase"
 )
 
 // contextTxKey is the context key for storing tx value
@@ -27,6 +28,10 @@ type Data struct {
 
 	// Closers holds all resources that need to be closed
 	closers []func()
+}
+
+func NewTransaction(d *Data) usecase.Transaction {
+	return d
 }
 
 // NewData creates a new Data instance with database, redis, and optional RabbitMQ connections.
