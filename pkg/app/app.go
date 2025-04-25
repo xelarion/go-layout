@@ -3,164 +3,194 @@ package app
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
-// AppInfo defines the interface that app implementations must satisfy.
-type AppInfo interface {
-	// ID returns the unique identifier of the application.
-	ID() string
-
-	// Name returns the name of the application.
-	Name() string
-
-	// Version returns the version of the application.
-	Version() string
-
-	// Start starts the application and blocks until the context is done or an error occurs.
+// Server represents a server component that can be started and stopped.
+type Server interface {
 	Start(ctx context.Context) error
-
-	// Stop stops the application gracefully.
 	Stop(ctx context.Context) error
 }
 
-// Option is a function that configures an App
-type Option func(*App)
+// AppInfo is application context value.
+type AppInfo interface {
+	ID() string
+	Name() string
+	Version() string
+	Metadata() map[string]string
+}
 
-// App represents a running application instance.
+// App is an application components lifecycle manager.
 type App struct {
-	id      string
-	name    string
-	version string
-	logger  *zap.Logger
-
-	// StartFunc function that will be called when the application is started
-	StartFunc func(ctx context.Context) error
-
-	// StopFunc function that will be called when the application is stopped
-	StopFunc func(ctx context.Context) error
+	opts   options
+	ctx    context.Context
+	cancel context.CancelFunc
+	logger *zap.Logger
 }
 
-// WithStartFunc sets the start function for the application
-func WithStartFunc(fn func(ctx context.Context) error) Option {
-	return func(a *App) {
-		a.StartFunc = fn
+// New creates a new application lifecycle manager.
+func New(logger *zap.Logger, opts ...Option) *App {
+	o := options{
+		ctx:         context.Background(),
+		sigs:        []os.Signal{syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT},
+		stopTimeout: 10 * time.Second,
+		metadata:    make(map[string]string),
 	}
-}
 
-// WithStopFunc sets the stop function for the application
-func WithStopFunc(fn func(ctx context.Context) error) Option {
-	return func(a *App) {
-		a.StopFunc = fn
-	}
-}
-
-// NewApp creates a new application instance with the provided options.
-func NewApp(id, name, version string, logger *zap.Logger, opts ...Option) *App {
-	app := &App{
-		id:      id,
-		name:    name,
-		version: version,
-		logger:  logger,
-		// Default implementations do nothing
-		StartFunc: func(ctx context.Context) error { return nil },
-		StopFunc:  func(ctx context.Context) error { return nil },
+	// Generate a unique ID if not provided
+	if id, err := uuid.NewUUID(); err == nil {
+		o.id = id.String()
 	}
 
 	// Apply options
 	for _, opt := range opts {
-		opt(app)
+		opt(&o)
 	}
 
-	return app
+	ctx, cancel := context.WithCancel(o.ctx)
+	return &App{
+		ctx:    ctx,
+		cancel: cancel,
+		opts:   o,
+		logger: logger,
+	}
 }
 
-// ID returns the application identifier.
+// ID returns the app instance ID.
 func (a *App) ID() string {
-	return a.id
+	return a.opts.id
 }
 
-// Name returns the application name.
+// Name returns the app name.
 func (a *App) Name() string {
-	return a.name
+	return a.opts.name
 }
 
-// Version returns the application version.
+// Version returns the app version.
 func (a *App) Version() string {
-	return a.version
+	return a.opts.version
 }
 
-// Start starts the application and blocks until the context is done or an error occurs.
-func (a *App) Start(ctx context.Context) error {
-	a.logger.Info("Starting application",
-		zap.String("id", a.id),
-		zap.String("name", a.name),
-		zap.String("version", a.version))
-
-	return a.StartFunc(ctx)
+// Metadata returns the app metadata.
+func (a *App) Metadata() map[string]string {
+	return a.opts.metadata
 }
 
-// Stop stops the application gracefully.
-func (a *App) Stop(ctx context.Context) error {
-	a.logger.Info("Stopping application", zap.String("id", a.id))
-	return a.StopFunc(ctx)
-}
+// Run executes all registered servers and blocks until interrupted or error.
+func (a *App) Run() error {
+	// Create application context
+	appCtx := NewContext(a.ctx, a)
 
-// RunWithSignalHandling starts the application and handles OS signals for graceful shutdown.
-// It will block until the application exits or a signal is received.
-func RunWithSignalHandling(ctx context.Context, app AppInfo, shutdownTimeout time.Duration) error {
-	// Create a cancellable context
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	// Channel to receive application errors
-	errCh := make(chan error, 1)
-
-	// Channel to receive OS signals
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-
-	// Start the application in a goroutine
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		errCh <- app.Start(ctx)
-	}()
-
-	// Wait for application to exit or signal
-	select {
-	case err := <-errCh:
-		// Application exited on its own
-		return err
-	case sig := <-sigCh:
-		// Signal received, initiate shutdown
-		logger := zap.L()
-		logger.Info("Signal received, shutting down", zap.String("signal", sig.String()))
-
-		// Create a context with timeout for shutdown
-		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), shutdownTimeout)
-		defer shutdownCancel()
-
-		// Stop the application
-		err := app.Stop(shutdownCtx)
-		if err != nil {
-			logger.Error("Error during shutdown", zap.Error(err))
-		}
-
-		// Wait for the application to exit
-		select {
-		case appErr := <-errCh:
-			return appErr
-		case <-shutdownCtx.Done():
-			logger.Error("Shutdown timed out")
-			return shutdownCtx.Err()
+	// Execute beforeStart hooks
+	for _, fn := range a.opts.beforeStart {
+		if err := fn(appCtx); err != nil {
+			return err
 		}
 	}
+
+	// Create error group for managing goroutines
+	eg, ctx := errgroup.WithContext(appCtx)
+	wg := sync.WaitGroup{}
+
+	// Start all servers
+	for _, srv := range a.opts.servers {
+		server := srv
+		eg.Go(func() error {
+			<-ctx.Done() // Wait for stop signal
+			stopCtx := appCtx
+			stopCtx, cancel := context.WithTimeout(NewContext(a.opts.ctx, a), a.opts.stopTimeout)
+			defer cancel()
+			return server.Stop(stopCtx)
+		})
+
+		wg.Add(1)
+		eg.Go(func() error {
+			wg.Done() // here is to ensure server start has begun running, so defer is not needed
+			return server.Start(ctx)
+		})
+	}
+
+	// Wait for all servers to start
+	wg.Wait()
+
+	// Execute afterStart hooks
+	for _, fn := range a.opts.afterStart {
+		if err := fn(appCtx); err != nil {
+			return err
+		}
+	}
+
+	// Setup signal handler
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, a.opts.sigs...)
+
+	// Wait for signal or error from any server
+	eg.Go(func() error {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-c:
+			return a.Stop()
+		}
+	})
+
+	// Wait for all goroutines to complete
+	if err := eg.Wait(); err != nil && !errors.Is(err, context.Canceled) {
+		return err
+	}
+
+	// Execute afterStop hooks
+	var err error
+	for _, fn := range a.opts.afterStop {
+		err = fn(appCtx)
+	}
+
+	return err
+}
+
+// Stop gracefully stops the application.
+func (a *App) Stop() error {
+	// Create application context
+	appCtx := NewContext(a.ctx, a)
+
+	var err error
+	// Execute beforeStop hooks
+	for _, fn := range a.opts.beforeStop {
+		err = fn(appCtx)
+	}
+
+	// Cancel the context to signal all servers to stop
+	if a.cancel != nil {
+		a.cancel()
+	}
+
+	return err
+}
+
+// Context returns the app context.
+func (a *App) Context() context.Context {
+	return a.ctx
+}
+
+// appInfoKey is the key type for app info in context.
+type appInfoKey struct{}
+
+// NewContext returns a new Context that carries value.
+func NewContext(ctx context.Context, s AppInfo) context.Context {
+	return context.WithValue(ctx, appInfoKey{}, s)
+}
+
+// FromContext returns the AppInfo from context.
+func FromContext(ctx context.Context) (AppInfo, bool) {
+	app, ok := ctx.Value(appInfoKey{}).(AppInfo)
+	return app, ok
 }

@@ -8,8 +8,8 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
-	"github.com/xelarion/go-layout/pkg/config"
-	"github.com/xelarion/go-layout/pkg/migrate"
+	"github.com/xelarion/go-layout/internal/infra/config"
+	"github.com/xelarion/go-layout/internal/infra/migrate"
 )
 
 func main() {
@@ -31,22 +31,20 @@ func main() {
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
-		os.Exit(1)
+		panic(fmt.Sprintf("Error loading config: %v", err))
 	}
 
 	// Create migrator
 	m, err := migrate.NewMigrator(&cfg.PG, *migrationsDir, *verbose)
 	if err != nil {
-		fmt.Printf("Error creating migrator: %v\n", err)
-		os.Exit(1)
+		panic(fmt.Sprintf("Error creating migrator: %v", err))
 	}
 	defer m.Close()
 
 	// Execute command
 	if err := executeCommand(m, command, args[1:]); err != nil {
 		fmt.Printf("Error executing command: %v\n", err)
-		os.Exit(1)
+		panic(fmt.Sprintf("Command execution failed: %v", err))
 	}
 }
 

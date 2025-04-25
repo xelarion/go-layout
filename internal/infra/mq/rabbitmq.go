@@ -9,7 +9,7 @@ import (
 	"github.com/wagslane/go-rabbitmq"
 	"go.uber.org/zap"
 
-	"github.com/xelarion/go-layout/pkg/config"
+	"github.com/xelarion/go-layout/internal/infra/config"
 )
 
 // RabbitMQ represents a RabbitMQ client instance.
@@ -23,8 +23,6 @@ type RabbitMQ struct {
 
 // NewRabbitMQ creates a new RabbitMQ client instance.
 func NewRabbitMQ(cfg *config.RabbitMQ, logger *zap.Logger) (*RabbitMQ, error) {
-	logger = logger.Named("rabbitmq")
-
 	// Create a connection with reconnection capability
 	conn, err := rabbitmq.NewConn(
 		cfg.URL,
@@ -50,7 +48,7 @@ func NewRabbitMQ(cfg *config.RabbitMQ, logger *zap.Logger) (*RabbitMQ, error) {
 		conn:      conn,
 		publisher: publisher,
 		consumers: make(map[string]*rabbitmq.Consumer),
-		logger:    logger,
+		logger:    logger.Named("rabbitmq"),
 	}, nil
 }
 
@@ -68,16 +66,8 @@ func (r *RabbitMQ) Publish(ctx context.Context, data []byte, exchange string, ro
 		rabbitmq.WithPublishOptionsExchange(exchange),
 	}, options...)
 
-	err := r.publisher.Publish(
-		data,
-		routingKeys,
-		options...,
-	)
-	if err != nil {
-		r.logger.Error("Failed to publish message to RabbitMQ",
-			zap.String("exchange", exchange),
-			zap.Strings("routing_keys", routingKeys),
-			zap.Error(err))
+	// Publish message
+	if err := r.publisher.Publish(data, routingKeys, options...); err != nil {
 		return fmt.Errorf("failed to publish message: %w", err)
 	}
 	return nil
@@ -96,10 +86,7 @@ func (r *RabbitMQ) StartConsumer(
 		options...,
 	)
 	if err != nil {
-		r.logger.Error("Failed to create consumer",
-			zap.String("queue", queueName),
-			zap.Error(err))
-		return nil, fmt.Errorf("failed to create consumer: %w", err)
+		return nil, fmt.Errorf("failed to create consumer for queue %s: %w", queueName, err)
 	}
 
 	// Store the consumer for lifecycle management before running
@@ -110,21 +97,15 @@ func (r *RabbitMQ) StartConsumer(
 	// Start consuming messages in a goroutine to avoid blocking
 	go func() {
 		// consumer.Run automatically handles reconnection and only returns on unrecoverable errors
-		err := consumer.Run(handler)
-		if err != nil {
+		if err := consumer.Run(handler); err != nil {
 			// Only log the error but don't remove the consumer from the map
 			// This preserves the ability to properly close the consumer when needed
-			r.logger.Error("Consumer encountered unrecoverable error",
+			r.logger.Error("Consumer error",
 				zap.String("queue", queueName),
 				zap.Error(err))
-		} else {
-			r.logger.Info("Consumer stopped normally",
-				zap.String("queue", queueName))
 		}
 	}()
 
-	r.logger.Info("Consumer registered successfully",
-		zap.String("queue", queueName))
 	return consumer, nil
 }
 
@@ -136,7 +117,6 @@ func (r *RabbitMQ) StopConsumer(queueName string) {
 	if consumer, exists := r.consumers[queueName]; exists {
 		consumer.Close()
 		delete(r.consumers, queueName)
-		r.logger.Info("Consumer stopped", zap.String("queue", queueName))
 	}
 }
 
@@ -145,9 +125,8 @@ func (r *RabbitMQ) StopAllConsumers() {
 	r.consumerMu.Lock()
 	defer r.consumerMu.Unlock()
 
-	for queueName, consumer := range r.consumers {
+	for _, consumer := range r.consumers {
 		consumer.Close()
-		r.logger.Info("Consumer closed", zap.String("queue", queueName))
 	}
 	// Clear consumers map
 	r.consumers = make(map[string]*rabbitmq.Consumer)
@@ -162,13 +141,11 @@ func (r *RabbitMQ) Close() {
 	// Step 2: Close publisher
 	if r.publisher != nil {
 		r.publisher.Close()
-		r.logger.Info("Publisher closed")
 	}
 
 	// Step 3: Close connection only after all consumers and publishers are closed
 	if r.conn != nil {
 		_ = r.conn.Close()
-		r.logger.Info("RabbitMQ connection closed")
 	}
 }
 

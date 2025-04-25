@@ -101,21 +101,18 @@ func (s *Scheduler) Unregister(name string) {
 	if id, exists := s.tasks[name]; exists {
 		s.cron.Remove(id)
 		delete(s.tasks, name)
-		s.logger.Info("Task unregistered", zap.String("task", name))
 	}
 }
 
 // Start starts the scheduler.
 func (s *Scheduler) Start() {
 	s.cron.Start()
-	s.logger.Info("Scheduler started")
 }
 
 // Stop stops the scheduler.
 func (s *Scheduler) Stop() {
 	ctx := s.cron.Stop()
 	<-ctx.Done()
-	s.logger.Info("Scheduler stopped")
 }
 
 // ListTasks returns a list of all registered tasks.

@@ -2,6 +2,8 @@
 package tasks
 
 import (
+	"fmt"
+
 	"go.uber.org/zap"
 
 	"github.com/xelarion/go-layout/internal/task"
@@ -29,12 +31,8 @@ func RegisterAll(s *scheduler.Scheduler, deps *task.Dependencies, logger *zap.Lo
 	for taskName, constructorFn := range taskRegistry {
 		taskHandler := constructorFn(deps, logger)
 		if err := taskHandler.Register(s); err != nil {
-			logger.Error("Failed to register scheduler handler",
-				zap.String("name", taskName),
-				zap.Error(err))
-			return err
+			return fmt.Errorf("failed to register scheduler handler %s: %w", taskName, err)
 		}
-		logger.Info("Registered scheduler handler", zap.String("name", taskName))
 	}
 	return nil
 }

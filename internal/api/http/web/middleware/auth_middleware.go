@@ -11,10 +11,10 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/xelarion/go-layout/internal/api/http/web/types"
+	"github.com/xelarion/go-layout/internal/infra/config"
 	"github.com/xelarion/go-layout/internal/usecase"
 	"github.com/xelarion/go-layout/internal/util"
 	"github.com/xelarion/go-layout/pkg/binding"
-	"github.com/xelarion/go-layout/pkg/config"
 	"github.com/xelarion/go-layout/pkg/errs"
 )
 

@@ -11,8 +11,16 @@ import (
 	_ "github.com/xelarion/go-layout/internal/api/http/web/swagger/docs" // Import swagger docs
 )
 
-// RegisterRoutes registers the Swagger UI routes
-func RegisterRoutes(router *gin.Engine) {
+type Router struct {
+}
+
+// NewRouter creates a new router for Swagger documentation.
+func NewRouter() *Router {
+	return &Router{}
+}
+
+// Register registers the Swagger UI routes
+func (r *Router) Register(router *gin.Engine) {
 	// Serve Swagger UI
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler,
 		ginSwagger.URL("/swagger/doc.json"),

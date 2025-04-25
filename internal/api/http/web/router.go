@@ -11,9 +11,8 @@ import (
 	"github.com/xelarion/go-layout/internal/permission"
 )
 
-// Router handles all routes.
+// Router handles web API routes.
 type Router struct {
-	Engine            *gin.Engine
 	logger            *zap.Logger
 	authMW            *jwt.GinJWTMiddleware
 	permMW            *middleware.PermissionMiddleware
@@ -26,7 +25,6 @@ type Router struct {
 
 // NewRouter creates a new router.
 func NewRouter(
-	engine *gin.Engine,
 	authService *service.AuthService,
 	userService *service.UserService,
 	departmentService *service.DepartmentService,
@@ -37,7 +35,6 @@ func NewRouter(
 	logger *zap.Logger,
 ) *Router {
 	return &Router{
-		Engine:            engine,
 		logger:            logger.Named("web_router"),
 		authMW:            authMiddleware,
 		permMW:            permissionMiddleware,
@@ -49,8 +46,8 @@ func NewRouter(
 	}
 }
 
-// SetupRoutes configures all routes.
-func (r *Router) SetupRoutes() {
+// Register registers all web API routes to the given router.
+func (r *Router) Register(router *gin.Engine) {
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(r.authService, r.authMW, r.logger)
 	userHandler := handler.NewUserHandler(r.userService, r.logger)
@@ -59,7 +56,7 @@ func (r *Router) SetupRoutes() {
 	permissionHandler := handler.NewPermissionHandler(r.permissionService, r.logger)
 
 	// API routes
-	api := r.Engine.Group("/api/web/v1")
+	api := router.Group("/api/web/v1")
 
 	// Public routes
 	api.POST("/captcha/new", authHandler.NewCaptcha)

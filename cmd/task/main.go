@@ -3,51 +3,62 @@ package main
 
 import (
 	"context"
-	"flag"
 	"log"
-	"os"
-	"time"
 
 	"go.uber.org/zap"
 
+	"github.com/xelarion/go-layout/internal/infra/config"
+	"github.com/xelarion/go-layout/internal/infra/logger"
 	"github.com/xelarion/go-layout/pkg/app"
-	"github.com/xelarion/go-layout/pkg/config"
-	"github.com/xelarion/go-layout/pkg/logger"
 )
 
-// Command line flags for controlling which task types are enabled
+// go build -ldflags "-X main.Version=x.y.z"
 var (
-	enableScheduler = flag.Bool("scheduler", true, "Enable scheduler tasks")
-	enablePoller    = flag.Bool("poller", true, "Enable poller tasks")
-	enableQueue     = flag.Bool("queue", true, "Enable queue processing")
+	// Version information set by build flags
+	Version = "0.0.1"
 )
+
+// newApp creates a new application instance with specified configuration
+func newApp(logger *zap.Logger, ts *taskServer) *app.App {
+	return app.New(
+		logger,
+		app.WithID("task"),
+		app.WithName("Task Service"),
+		app.WithVersion(Version),
+		app.WithServers(ts),
+		app.WithAfterStart(func(ctx context.Context) error {
+			logger.Info("Task service started",
+				zap.String("version", Version))
+			return nil
+		}),
+	)
+}
 
 func main() {
-	flag.Parse()
-
-	// Initialize configuration
+	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
+		log.Panicf("Failed to load configuration: %v", err)
 	}
 
 	// Initialize logger
 	zapLogger, err := logger.New(&cfg.Log)
 	if err != nil {
-		log.Fatalf("Failed to initialize logger: %v", err)
+		log.Panicf("Failed to initialize logger: %v", err)
 	}
 	defer zapLogger.Sync()
 
-	// Initialize the application
-	taskApp, err := initApp(cfg, zapLogger.Logger, enableScheduler, enablePoller, enableQueue)
+	// Initialize the application with all features enabled
+	a, cleanup, err := initApp(&cfg.PG, &cfg.Redis, &cfg.RabbitMQ, zapLogger.Logger)
 	if err != nil {
-		zapLogger.Logger.Fatal("Failed to initialize application", zap.Error(err))
+		zapLogger.Panic("Failed to initialize application", zap.Error(err))
 	}
 
-	// Start the application with signal handling
-	ctx := context.Background()
-	if err := app.RunWithSignalHandling(ctx, taskApp, 10*time.Second); err != nil {
-		zapLogger.Logger.Error("Error during application lifecycle", zap.Error(err))
-		os.Exit(1)
+	// Ensure cleanup is called even if app fails to start
+	defer cleanup()
+
+	// Start the application
+	if err := a.Run(); err != nil {
+		zapLogger.Panic("Error during application lifecycle", zap.Error(err))
 	}
 }
