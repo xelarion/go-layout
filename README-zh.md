@@ -21,9 +21,9 @@
 - **编程语言**：Go
 - **Web 框架**：[Gin](https://github.com/gin-gonic/gin)
 - **ORM**：[GORM](https://gorm.io/)
-- **数据库**：PostgreSQL（可配置切换为 MySQL）
-- **缓存**：Redis（可插拔，不需要时可移除）
-- **消息队列**：RabbitMQ（可插拔，不需要时可移除）
+- **数据库**：PostgreSQL
+- **缓存**：Redis
+- **消息队列**：RabbitMQ
 - **日志记录**：使用 [zap](https://github.com/uber-go/zap) 进行结构化日志记录
 - **配置管理**：使用 [github.com/caarlos0/env/v11](https://github.com/caarlos0/env) 进行环境变量配置
 - **错误处理**：自定义错误包，支持元数据、堆栈跟踪和错误分类
@@ -34,11 +34,16 @@
 
 ## 项目结构
 
-```
+```markdown
 ├── cmd/                           # 应用程序入口点
 │   ├── web-api/                   # Web API 服务器
+│   │   ├── app.go                 # 应用程序初始化
+│   │   └── main.go                # 主入口点
 │   ├── migrate/                   # 数据库迁移工具
-│   └── task/                      # 任务运行器（定时任务、轮询任务和队列任务）
+│   │   └── main.go                # 迁移入口点
+│   └── task/                      # 任务运行器
+│       ├── app.go                 # 任务应用设置
+│       └── main.go                # 任务服务入口点
 ├── config/                        # 配置文件
 │   ├── dev/                       # 开发环境配置
 │   └── prod/                      # 生产环境配置
@@ -50,43 +55,47 @@
 │   │   └── single/                # 单节点部署配置
 │   └── scripts/                   # 部署自动化脚本
 ├── docs/                          # 文档
-│   ├── deployment.md              # 详细部署指南（英文）
-│   ├── deployment-zh.md           # 详细部署指南（中文）
 ├── internal/                      # 私有应用代码
 │   ├── api/                       # API 专用代码
 │   │   └── http/                  # HTTP API 代码
 │   │       └── web/               # Web API 处理器和路由
 │   │           ├── handler/       # API 请求处理器
 │   │           ├── middleware/    # HTTP 中间件组件
-│   │           ├── types/         # 请求/响应结构
-│   │           ├── service/       # Web API 服务层，协调处理器和用例层之间的交互
+│   │           ├── service/       # Web API 服务层
 │   │           ├── swagger/       # Swagger 文档
+│   │           ├── types/         # 请求/响应结构
 │   │           └── router.go      # 路由定义
 │   ├── enum/                      # 枚举常量
+│   ├── infra/                     # 基础设施层
+│   │   ├── cache/                 # 缓存实现 (Redis)
+│   │   ├── config/                # 配置加载
+│   │   ├── database/              # 数据库连接
+│   │   ├── logger/                # 日志器初始化
+│   │   ├── migrate/               # 迁移基础设施
+│   │   ├── mq/                    # 消息队列 (RabbitMQ)
+│   │   └── server/                # 服务器实现
+│   │       └── http/              # HTTP 服务器
 │   ├── model/                     # 领域模型
 │   │   └── gen/                   # 生成的模型
+│   ├── permission/                # 授权系统
 │   ├── repository/                # 数据访问层
 │   ├── task/                      # 任务管理
+│   │   ├── dependencies.go        # 任务依赖设置
 │   │   ├── poller/                # 轮询任务框架
+│   │   │   └── tasks/             # 轮询任务实现
 │   │   ├── queue/                 # 基于队列的任务框架
+│   │   │   └── tasks/             # 队列任务实现
 │   │   └── scheduler/             # 计划任务框架
-│   └── usecase/                   # 业务逻辑
+│   │       └── tasks/             # 计划任务实现
+│   ├── usecase/                   # 业务逻辑层
+│   └── util/                      # 工具函数
 ├── pkg/                           # 公共库
 │   ├── app/                       # 应用程序框架
+│   │   ├── app.go                 # 核心应用生命周期
+│   │   └── options.go             # 应用程序选项
 │   ├── binding/                   # 请求绑定工具
-│   ├── cache/                     # 缓存
-│   ├── config/                    # 配置
-│   ├── database/                  # 数据库连接
-│   ├── errs/                      # 错误处理工具
-│   ├── logger/                    # 日志记录
-│   ├── migrate/                   # 数据库迁移工具
-│   ├── mq/                        # 消息队列
-│   ├── server/                    # HTTP 服务器
-│   └── utils/                     # 实用工具函数
-├── tools/                         # 开发工具
-│   ├── gen/                       # 代码生成工具
-│   └── swagger_autocomment/       # Swagger 注释生成工具
-└── scripts/                       # 自动化脚本
+│   └── errs/                      # 错误处理包
+└── tools/                         # 开发工具
 ```
 
 ## 架构设计
@@ -219,8 +228,8 @@ func (uc *DepartmentUseCase) Create(ctx context.Context, params CreateDepartment
 
 - Go 1.21 或更高版本
 - PostgreSQL
-- Redis（可选）
-- RabbitMQ（可选）
+- Redis
+- RabbitMQ
 
 ### 安装
 

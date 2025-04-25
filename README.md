@@ -21,9 +21,9 @@ A scalable, high-performance, high-availability web application template built w
 - **Programming Language**: Go
 - **Web Framework**: [Gin](https://github.com/gin-gonic/gin)
 - **ORM**: [GORM](https://gorm.io/)
-- **Database**: PostgreSQL (configurable to switch to MySQL)
-- **Cache**: Redis (pluggable, can be removed if not needed)
-- **Message Queue**: RabbitMQ (pluggable, can be removed if not needed)
+- **Database**: PostgreSQL
+- **Cache**: Redis
+- **Message Queue**: RabbitMQ
 - **Logging**: Structured logging with [zap](https://github.com/uber-go/zap)
 - **Configuration**: Environment-based configuration using [github.com/caarlos0/env/v11](https://github.com/caarlos0/env)
 - **Error Handling**: Custom error package with metadata, stack traces, and error categorization
@@ -34,11 +34,16 @@ A scalable, high-performance, high-availability web application template built w
 
 ## Project Structure
 
-```
+```markdown
 ├── cmd/                           # Application entry points
 │   ├── web-api/                   # Web API server
+│   │   ├── app.go                 # Application initialization
+│   │   └── main.go                # Main entry point
 │   ├── migrate/                   # Database migration tool
-│   └── task/                      # Task runner for scheduled, polling, and queue tasks
+│   │   └── main.go                # Migration entry point
+│   └── task/                      # Task runner
+│       ├── app.go                 # Task application setup
+│       └── main.go                # Task service entry point
 ├── config/                        # Configuration files
 │   ├── dev/                       # Development environment configs
 │   └── prod/                      # Production environment configs
@@ -50,43 +55,47 @@ A scalable, high-performance, high-availability web application template built w
 │   │   └── single/                # Single-node deployment configurations
 │   └── scripts/                   # Deployment automation scripts
 ├── docs/                          # Documentation
-│   ├── deployment.md              # Detailed deployment guide (English)
-│   ├── deployment-zh.md           # Detailed deployment guide (Chinese)
 ├── internal/                      # Private application code
 │   ├── api/                       # API-specific code
 │   │   └── http/                  # HTTP API code
 │   │       └── web/               # Web API handlers and routes
 │   │           ├── handler/       # API request handlers
 │   │           ├── middleware/    # HTTP middleware components
-│   │           ├── types/         # Request/response structures
-│   │           ├── service/       # Web API service layer, coordinates between handlers and usecases
+│   │           ├── service/       # Web API service layer
 │   │           ├── swagger/       # Swagger documentation
+│   │           ├── types/         # Request/response structures
 │   │           └── router.go      # Route definitions
 │   ├── enum/                      # Enumeration constants
+│   ├── infra/                     # Infrastructure layer
+│   │   ├── cache/                 # Cache implementations (Redis)
+│   │   ├── config/                # Configuration loading
+│   │   ├── database/              # Database connections
+│   │   ├── logger/                # Logger initialization
+│   │   ├── migrate/               # Migration infrastructure
+│   │   ├── mq/                    # Message queue (RabbitMQ)
+│   │   └── server/                # Server implementations
+│   │       └── http/              # HTTP server
 │   ├── model/                     # Domain models
 │   │   └── gen/                   # Generated models
+│   ├── permission/                # Authorization system
 │   ├── repository/                # Data access layer
 │   ├── task/                      # Task management
+│   │   ├── dependencies.go        # Task dependencies setup
 │   │   ├── poller/                # Polling task framework
+│   │   │   └── tasks/             # Polling task implementations
 │   │   ├── queue/                 # Queue-based task framework
+│   │   │   └── tasks/             # Queue task implementations
 │   │   └── scheduler/             # Scheduled task framework
-│   └── usecase/                   # Business logic
+│   │       └── tasks/             # Scheduled task implementations
+│   ├── usecase/                   # Business logic layer
+│   └── util/                      # Utility functions
 ├── pkg/                           # Public libraries
 │   ├── app/                       # Application framework
-│   ├── binding/                   # Request binding tools
-│   ├── cache/                     # Caching
-│   ├── config/                    # Configuration
-│   ├── database/                  # Database connections
-│   ├── errs/                      # Error handling tools
-│   ├── logger/                    # Logging
-│   ├── migrate/                   # Database migration tools
-│   ├── mq/                        # Message queue
-│   ├── server/                    # HTTP server
-│   └── utils/                     # Utility functions
-├── tools/                         # Development tools
-│   ├── gen/                       # Code generation tools
-│   └── swagger_autocomment/       # Swagger comment generation tool
-└── scripts/                       # Automation scripts
+│   │   ├── app.go                 # Core application lifecycle
+│   │   └── options.go             # Application options
+│   ├── binding/                   # Request binding utilities
+│   └── errs/                      # Error handling package
+└── tools/                         # Development tools
 ```
 
 ## Architecture
@@ -219,8 +228,8 @@ Error responses maintain the same structure:
 
 - Go 1.21 or higher
 - PostgreSQL
-- Redis (optional)
-- RabbitMQ (optional)
+- Redis
+- RabbitMQ
 
 ### Installation
 
