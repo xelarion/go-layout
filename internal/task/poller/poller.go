@@ -153,9 +153,9 @@ func (p *Poller) executeTask(task *pollingTask) {
 		task.logger.WithOptions(
 			zap.WithCaller(false),
 			zap.AddStacktrace(zap.FatalLevel),
-		).Error("Polling task failed",
+		).Error("Polling task failed"+errs.GetStack(err),
+			zap.String("name", task.name),
 			zap.Error(err),
-			zap.String("stack_trace", errs.GetStack(err)),
 			zap.Duration("duration", time.Since(start)))
 		return
 	}

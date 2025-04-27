@@ -262,9 +262,9 @@ func (qm *Manager) RegisterConsumer(
 
 		// Log error if any
 		if err != nil {
-			consumerLogger.Error("Failed to process message",
+			consumerLogger.Error("Failed to process message"+errs.GetStack(err),
+				zap.String("name", name),
 				zap.String("error", err.Error()),
-				zap.String("stack_trace", errs.GetStack(err)),
 			)
 		}
 

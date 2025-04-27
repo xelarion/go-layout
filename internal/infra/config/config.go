@@ -75,11 +75,13 @@ type JWT struct {
 
 // Log holds the logging related configuration.
 type Log struct {
-	Level           string `env:"LOG_LEVEL" envDefault:"info"`           // Available options: debug, info, warn, error
-	Format          string `env:"LOG_FORMAT" envDefault:"json"`          // Available options: json, console
-	EnableSampling  bool   `env:"LOG_ENABLE_SAMPLING" envDefault:"true"` // Enable log sampling to reduce volume
-	SamplingInitial int    `env:"LOG_SAMPLING_INITIAL" envDefault:"100"` // Sample first N entries with the same message
-	SamplingAfter   int    `env:"LOG_SAMPLING_AFTER" envDefault:"100"`   // Sample every N entries after Initial
+	Development bool   `env:"LOG_DEVELOPMENT" envDefault:"false"` // Enable development mode
+	Level       string `env:"LOG_LEVEL" envDefault:"info"`        // Available options: debug, info, warn, error
+	OutputFile  string `env:"LOG_OUTPUT_FILE"`                    // Log file path, empty for console output only
+	MaxSize     int    `env:"LOG_MAX_SIZE" envDefault:"100"`      // Maximum size of log files in MB before rotation
+	MaxAge      int    `env:"LOG_MAX_AGE" envDefault:"7"`         // Maximum number of days to retain old log files
+	MaxBackups  int    `env:"LOG_MAX_BACKUPS" envDefault:"5"`     // Maximum number of old log files to retain
+	Compress    bool   `env:"LOG_COMPRESS" envDefault:"true"`     // Compress rotated files with gzip
 }
 
 // Load loads the configuration from environment variables.

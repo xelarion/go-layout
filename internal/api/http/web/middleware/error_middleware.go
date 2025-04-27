@@ -56,14 +56,15 @@ func Error(logger *zap.Logger) gin.HandlerFunc {
 		if errs.IsInternal(err) {
 			httpStatus = http.StatusInternalServerError
 			respCode = types.CodeInternalError
+			errMsg := "Internal server error"
 
 			// Add stack trace for internal errors to aid debugging
 			stack := errs.GetStack(err)
 			if stack != "" {
-				fields = append(fields, zap.String("stack_trace", stack))
+				errMsg += stack
 			}
 
-			logger.Error("Internal server error", fields...)
+			logger.Error(errMsg, fields...)
 		} else if errs.IsBusiness(err) {
 			// Map common error reasons to their respective status codes
 			switch reason {

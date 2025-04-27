@@ -2,6 +2,8 @@
 package logger
 
 import (
+	"fmt"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
@@ -15,54 +17,48 @@ type Logger struct {
 
 // New creates a logger instance from the provided configuration.
 func New(cfg *config.Log) (*Logger, error) {
-	// Parse log level
-	var level zapcore.Level
-	switch cfg.Level {
-	case "debug":
-		level = zapcore.DebugLevel
-	case "info":
-		level = zapcore.InfoLevel
-	case "warn":
-		level = zapcore.WarnLevel
-	case "error":
-		level = zapcore.ErrorLevel
-	default:
-		level = zapcore.InfoLevel
+	// Register lumberjack sink if file output is configured
+	if err := RegisterLumberjackSink(cfg); err != nil {
+		return nil, err
 	}
 
-	// Choose encoder based on format
+	// Parse log level
+	level, err := zapcore.ParseLevel(cfg.Level)
+	if err != nil {
+		level = zapcore.InfoLevel // Default to info if parsing fails
+	}
+
+	// Configure logger based on environment
 	var zapCfg zap.Config
-	if cfg.Format == "json" {
+	if cfg.Development {
+		zapCfg = zap.NewDevelopmentConfig()
+		if cfg.OutputFile == "" {
+			zapCfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		}
+	} else {
 		zapCfg = zap.NewProductionConfig()
 		zapCfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-		// Production mode - disable caller for performance
-		zapCfg.DisableCaller = true
-	} else {
-		zapCfg = zap.NewDevelopmentConfig()
-		zapCfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-		// Development mode - enable caller for better debugging
-		zapCfg.DisableCaller = false
 	}
 
+	// Apply configuration
 	zapCfg.Level = zap.NewAtomicLevelAt(level)
-	zapCfg.OutputPaths = []string{"stdout"}
-	zapCfg.ErrorOutputPaths = []string{"stderr"}
 
-	// In json format, caller adds overhead, so we control it specifically above
-	// But stacktrace should be disabled by default for both formats
-	zapCfg.DisableStacktrace = true
-
-	// Configure log sampling to reduce log volume in production environments
-	if cfg.EnableSampling {
-		zapCfg.Sampling = &zap.SamplingConfig{
-			Initial:    cfg.SamplingInitial,
-			Thereafter: cfg.SamplingAfter,
-		}
+	// Configure output paths
+	if cfg.OutputFile != "" {
+		fileURL := fmt.Sprintf("%s://%s", lumberjackScheme, cfg.OutputFile)
+		zapCfg.OutputPaths = []string{fileURL}
+		zapCfg.ErrorOutputPaths = []string{fileURL}
+	} else {
+		zapCfg.OutputPaths = []string{"stdout"}
+		zapCfg.ErrorOutputPaths = []string{"stderr"}
 	}
 
-	logger, err := zapCfg.Build()
+	// Build the logger
+	logger, err := zapCfg.Build(
+		zap.AddCallerSkip(1), // Skip the wrapper logger calls
+	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build logger: %w", err)
 	}
 
 	return &Logger{logger}, nil
