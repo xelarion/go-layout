@@ -5,9 +5,10 @@ import "github.com/google/wire"
 
 // ProviderSet provides all handler dependencies.
 var ProviderSet = wire.NewSet(
+	// Handlers sorted by name
 	NewAuthHandler,
-	NewUserHandler,
 	NewDepartmentHandler,
-	NewRoleHandler,
 	NewPermissionHandler,
+	NewRoleHandler,
+	NewUserHandler,
 )

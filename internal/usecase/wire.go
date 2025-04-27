@@ -5,8 +5,9 @@ import "github.com/google/wire"
 
 // ProviderSet provides all usecase layer dependencies.
 var ProviderSet = wire.NewSet(
-	NewUserUseCase,
+	// Repositories sorted by name
 	NewDepartmentUseCase,
-	NewRoleUseCase,
 	NewPermissionUseCase,
+	NewRoleUseCase,
+	NewUserUseCase,
 )
