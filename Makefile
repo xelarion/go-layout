@@ -8,6 +8,21 @@ REGISTRY ?= docker.io
 SERVICES = web-api task
 
 #
+# Development setup commands
+#
+.PHONY: init
+
+# Initialize development environment
+init:
+	@echo "Initializing development environment..."
+	@echo "Installing required Go tools..."
+	@go install github.com/google/wire/cmd/wire@latest
+	@go install github.com/swaggo/swag/cmd/swag@latest
+	@echo "Running go mod tidy..."
+	@go mod tidy
+	@echo "Development environment initialized successfully!"
+
+#
 # Database migration commands
 #
 .PHONY: migrate migrate-up migrate-down migrate-status migrate-create migrate-reset
@@ -71,7 +86,7 @@ gen-wire: gen-wire-web
 # Generate wire code for web-api service
 gen-wire-web:
 	@echo "Generating wire code for web-api service..."
-	cd cmd/web-api && go run -mod=mod github.com/google/wire/cmd/wire
+	cd cmd/web-api && wire
 
 # Generate models from database schema
 gen-models:
@@ -99,12 +114,12 @@ gen-model:
 swagger-comment:
 	@echo "Generating intelligent Swagger comments for Web API handler methods..."
 	go run tools/swagger_autocomment/main.go $(ARGS)
-	cd internal/api/http/web && go run -mod=mod github.com/swaggo/swag/cmd/swag fmt -g swagger/doc.go --exclude middleware/,service/,types/
+	cd internal/api/http/web && swag fmt -g swagger/doc.go --exclude middleware/,service/,types/
 
 # Generate Swagger documentation for Web API
 swagger-docs:
 	@echo "Generating Swagger documentation for Web API..."
-	cd internal/api/http/web && go run -mod=mod github.com/swaggo/swag/cmd/swag init -g swagger/doc.go -o swagger/docs
+	cd internal/api/http/web && swag init -g swagger/doc.go -o swagger/docs
 
 # Generate all Swagger documentation (comments and docs)
 swagger-all: swagger-comment swagger-docs
