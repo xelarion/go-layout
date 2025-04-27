@@ -21,7 +21,7 @@ type UserRepository struct {
 }
 
 // NewUserRepository creates a new instance of user repository.
-func NewUserRepository(data *Data) *UserRepository {
+func NewUserRepository(data *Data) usecase.UserRepository {
 	return &UserRepository{
 		data: data,
 	}

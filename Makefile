@@ -62,7 +62,16 @@ migrate-fix:
 #
 # Code generation
 #
-.PHONY: gen-models gen-model
+.PHONY: gen-models gen-model gen-wire gen-wire-web
+
+# Generate wire dependency injection code
+gen-wire: gen-wire-web
+	@echo "All wire code generated successfully"
+
+# Generate wire code for web-api service
+gen-wire-web:
+	@echo "Generating wire code for web-api service..."
+	cd cmd/web-api && go run -mod=mod github.com/google/wire/cmd/wire
 
 # Generate models from database schema
 gen-models:
@@ -84,25 +93,18 @@ gen-model:
 #
 # API documentation
 #
-.PHONY: swagger-install swagger-comment swagger-docs swagger-all
-
-# Install Swagger tools
-swagger-install:
-	@echo "Installing Swagger tools..."
-	go install github.com/swaggo/swag/cmd/swag@latest
-	go get -u github.com/swaggo/gin-swagger
-	go get -u github.com/swaggo/files
+.PHONY: swagger-comment swagger-docs swagger-all
 
 # Generate intelligent Swagger comments for API handler methods, example: make swagger-comment ARGS="-silent"
 swagger-comment:
 	@echo "Generating intelligent Swagger comments for Web API handler methods..."
 	go run tools/swagger_autocomment/main.go $(ARGS)
-	cd internal/api/http/web && swag fmt -g swagger/doc.go --exclude middleware/,service/,types/
+	cd internal/api/http/web && go run -mod=mod github.com/swaggo/swag/cmd/swag fmt -g swagger/doc.go --exclude middleware/,service/,types/
 
 # Generate Swagger documentation for Web API
 swagger-docs:
 	@echo "Generating Swagger documentation for Web API..."
-	cd internal/api/http/web && swag init -g swagger/doc.go -o swagger/docs
+	cd internal/api/http/web && go run -mod=mod github.com/swaggo/swag/cmd/swag init -g swagger/doc.go -o swagger/docs
 
 # Generate all Swagger documentation (comments and docs)
 swagger-all: swagger-comment swagger-docs

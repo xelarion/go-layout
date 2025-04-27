@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"go.uber.org/zap"
 
@@ -25,14 +24,14 @@ func initApp(cfgPG *config.PG, cfgRedis *config.Redis, cfgRabbitMQ *config.Rabbi
 	// Initialize data with connections
 	data, dataCleanup, err := repository.NewData(cfgPG, cfgRedis, cfgRabbitMQ, logger)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to initialize data: %w", err)
+		return nil, nil, err
 	}
 
 	// Initialize dependencies - this manages all connections and their cleanup
 	dependencies, err := task.NewDependencies(data, logger)
 	if err != nil {
 		dataCleanup()
-		return nil, nil, fmt.Errorf("failed to initialize dependencies: %w", err)
+		return nil, nil, err
 	}
 
 	// Initialize task components

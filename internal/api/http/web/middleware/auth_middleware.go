@@ -54,7 +54,6 @@ func NewAuthMiddleware(cfg *config.JWT, uc *usecase.UserUseCase, logger *zap.Log
 	})
 
 	if err != nil {
-		logger.Error("Failed to initialize JWT middleware", zap.Error(err))
 		return nil, err
 	}
 
