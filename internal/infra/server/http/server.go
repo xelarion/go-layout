@@ -9,9 +9,25 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/xelarion/go-layout/internal/infra/config"
 )
+
+type zapWriter struct {
+	logger *zap.Logger
+	level  zapcore.Level
+}
+
+func (w *zapWriter) Write(p []byte) (n int, err error) {
+	switch w.level {
+	case zapcore.ErrorLevel:
+		w.logger.Error(string(p))
+	default:
+		w.logger.Info(string(p))
+	}
+	return len(p), nil
+}
 
 // Server represents an HTTP server.
 type Server struct {
@@ -44,6 +60,14 @@ func NewServer(config *config.HTTP, logger *zap.Logger, opts ...ServerOption) *S
 	if config.Mode == gin.ReleaseMode {
 		gin.DisableConsoleColor()
 	}
+
+	// Set Gin logger
+	httpLogger := logger.WithOptions(
+		zap.WithCaller(false),
+		zap.AddStacktrace(zap.FatalLevel),
+	)
+	gin.DefaultWriter = &zapWriter{logger: httpLogger, level: zapcore.InfoLevel}
+	gin.DefaultErrorWriter = &zapWriter{logger: httpLogger, level: zapcore.ErrorLevel}
 
 	// Setup router
 	router := gin.New()

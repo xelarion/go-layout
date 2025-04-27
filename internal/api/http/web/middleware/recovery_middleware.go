@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"bytes"
 	"net/http"
 	"time"
 
@@ -19,9 +18,8 @@ type zapWriter struct {
 // Write satisfies the io.Writer interface and forwards the message to zap
 func (w *zapWriter) Write(p []byte) (n int, err error) {
 	// Trim any trailing newlines
-	msg := string(bytes.TrimSuffix(p, []byte("\n")))
-	w.logger.Error("Recovery from panic",
-		zap.String("error", msg),
+	w.logger.Error("Recovery from panic"+string(p),
+		zap.Error(err),
 		zap.String("time", time.Now().Format(time.RFC3339)),
 	)
 	return len(p), nil
