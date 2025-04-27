@@ -24,9 +24,9 @@ type Dependencies struct {
 // NewDependencies creates a new dependencies instance with all required dependencies.
 func NewDependencies(data *repository.Data, logger *zap.Logger) (*Dependencies, error) {
 	// Create repositories
-	userRepo := repository.NewUserRepository(data)
-	roleRepo := repository.NewRoleRepository(data)
 	departmentRepo := repository.NewDepartmentRepository(data)
+	roleRepo := repository.NewRoleRepository(data)
+	userRepo := repository.NewUserRepository(data)
 
 	// Create usecases
 	userUseCase := usecase.NewUserUseCase(data, userRepo, roleRepo, departmentRepo)

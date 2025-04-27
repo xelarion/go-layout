@@ -18,10 +18,10 @@ type Router struct {
 	permMW *middleware.PermissionMiddleware
 
 	authHandler       *handler.AuthHandler
-	userHandler       *handler.UserHandler
 	departmentHandler *handler.DepartmentHandler
-	roleHandler       *handler.RoleHandler
 	permissionHandler *handler.PermissionHandler
+	roleHandler       *handler.RoleHandler
+	userHandler       *handler.UserHandler
 }
 
 // NewRouter creates a new router.
@@ -30,20 +30,20 @@ func NewRouter(
 	authMW *jwt.GinJWTMiddleware,
 	permMW *middleware.PermissionMiddleware,
 	authHandler *handler.AuthHandler,
-	userHandler *handler.UserHandler,
 	departmentHandler *handler.DepartmentHandler,
-	roleHandler *handler.RoleHandler,
 	permissionHandler *handler.PermissionHandler,
+	roleHandler *handler.RoleHandler,
+	userHandler *handler.UserHandler,
 ) *Router {
 	return &Router{
 		logger:            logger.Named("web_router"),
 		authMW:            authMW,
 		permMW:            permMW,
 		authHandler:       authHandler,
-		userHandler:       userHandler,
 		departmentHandler: departmentHandler,
-		roleHandler:       roleHandler,
 		permissionHandler: permissionHandler,
+		roleHandler:       roleHandler,
+		userHandler:       userHandler,
 	}
 }
 
