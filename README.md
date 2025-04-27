@@ -28,6 +28,7 @@ A scalable, high-performance, high-availability web application template built w
 - **Configuration**: Environment-based configuration using [github.com/caarlos0/env/v11](https://github.com/caarlos0/env)
 - **Error Handling**: Custom error package with metadata, stack traces, and error categorization
 - **Authentication**: JWT-based authentication using [gin-jwt](https://github.com/appleboy/gin-jwt)
+- **Dependency Injection**: Clean dependency injection using [Google Wire](https://github.com/google/wire)
 - **Scheduler**: Integrated CRON scheduler for timed tasks using [robfig/cron](https://github.com/robfig/cron)
 - **Migration**: Database migrations using [goose](https://github.com/pressly/goose)
 - **Deployment**: Containerization and orchestration using Docker and k3s
@@ -37,13 +38,8 @@ A scalable, high-performance, high-availability web application template built w
 ```markdown
 ├── cmd/                           # Application entry points
 │   ├── web-api/                   # Web API server
-│   │   ├── app.go                 # Application initialization
-│   │   └── main.go                # Main entry point
 │   ├── migrate/                   # Database migration tool
-│   │   └── main.go                # Migration entry point
 │   └── task/                      # Task runner
-│       ├── app.go                 # Task application setup
-│       └── main.go                # Task service entry point
 ├── config/                        # Configuration files
 │   ├── dev/                       # Development environment configs
 │   └── prod/                      # Production environment configs
@@ -107,6 +103,14 @@ A scalable, high-performance, high-availability web application template built w
 - **Usecase Layer**: Contains core business logic independent of the API layer. Defines Repository interfaces as per the dependency inversion principle.
 - **Repository Layer**: Manages data access and database interactions.
 
+### Dependency Injection
+
+The application uses Google Wire for dependency injection with a modular provider set approach:
+
+- **Provider Sets**: Each layer (repository, usecase, service, handler) maintains its own provider set, making dependencies explicit and easier to manage
+- **Auto-Generated Code**: Wire automatically generates the dependency injection code, eliminating manual wiring
+- **Modularity**: Adding new components only requires updating the relevant provider set and regenerating the wire_gen.go file
+
 ### Permission System
 
 The application implements a role-based permission system for access control:
@@ -114,6 +118,7 @@ The application implements a role-based permission system for access control:
 - **Permission Definition**: Permissions are defined as constants in the `permission` package (e.g., `user:list`, `role:update`)
 - **Permission Tree**: Permissions are organized in a hierarchical structure exposed via the `/api/v1/permissions/tree` endpoint
 - **Permission Usage**: API endpoints are protected using middleware:
+
   ```go
   // Single permission check
   router.GET("/users", permMW.Check(permission.UserList), handler.ListUsers)
@@ -291,10 +296,10 @@ Error responses maintain the same structure:
    go run ./cmd/web-api
    ```
 
-8. Start the task runner with desired components (all flags are optional)
+8. Start the task runner with desired components
 
    ```bash
-   go run ./cmd/task --scheduler --poller --queue
+   go run ./cmd/task
    ```
 
 ### Docker Deployment
@@ -336,6 +341,61 @@ make deploy-cluster
 # Deploy using k3s deployment script
 make deploy-k3s
 ```
+
+## Code Generation
+
+This project uses various code generation tools to improve development efficiency.
+
+### Running Code Generation Tools
+
+```bash
+# Generate wire dependency injection code
+make gen-wire
+
+# Generate wire code for web-api service only
+make gen-wire-web
+
+# Generate models from database schema
+make gen-models
+
+# Generate model for a specific table
+make gen-model TABLE=users
+
+# Generate swagger documentation
+make swagger-docs
+
+# Generate intelligent swagger comments
+make swagger-comment ARGS="-silent"
+```
+
+### Working with Wire
+
+Wire generates dependency injection code based on provider functions. To modify the dependency graph:
+
+1. Update the relevant provider set in your layer (repository, usecase, service, etc.)
+2. Run `make gen-wire` to regenerate the wire_gen.go file
+3. The application will now use the updated dependency graph
+
+### Working with Generated Models
+
+Generated models are placed in the `internal/model/gen` directory. For each generated model, you should create a corresponding extended model in the `internal/model` directory.
+
+Example of an extended model:
+
+```go
+package model
+
+import (
+    "github.com/xelarion/go-layout/internal/model/gen"
+)
+
+// User represents a user model.
+type User struct {
+    gen.User
+}
+```
+
+This approach allows you to add custom methods and properties to the models while maintaining the ability to regenerate the base models from the database schema.
 
 ## Database Migrations
 
@@ -401,60 +461,6 @@ make deploy-migrate-cluster
 ```
 
 The migration job runs as a Kubernetes job with `restartPolicy: Never` and `backoffLimit: 3`.
-
-## Model Generation
-
-This project uses GORM's model generation tool to automatically create Go structs from database tables. The generated models support various PostgreSQL data types, including arrays and JSON.
-
-### Supported Data Types
-
-The model generator has enhanced support for PostgreSQL data types:
-
-- **Basic Types**: All standard PostgreSQL types (integer, text, etc.)
-- **Array Types**: Arrays are mapped to appropriate Go types:
-  - `character varying[]`, `varchar[]`, `text[]` → `pq.StringArray`
-  - `integer[]`, `int[]` → `pq.Int32Array`
-  - `bigint[]` → `pq.Int64Array`
-  - `boolean[]` → `pq.BoolArray`
-  - `numeric[]`, `decimal[]` → `pq.Float64Array`
-- **JSON Types**: `json` and `jsonb` are mapped to `datatypes.JSON` from `github.com/go-gorm/datatypes`
-- **Special Types**:
-  - `uuid` → `datatypes.UUID`
-  - `date` → `datatypes.Date`
-  - `time` → `datatypes.Time`
-
-### Running the Model Generator
-
-You can generate models using the following commands:
-
-```bash
-# Generate models for all tables in the database
-make gen-models
-
-# Generate model for a specific table (useful for team development)
-make gen-model TABLE=users
-```
-
-### Working with Generated Models
-
-Generated models are placed in the `internal/model/gen` directory. For each generated model, you should create a corresponding extended model in the `internal/model` directory.
-
-Example of an extended model:
-
-```go
-package model
-
-import (
-    "github.com/xelarion/go-layout/internal/model/gen"
-)
-
-// User represents a user model.
-type User struct {
-    gen.User
-}
-```
-
-This approach allows you to add custom methods and properties to the models while maintaining the ability to regenerate the base models from the database schema.
 
 ## License
 
