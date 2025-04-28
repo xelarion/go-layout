@@ -746,7 +746,7 @@ func extractRoutes(routerFile string, config *Config) (map[string]RouteInfo, err
 	}
 
 	groupPattern := strings.Join(groupNames, "|")
-	apiRouteRegex := regexp.MustCompile(fmt.Sprintf(`(%s)\.(GET|HEAD|POST|PUT|PATCH|DELETE|CONNECT|OPTIONS|TRACE)\("([^"]+)".*,\s*([a-zA-Z0-9]+)\.([a-zA-Z0-9]+)\)`, groupPattern))
+	apiRouteRegex := regexp.MustCompile(fmt.Sprintf(`(%s)\.(GET|HEAD|POST|PUT|PATCH|DELETE|CONNECT|OPTIONS|TRACE)\("([^"]+)"(.*)\)`, groupPattern))
 
 	// Extract all route registrations
 	matches := apiRouteRegex.FindAllStringSubmatch(string(content), -1)
@@ -756,14 +756,14 @@ func extractRoutes(routerFile string, config *Config) (map[string]RouteInfo, err
 	}
 
 	for _, match := range matches {
-		if len(match) < 6 {
+		if len(match) < 5 {
 			continue
 		}
 
-		group := match[1]   // route group
-		method := match[2]  // HTTP method
-		path := match[3]    // Path
-		handler := match[5] // Handler function name
+		group := match[1]        // route group
+		method := match[2]       // HTTP method
+		path := match[3]         // Path
+		handlersCode := match[4] // All handlers including middleware
 
 		// Convert path params from :id to {id}
 		convertedPath := routerParamRegex.ReplaceAllString(path, "{$1}")
@@ -775,10 +775,17 @@ func extractRoutes(routerFile string, config *Config) (map[string]RouteInfo, err
 			isSecured = false
 		}
 
-		routes[handler] = RouteInfo{
+		// handlersCode example: , r.permMW.Check(permission.DepartmentUpdate), r.departmentHandler.GetDepartmentFormData
+		handlersSplit := strings.Split(handlersCode, ",")
+		handler := handlersSplit[len(handlersSplit)-1]
+		// handler example: , r.departmentHandler.GetDepartmentFormData
+		handlerSplit := strings.Split(handler, ".")
+		handlerName := handlerSplit[len(handlerSplit)-1]
+
+		routes[handlerName] = RouteInfo{
 			Path:      convertedPath,
 			Method:    strings.ToLower(method),
-			Handler:   handler,
+			Handler:   handlerName,
 			IsSecured: isSecured,
 		}
 	}
