@@ -153,9 +153,20 @@ func main() {
 		tables = []string{tableName}
 		fmt.Printf("Generating model for table: %s\n", tableName)
 	} else {
-		// Find all tables (exclude system tables)
-		db.DB.Raw("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name NOT IN ('goose_db_version', 'schema_migrations')").Find(&tables)
-		fmt.Printf("Generating models for all tables: %v\n", tables)
+		// Find all tables (exclude system tables and partition tables)
+		db.DB.Raw(`
+			SELECT t.table_name
+			FROM information_schema.tables t
+			WHERE t.table_schema = 'public'
+			AND t.table_name NOT IN ('goose_db_version', 'schema_migrations')
+			AND NOT EXISTS (
+				SELECT 1 FROM pg_inherits i
+				JOIN pg_class c ON i.inhrelid = c.oid
+				JOIN pg_namespace n ON c.relnamespace = n.oid
+				WHERE n.nspname = 'public' AND c.relname = t.table_name
+			)
+		`).Find(&tables)
+		fmt.Printf("Generating models for all tables (excluding partition child tables): %v\n", tables)
 	}
 
 	// Check if specified table exists
