@@ -223,14 +223,6 @@ type RouteInfo struct {
 	IsSecured bool   // Whether the route requires authentication
 }
 
-// Parameter represents a parameter for a handler function
-type Parameter struct {
-	Name     string // Parameter name
-	Type     string // Parameter type
-	Location string // Parameter location (path, query, body)
-	Required bool   // Whether the parameter is required
-}
-
 // FileStats holds statistics for processed files
 type FileStats struct {
 	TotalMethods     int
@@ -509,7 +501,8 @@ func (sg *SwaggerGenerator) Run() (FileStats, error) {
 type WorkerPool struct {
 	concurrency int
 	workChan    chan string
-	resultChan  chan fileResult
+	results     []fileResult
+	resultMutex sync.Mutex
 	wg          *sync.WaitGroup
 	config      *Config
 	routes      map[string]RouteInfo
@@ -522,7 +515,7 @@ func NewWorkerPool(config *Config, routes map[string]RouteInfo, fileCache *FileC
 	return &WorkerPool{
 		concurrency: config.Concurrency,
 		workChan:    make(chan string, config.Concurrency*2),
-		resultChan:  make(chan fileResult, config.Concurrency*2),
+		results:     make([]fileResult, 0),
 		wg:          &sync.WaitGroup{},
 		config:      config,
 		routes:      routes,
@@ -545,7 +538,10 @@ func (wp *WorkerPool) worker() {
 	defer wp.wg.Done()
 	for filePath := range wp.workChan {
 		stats, err := processFile(filePath, *wp.config, wp.routes, wp.fileCache, wp.typeFinder)
-		wp.resultChan <- fileResult{path: filePath, stats: stats, err: err}
+		result := fileResult{path: filePath, stats: stats, err: err}
+		wp.resultMutex.Lock()
+		wp.results = append(wp.results, result)
+		wp.resultMutex.Unlock()
 	}
 }
 
@@ -558,7 +554,7 @@ func (wp *WorkerPool) AddFile(filePath string) {
 func (wp *WorkerPool) Close() {
 	close(wp.workChan)
 	wp.wg.Wait()
-	close(wp.resultChan)
+
 }
 
 // ProcessResults processes results from the result channel and returns total stats
@@ -572,7 +568,7 @@ func (wp *WorkerPool) ProcessResults() FileStats {
 		fmt.Println()
 	}
 
-	for result := range wp.resultChan {
+	for _, result := range wp.results {
 		if result.err != nil {
 			errorCount++
 			fmt.Printf("Error processing %s: %v\n", result.path, result.err)
