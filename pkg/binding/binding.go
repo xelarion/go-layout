@@ -32,6 +32,8 @@ func init() {
 	})
 }
 
+type BindFunc func(*gin.Context, any) error
+
 // Bind processes data from multiple sources without validating between each step,
 // then performs a single validation at the end.
 //
@@ -45,7 +47,7 @@ func init() {
 //	    c.JSON(http.StatusBadRequest, ErrorResponse{Message: err.Error()})
 //	    return
 //	}
-func Bind(c *gin.Context, obj any, bindFuncs ...func(*gin.Context, any) error) error {
+func Bind(c *gin.Context, obj any, bindFuncs ...BindFunc) error {
 	// Execute all binding functions (validation is already disabled)
 	for _, bindFunc := range bindFuncs {
 		if err := bindFunc(c, obj); err != nil {
@@ -85,6 +87,18 @@ func Query(c *gin.Context, obj any) error {
 // Uses Gin's ShouldBindWith with Form binding but without validation.
 func Form(c *gin.Context, obj any) error {
 	return c.ShouldBindWith(obj, ginbinding.Form)
+}
+
+// FormMultipart binds form multipart data to the given object.
+// Uses Gin's ShouldBindWith with FormMultipart binding but without validation.
+func FormMultipart(c *gin.Context, obj any) error {
+	return c.ShouldBindWith(obj, ginbinding.FormMultipart)
+}
+
+func Func(b ginbinding.Binding) BindFunc {
+	return func(c *gin.Context, obj any) error {
+		return c.ShouldBindWith(obj, b)
+	}
 }
 
 // ValidateStruct provides a way to manually validate a struct using the original validator.
