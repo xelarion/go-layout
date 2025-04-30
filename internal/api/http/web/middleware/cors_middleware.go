@@ -26,7 +26,7 @@ func CORS(allowOrigins []string) gin.HandlerFunc {
 			"Authorization",
 		},
 		// Expose only necessary headers
-		ExposeHeaders: []string{"Content-Length", "Content-Type"},
+		ExposeHeaders: []string{"Content-Length", "Content-Type", "Content-Disposition"},
 		// Allow credentials for authenticated requests
 		AllowCredentials: true,
 		// Cache preflight requests for 1 hour
