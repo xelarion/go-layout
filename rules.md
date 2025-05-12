@@ -149,10 +149,6 @@
 - **Code Review Process**:
   - All code changes must be reviewed and approved via pull requests before merging.
 
-- **Terminal Command Restrictions**:
-  - When running any `go` commands (e.g., `go version`), if the command is not available, try to execute `ugvm` first (use gvm)
-  - When running any node-related commands (e.g., `npx -v`), if the command is not available, try to execute `unvm` (using nvm).
-
 - **Git Commit Guidelines**:
   - Follow the Conventional Commits specification (e.g., feat(xxx): add new feature, fix: resolve bug) with optional scopes and clear descriptions.
 
