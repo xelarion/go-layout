@@ -276,7 +276,8 @@ func getStackTrace(skip int) string {
 	length := runtime.Callers(skip+2, stackBuf)
 	stack := stackBuf[:length]
 
-	trace := ""
+	var traceBuf strings.Builder
+	traceBuf.Grow(500)
 	frames := runtime.CallersFrames(stack)
 	for {
 		frame, more := frames.Next()
@@ -287,11 +288,10 @@ func getStackTrace(skip int) string {
 			}
 			break
 		}
-
-		trace += fmt.Sprintf("\n\t%s:%d %s", frame.File, frame.Line, frame.Function)
+		fmt.Fprintf(&traceBuf, "\n\t%s:%d %s", frame.File, frame.Line, frame.Function)
 		if !more {
 			break
 		}
 	}
-	return trace
+	return traceBuf.String()
 }
