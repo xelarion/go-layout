@@ -4,6 +4,7 @@ package tasks
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -36,6 +37,9 @@ func (t *ExampleHandler) Register(s *scheduler.Scheduler) error {
 
 // Execute runs the example task handler.
 func (t *ExampleHandler) Execute(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	// Simple example of using dependencies
 	user, err := t.deps.UserRepo.FindByID(ctx, 1)
 	if err != nil {

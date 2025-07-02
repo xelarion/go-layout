@@ -62,8 +62,7 @@ func (s *Scheduler) Register(name, cronExpr string, task Task) error {
 	}
 
 	id, err := s.cron.AddFunc(cronExpr, func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-		defer cancel()
+		ctx := context.Background()
 
 		s.logger.Info("Starting scheduled task", zap.String("task", name))
 		start := time.Now()
