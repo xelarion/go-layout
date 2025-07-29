@@ -9,6 +9,7 @@ import (
 
 	"github.com/xelarion/go-layout/internal/model"
 	"github.com/xelarion/go-layout/internal/usecase"
+	"github.com/xelarion/go-layout/internal/util"
 	"github.com/xelarion/go-layout/pkg/errs"
 )
 
@@ -46,7 +47,7 @@ func (r *DepartmentRepository) List(ctx context.Context, filters map[string]any,
 		switch field {
 		case "name":
 			if str, ok := value.(string); ok {
-				query = query.Where("departments.name LIKE ?", "%"+str+"%")
+				query = query.Where("departments.name LIKE ?", util.EscapeLike(str))
 			}
 		default:
 			query = query.Where("departments."+field+" = ?", value)
