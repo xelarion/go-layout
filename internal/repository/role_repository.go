@@ -47,7 +47,7 @@ func (r *RoleRepository) List(ctx context.Context, filters map[string]any, limit
 		switch field {
 		case "name":
 			if str, ok := value.(string); ok {
-				query = query.Where("roles.name LIKE ?", util.EscapeLike(str))
+				query = query.Where("roles.name LIKE ?", util.EscapeFullLike(str))
 			}
 		default:
 			query = query.Where("roles."+field+" = ?", value)

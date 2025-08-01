@@ -47,7 +47,7 @@ func (r *DepartmentRepository) List(ctx context.Context, filters map[string]any,
 		switch field {
 		case "name":
 			if str, ok := value.(string); ok {
-				query = query.Where("departments.name LIKE ?", util.EscapeLike(str))
+				query = query.Where("departments.name LIKE ?", util.EscapeFullLike(str))
 			}
 		default:
 			query = query.Where("departments."+field+" = ?", value)
