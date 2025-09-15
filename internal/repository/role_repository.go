@@ -9,6 +9,7 @@ import (
 
 	"github.com/xelarion/go-layout/internal/model"
 	"github.com/xelarion/go-layout/internal/usecase"
+	"github.com/xelarion/go-layout/internal/util"
 	"github.com/xelarion/go-layout/pkg/errs"
 )
 
@@ -46,7 +47,7 @@ func (r *RoleRepository) List(ctx context.Context, filters map[string]any, limit
 		switch field {
 		case "name":
 			if str, ok := value.(string); ok {
-				query = query.Where("roles.name LIKE ?", "%"+str+"%")
+				query = query.Where("roles.name LIKE ?", util.EscapeFullLike(str))
 			}
 		default:
 			query = query.Where("roles."+field+" = ?", value)
