@@ -77,6 +77,7 @@ type JWT struct {
 type Log struct {
 	Development bool   `env:"LOG_DEVELOPMENT" envDefault:"false"` // Enable development mode
 	Level       string `env:"LOG_LEVEL" envDefault:"info"`        // Available options: debug, info, warn, error
+	Encoding    string `env:"LOG_ENCODING" envDefault:"console"`  // Available options: console, json
 	OutputFile  string `env:"LOG_OUTPUT_FILE"`                    // Log file path, empty for console output only
 	MaxSize     int    `env:"LOG_MAX_SIZE" envDefault:"100"`      // Maximum size of log files in MB before rotation
 	MaxAge      int    `env:"LOG_MAX_AGE" envDefault:"7"`         // Maximum number of days to retain old log files

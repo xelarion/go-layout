@@ -42,6 +42,7 @@ func New(cfg *config.Log) (*Logger, error) {
 
 	// Apply configuration
 	zapCfg.Level = zap.NewAtomicLevelAt(level)
+	zapCfg.Encoding = cfg.Encoding
 
 	// Configure output paths
 	if cfg.OutputFile != "" {
