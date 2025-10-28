@@ -192,6 +192,9 @@ func main() {
 				field.Type = mappedType
 			}
 
+			// Remove default tag fields to allow zero values
+			field.GORMTag.Remove("default")
+
 			return field
 		}))
 	}
