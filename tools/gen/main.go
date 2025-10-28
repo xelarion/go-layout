@@ -193,7 +193,7 @@ func main() {
 			}
 
 			// Remove default tag fields to allow zero values
-			delete(field.GORMTag, "default")
+			field.GORMTag.Remove("default")
 
 			return field
 		}))
