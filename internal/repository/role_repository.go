@@ -3,6 +3,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 
 	"gorm.io/gorm"
@@ -39,15 +40,21 @@ func (r *RoleRepository) Create(ctx context.Context, role *model.Role) error {
 func (r *RoleRepository) List(ctx context.Context, filters map[string]any, limit, offset int, sortClause string) ([]*model.Role, int, error) {
 	query := r.data.DB(ctx).Model(&model.Role{})
 
+	// 处理数据权限的 OR 条件（优先处理）
+	if orConditions, ok := filters["_data_scope_or"].([]map[string]any); ok {
+		query = ApplyORConditions(query, orConditions)
+		delete(filters, "_data_scope_or") // 删除特殊标记，避免后续再次处理
+	}
+
 	for field, value := range filters {
 		if value == nil {
 			continue
 		}
 
 		switch field {
-		case "name":
+		case "key":
 			if str, ok := value.(string); ok {
-				query = query.Where("roles.name LIKE ?", util.EscapeFullLike(str))
+				query = query.Where("roles.name LIKE @key OR code LIKE @key", sql.Named("key", util.EscapeFullLike(str)))
 			}
 		default:
 			query = query.Where("roles."+field+" = ?", value)
@@ -62,7 +69,7 @@ func (r *RoleRepository) List(ctx context.Context, filters map[string]any, limit
 	if sortClause != "" {
 		query = query.Order(sortClause)
 	} else {
-		query = query.Order("roles.id desc")
+		query = query.Order("display_order ASC, roles.id desc")
 	}
 
 	var roles []*model.Role

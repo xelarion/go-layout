@@ -133,10 +133,11 @@
 - **Documentation**:
   - Maintain up-to-date documentation for all modules and components.
   - Provide clear setup, usage, and contribution guidelines.
-  - Use English for code and comments, with README files provided in English (`README.md`).
+  - Use Chinese for code comments, documentation, and AI conversations.
+  - Provide README files in both English (`README.md`) and Chinese (`README-zh.md`).
 
 - **Code Style & Comments**:
-  - Ensure that all code and comments are written in English.
+  - Ensure that all code comments and documentation are written in Chinese.
   - Follow principles of clean, modular, and well-documented code to ensure readability and ease of extension.
 
 ---
@@ -166,6 +167,7 @@
 - **Testing Coverage**:
   - Develop a comprehensive testing strategy including unit tests, integration tests, and end-to-end tests to ensure system stability as the project scales.
 
-- **DocumentationGuidelines**
-1. When making changes to project architecture, technologies, or best practices, always update README.md and translate to README-zh.md
-2. Ensure rules.md reflects the current state of the project for future AI reference.
+- **Documentation Guidelines**:
+  1. When making changes to project architecture, technologies, or best practices, always update README.md (English) and translate to README-zh.md (Chinese)
+  2. Ensure rules.md reflects the current state of the project for future AI reference.
+  3. All code comments, documentation, and AI conversations should be in Chinese.

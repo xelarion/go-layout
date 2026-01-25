@@ -29,6 +29,10 @@ func (s *SortReq) GetSortField() string {
 // GetSortOrder returns the sort direction (asc/desc), defaulting to asc if not set.
 func (s *SortReq) GetSortOrder() string {
 	order := strings.ToLower(s.SortOrder)
+	if order == "" {
+		return ""
+	}
+
 	if order == SortDesc || order == "descend" {
 		return SortDesc
 	}
@@ -38,14 +42,20 @@ func (s *SortReq) GetSortOrder() string {
 // GetSortClause returns a properly formatted "field direction" string for SQL ORDER BY
 // or empty string if sort field is not set or invalid.
 func (s *SortReq) GetSortClause() string {
-	if s.GetSortField() == "" {
+	sortField := s.GetSortField()
+	if sortField == "" {
+		return ""
+	}
+
+	sortOrder := s.GetSortOrder()
+	if sortOrder == "" {
 		return ""
 	}
 
 	// Validate field name with regex pattern
-	if !safeSortFieldPattern.MatchString(s.GetSortField()) {
+	if !safeSortFieldPattern.MatchString(sortField) {
 		return ""
 	}
 
-	return s.GetSortField() + " " + s.GetSortOrder()
+	return sortField + " " + sortOrder
 }

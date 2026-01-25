@@ -78,6 +78,10 @@ func (tm *TypeMapper) MapFieldType(field gen.Field) string {
 
 	// Handle non-array types
 	if goType, ok := tm.typeMap[typeStr]; ok {
+		// Check if original field type is a pointer (nullable field)
+		if strings.HasPrefix(field.Type, "*") {
+			return "*" + goType
+		}
 		return goType
 	}
 
@@ -182,14 +186,23 @@ func main() {
 	for _, table := range tables {
 		g.GenerateModel(table, gen.FieldModify(func(field gen.Field) gen.Field {
 			// change id and _id fields to uint
-			if field.Type == "int64" && (field.ColumnName == "id" || strings.HasSuffix(field.ColumnName, "_id")) {
+			if field.Type == "int64" && (field.ColumnName == "id" || field.ColumnName == "updated_by" || field.ColumnName == "created_by" || strings.HasSuffix(field.ColumnName, "_id")) {
 				field.Type = "uint"
+			}
+			if field.Type == "*int64" && (field.ColumnName == "id" || field.ColumnName == "updated_by" || field.ColumnName == "created_by" || strings.HasSuffix(field.ColumnName, "_id")) {
+				field.Type = "*uint"
 			}
 
 			// Map database type to Go type
 			mappedType := typeMapper.MapFieldType(field)
 			if mappedType != field.Type {
 				field.Type = mappedType
+			}
+
+			// deleted_at 字段 soft_delete.DeletedAt
+			if field.ColumnName == "deleted_at" {
+				field.Type = "soft_delete.DeletedAt"
+				field.GORMTag.Set("softDelete", "nano")
 			}
 
 			// Remove default tag fields to allow zero values

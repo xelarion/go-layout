@@ -60,6 +60,11 @@ func (m *PermissionMiddleware) Check(permissions ...string) gin.HandlerFunc {
 			return
 		}
 
+		// 将权限写入 context
+		current.SetReqPermissions(permissions...)
+		ctx := SetCurrent(c.Request.Context(), current)
+		c.Request = c.Request.WithContext(ctx)
+
 		c.Next()
 	}
 }

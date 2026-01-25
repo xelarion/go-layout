@@ -68,3 +68,5 @@ pod-*.txt
 .cursorrules
 .windsurfrules
 .tool-versions
+
+/storage

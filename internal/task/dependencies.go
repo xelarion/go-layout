@@ -4,6 +4,7 @@ package task
 import (
 	"go.uber.org/zap"
 
+	"github.com/xelarion/go-layout/internal/infra/wsocket"
 	"github.com/xelarion/go-layout/internal/repository"
 	"github.com/xelarion/go-layout/internal/usecase"
 )
@@ -13,37 +14,76 @@ type Dependencies struct {
 	// Core infrastructure (unexported)
 	data   *repository.Data
 	logger *zap.Logger
+	TX     usecase.Transaction
 
-	// Repositories
-	UserRepo usecase.UserRepository
+	// Broadcaster for WebSocket push
+	Broadcaster wsocket.Broadcaster
 
-	// Usecases
-	UserUseCase *usecase.UserUseCase
+	// @insert:dependencies_repository_define 请对以下内容进行排序
+	AmqpMessageRepo      usecase.AmqpMessageRepository
+	ExportTaskRepo       usecase.ExportTaskRepository
+	MQRepo               usecase.MQRepository
+	NotificationRepo     usecase.NotificationRepository
+	StorageBlobRepo      usecase.StorageBlobRepository
+	UserNotificationRepo usecase.UserNotificationRepository
+	UserRepo             usecase.UserRepository
+
+	// @insert:dependencies_usecase_define 请对以下内容进行排序
+	BatchDetailUseCase  *usecase.BatchDetailUseCase
+	BatchRecordUseCase  *usecase.BatchRecordUseCase
+	ExportUseCase       *usecase.ExportUseCase
+	NotificationUseCase *usecase.NotificationUseCase
+	StorageUseCase      *usecase.StorageUseCase
+	UserUseCase         *usecase.UserUseCase
 }
 
-// NewDependencies creates a new dependencies instance with all required dependencies.
-func NewDependencies(data *repository.Data, logger *zap.Logger) (*Dependencies, error) {
-	// Create repositories
-	departmentRepo := repository.NewDepartmentRepository(data)
-	roleRepo := repository.NewRoleRepository(data)
-	userRepo := repository.NewUserRepository(data)
+// NewDependencies creates a new Dependencies instance with all required dependencies.
+func NewDependencies(
+	data *repository.Data,
+	logger *zap.Logger,
+	tx usecase.Transaction,
+	broadcaster wsocket.Broadcaster,
 
-	// Create usecases
-	userUseCase := usecase.NewUserUseCase(data, userRepo, roleRepo, departmentRepo)
+	// @insert:new_dependencies_repository_define 请对以下内容进行排序
+	amqpMessageRepo usecase.AmqpMessageRepository,
+	exportTaskRepo usecase.ExportTaskRepository,
+	mqRepo usecase.MQRepository,
+	notificationRepo usecase.NotificationRepository,
+	storageBlobRepo usecase.StorageBlobRepository,
+	userNotificationRepo usecase.UserNotificationRepository,
+	userRepo usecase.UserRepository,
 
-	deps := &Dependencies{
-		// Core infrastructure
-		data:   data,
-		logger: logger,
+	// @insert:new_dependencies_usecase_define 请对以下内容进行排序
+	batchDetailUseCase *usecase.BatchDetailUseCase,
+	batchRecordUseCase *usecase.BatchRecordUseCase,
+	exportUseCase *usecase.ExportUseCase,
+	notificationUseCase *usecase.NotificationUseCase,
+	storageUseCase *usecase.StorageUseCase,
+	userUseCase *usecase.UserUseCase,
+) *Dependencies {
+	return &Dependencies{
+		data:        data,
+		logger:      logger,
+		TX:          tx,
+		Broadcaster: broadcaster,
 
-		// Repositories
-		UserRepo: userRepo,
+		// @insert:new_dependencies_repository_return 请对以下内容进行排序
+		AmqpMessageRepo:      amqpMessageRepo,
+		ExportTaskRepo:       exportTaskRepo,
+		MQRepo:               mqRepo,
+		NotificationRepo:     notificationRepo,
+		StorageBlobRepo:      storageBlobRepo,
+		UserNotificationRepo: userNotificationRepo,
+		UserRepo:             userRepo,
 
-		// Usecases
-		UserUseCase: userUseCase,
+		// @insert:new_dependencies_usecase_return 请对以下内容进行排序
+		BatchDetailUseCase:  batchDetailUseCase,
+		BatchRecordUseCase:  batchRecordUseCase,
+		ExportUseCase:       exportUseCase,
+		NotificationUseCase: notificationUseCase,
+		StorageUseCase:      storageUseCase,
+		UserUseCase:         userUseCase,
 	}
-
-	return deps, nil
 }
 
 // Data returns the data access layer

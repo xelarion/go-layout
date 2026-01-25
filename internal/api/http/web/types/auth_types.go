@@ -38,7 +38,7 @@ type LoginResp struct {
 	// JWT token for authorization
 	Token string `json:"token"`
 	// Time when the token will expire
-	Expire Time `json:"expire"`
+	Expire string `json:"expire"`
 	// Time in seconds until the token expires (useful for frontend countdown)
 	ExpiresIn int64 `json:"expires_in"`
 	// Type of token (always "Bearer" for JWT)
@@ -56,7 +56,7 @@ type RefreshTokenResp struct {
 	// New JWT token for authorization
 	Token string `json:"token"`
 	// Time when the token will expire
-	Expire Time `json:"expire"`
+	Expire string `json:"expire"`
 	// Time in seconds until the token expires
 	ExpiresIn int64 `json:"expires_in"`
 	// Type of token (always "Bearer" for JWT)
@@ -75,18 +75,25 @@ type GetProfileReq struct {
 }
 
 type GetProfileResp struct {
-	ID        uint   `json:"id"`
-	CreatedAt Time   `json:"created_at"`
-	Username  string `json:"username"`
-	Email     string `json:"email"`
+	ID               uint   `json:"id"`
+	CreatedAt        string `json:"created_at"`
+	Username         string `json:"username"`          // 用户名
+	EmployeeNo       string `json:"employee_no"`       // 工号
+	FullName         string `json:"full_name"`         // 用户姓名
+	Gender           string `json:"gender"`            // 性别
+	PhoneNumber      string `json:"phone_number"`      // 手机号
+	Email            string `json:"email"`             // 邮箱
+	OrganizationName string `json:"organization_name"` // 组织
+	PositionName     string `json:"position_name"`     // 岗位
 }
 
 // UpdateProfileReq represents profile update data.
 type UpdateProfileReq struct {
-	Username string `json:"username" binding:"omitempty,min=2,max=100"`
-	Email    string `json:"email" binding:"omitempty,email"`
-	Password string `json:"password" binding:"omitempty,min=6"`
-	Avatar   string `json:"avatar" binding:"omitempty,url"`
+	CurrentPassword string `json:"current_password" binding:"omitempty,min=1,max=100"`
+	FullName        string `json:"full_name" binding:"omitempty,min=1,max=100"`
+	Password        string `json:"password" binding:"omitempty,min=6"`
+	PhoneNumber     string `json:"phone_number" binding:"omitempty,min=1,max=20"`
+	Email           string `json:"email" binding:"omitempty,email"`
 }
 
 // UpdateProfileResp represents profile update response.
@@ -98,6 +105,8 @@ type GetCurrentUserInfoReq struct {
 
 type GetCurrentUserInfoResp struct {
 	ID          uint     `json:"id"`
+	Username    string   `json:"username"`
+	FullName    string   `json:"full_name"`
 	RoleSlug    string   `json:"role_slug"`
 	Permissions []string `json:"permissions"`
 }

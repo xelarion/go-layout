@@ -278,3 +278,34 @@ func (h *RoleHandler) GetRoleOptions(c *gin.Context) {
 
 	c.JSON(http.StatusOK, types.Success(resp))
 }
+
+// BatchDeleteRoles godoc
+//
+//	@ID				BatchDeleteRoles
+//	@Summary		Batch Delete Roles
+//	@Description	Batch Delete Roles
+//	@Tags			role
+//	@Accept			json
+//	@Produce		json
+//	@Param			req	body		types.BatchDeleteRolesReq						true	"req"
+//	@Success		201	{object}	types.Response{data=types.BatchDeleteRolesResp}	"Success"
+//	@Failure		400	{object}	types.Response									"Bad request"
+//	@Failure		401	{object}	types.Response									"Unauthorized"
+//	@Failure		500	{object}	types.Response									"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/roles/batch-delete [post]
+func (h *RoleHandler) BatchDeleteRoles(c *gin.Context) {
+	var req types.BatchDeleteRolesReq
+	if err := binding.Bind(c, &req, binding.JSON); err != nil {
+		_ = c.Error(errs.WrapValidation(err, err.Error()))
+		return
+	}
+
+	resp, err := h.roleService.BatchDeleteRoles(c.Request.Context(), &req)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, types.Success(resp))
+}

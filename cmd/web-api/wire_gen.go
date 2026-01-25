@@ -13,7 +13,10 @@ import (
 	"github.com/xelarion/go-layout/internal/api/http/web/service"
 	"github.com/xelarion/go-layout/internal/api/http/web/swagger"
 	"github.com/xelarion/go-layout/internal/infra/config"
+	"github.com/xelarion/go-layout/internal/infra/mq"
 	"github.com/xelarion/go-layout/internal/infra/server/http"
+	"github.com/xelarion/go-layout/internal/infra/storage"
+	"github.com/xelarion/go-layout/internal/infra/wsocket"
 	"github.com/xelarion/go-layout/internal/repository"
 	"github.com/xelarion/go-layout/internal/usecase"
 	"github.com/xelarion/go-layout/pkg/app"
@@ -24,16 +27,19 @@ import (
 
 // initApp initializes the Web API application with all needed resources.
 // It sets up database connections, creates repositories, services, and middleware.
-func initApp(cfgPG *config.PG, cfgRedis *config.Redis, cfgRabbitMQ *config.RabbitMQ, cfgHTTP *config.HTTP, cfgJWT *config.JWT, logger *zap.Logger) (*app.App, func(), error) {
+func initApp(cfgPG *config.PG, cfgRedis *config.Redis, cfgRabbitMQ *config.RabbitMQ, cfgHTTP *config.HTTP, cfgJWT *config.JWT, cfgExport *config.Export, cfgStorage *config.Storage, logger *zap.Logger) (*app.App, func(), error) {
 	data, cleanup, err := repository.NewData(cfgPG, cfgRedis, cfgRabbitMQ, logger)
 	if err != nil {
 		return nil, nil, err
 	}
 	transaction := repository.NewTransaction(data)
 	userRepository := repository.NewUserRepository(data)
+	client := repository.ProvideRedis(data)
+	cacheRepository := repository.NewCacheRepository(client)
 	roleRepository := repository.NewRoleRepository(data)
-	departmentRepository := repository.NewDepartmentRepository(data)
-	userUseCase := usecase.NewUserUseCase(transaction, userRepository, roleRepository, departmentRepository)
+	organizationRepository := repository.NewOrganizationRepository(data)
+	positionRepository := repository.NewPositionRepository(data)
+	userUseCase := usecase.NewUserUseCase(transaction, userRepository, cacheRepository, roleRepository, organizationRepository, positionRepository)
 	ginJWTMiddleware, err := middleware.NewAuthMiddleware(cfgJWT, userUseCase, logger)
 	if err != nil {
 		cleanup()
@@ -41,19 +47,82 @@ func initApp(cfgPG *config.PG, cfgRedis *config.Redis, cfgRabbitMQ *config.Rabbi
 	}
 	roleUseCase := usecase.NewRoleUseCase(transaction, roleRepository, userRepository)
 	permissionMiddleware := middleware.NewPermissionMiddleware(roleUseCase, logger)
+	manager := wsocket.ManagerProvider(logger)
+	broadcaster := provideBroadcaster(data, manager, logger)
+	baseService := service.NewBaseService(roleUseCase)
+	announcementRepository := repository.NewAnnouncementRepository(data)
+	amqpMessageRepository := repository.NewAmqpMessageRepository(data)
+	rabbitMQ, err := mq.NewRabbitMQ(cfgRabbitMQ, logger)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	mqRepository := repository.NewMQRepository(rabbitMQ)
+	string2 := repository.ProvideRabbitMQExchange(data)
+	amqpMessageUseCase := usecase.NewAmqpMessageUseCase(transaction, amqpMessageRepository, mqRepository, string2)
+	notificationRepository := repository.NewNotificationRepository(data)
+	userNotificationRepository := repository.NewUserNotificationRepository(data)
+	notificationUseCase := usecase.NewNotificationUseCase(transaction, amqpMessageUseCase, notificationRepository, userNotificationRepository)
+	storageStorage, err := storage.ProvideStorage(cfgStorage)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	storageBlobRepository := repository.NewStorageBlobRepository(data)
+	storageAttachmentRepository := repository.NewStorageAttachmentRepository(data)
+	storageUseCase := usecase.NewStorageUseCase(transaction, storageStorage, storageBlobRepository, storageAttachmentRepository, cfgStorage, logger)
+	announcementUseCase := usecase.NewAnnouncementUseCase(transaction, announcementRepository, userRepository, notificationUseCase, storageUseCase)
+	exportTaskRepository := repository.NewExportTaskRepository(data)
+	exportUseCase := usecase.NewExportUseCase(transaction, cfgExport, rabbitMQ, exportTaskRepository, storageBlobRepository, storageUseCase, amqpMessageUseCase, logger)
+	announcementService := service.NewAnnouncementService(baseService, announcementUseCase, exportUseCase)
+	announcementHandler := handler.NewAnnouncementHandler(announcementService, logger)
 	authService := service.NewAuthService(userUseCase, roleUseCase, logger)
 	authHandler := handler.NewAuthHandler(authService, ginJWTMiddleware, logger)
-	departmentUseCase := usecase.NewDepartmentUseCase(transaction, departmentRepository, userRepository)
-	departmentService := service.NewDepartmentService(departmentUseCase)
-	departmentHandler := handler.NewDepartmentHandler(departmentService, logger)
+	batchDetailRepository := repository.NewBatchDetailRepository(data)
+	batchRecordRepository := repository.NewBatchRecordRepository(data)
+	batchDetailUseCase := usecase.NewBatchDetailUseCase(transaction, batchDetailRepository, batchRecordRepository)
+	batchDetailService := service.NewBatchDetailService(batchDetailUseCase, logger)
+	batchDetailHandler := handler.NewBatchDetailHandler(batchDetailService, logger)
+	batchRecordUseCase := usecase.NewBatchRecordUseCase(transaction, batchRecordRepository, batchDetailRepository, userRepository)
+	batchRecordService := service.NewBatchRecordService(baseService, batchRecordUseCase, logger)
+	batchRecordHandler := handler.NewBatchRecordHandler(batchRecordService, logger)
+	changeLogRepository := repository.NewChangeLogRepository(data)
+	changeLogDetailRepository := repository.NewChangeLogDetailRepository(data)
+	changeLogUseCase := usecase.NewChangeLogUseCase(transaction, changeLogRepository, changeLogDetailRepository, userRepository)
+	changeLogService := service.NewChangeLogService(baseService, changeLogUseCase, exportUseCase)
+	changeLogHandler := handler.NewChangeLogHandler(changeLogService, logger)
+	codeRuleRepository := repository.NewCodeRuleRepository(data)
+	codeSequenceRepository := repository.NewCodeSequenceRepository(data)
+	codeGeneratorUseCase := usecase.NewCodeGeneratorUseCase(transaction, codeRuleRepository, codeSequenceRepository)
+	codeService := service.NewCodeService(codeGeneratorUseCase, logger)
+	codeHandler := handler.NewCodeHandler(codeService, logger)
+	codeRuleUseCase := usecase.NewCodeRuleUseCase(transaction, codeRuleRepository, userRepository)
+	codeRuleService := service.NewCodeRuleService(baseService, codeGeneratorUseCase, codeRuleUseCase, logger)
+	codeRuleHandler := handler.NewCodeRuleHandler(codeRuleService, logger)
+	exportService := service.NewExportService(baseService, exportUseCase, cfgExport, logger)
+	exportHandler := handler.NewExportHandler(exportService, logger)
+	importUseCase := usecase.NewImportUseCase(transaction, amqpMessageUseCase, batchRecordUseCase, storageUseCase)
+	importService := service.NewImportService(importUseCase, logger)
+	importHandler := handler.NewImportHandler(importService, logger)
+	notificationService := service.NewNotificationService(baseService, notificationUseCase)
+	notificationHandler := handler.NewNotificationHandler(notificationService, logger)
+	organizationUseCase := usecase.NewOrganizationUseCase(transaction, organizationRepository, positionRepository, userRepository)
+	organizationService := service.NewOrganizationService(baseService, organizationUseCase, logger)
+	organizationHandler := handler.NewOrganizationHandler(organizationService, logger)
 	permissionUseCase := usecase.NewPermissionUseCase()
 	permissionService := service.NewPermissionService(permissionUseCase, roleUseCase)
 	permissionHandler := handler.NewPermissionHandler(permissionService, logger)
-	roleService := service.NewRoleService(roleUseCase)
+	positionUseCase := usecase.NewPositionUseCase(transaction, positionRepository, userRepository, organizationRepository)
+	positionService := service.NewPositionService(baseService, positionUseCase, logger)
+	positionHandler := handler.NewPositionHandler(positionService, logger)
+	roleService := service.NewRoleService(baseService, roleUseCase, logger)
 	roleHandler := handler.NewRoleHandler(roleService, logger)
-	userService := service.NewUserService(userUseCase)
+	storageService := service.NewStorageService(storageUseCase)
+	storageHandler := handler.NewStorageHandler(storageService, logger)
+	userService := service.NewUserService(baseService, userUseCase, exportUseCase, logger)
 	userHandler := handler.NewUserHandler(userService, logger)
-	router := web.NewRouter(logger, ginJWTMiddleware, permissionMiddleware, authHandler, departmentHandler, permissionHandler, roleHandler, userHandler)
+	wsHandler := handler.NewWSHandler(manager, ginJWTMiddleware, logger)
+	router := web.NewRouter(logger, ginJWTMiddleware, permissionMiddleware, broadcaster, announcementHandler, authHandler, batchDetailHandler, batchRecordHandler, changeLogHandler, codeHandler, codeRuleHandler, exportHandler, importHandler, notificationHandler, organizationHandler, permissionHandler, positionHandler, roleHandler, storageHandler, userHandler, wsHandler)
 	swaggerRouter := swagger.NewRouter()
 	server := provideHTTPServer(cfgHTTP, logger, router, swaggerRouter)
 	appApp := newApp(logger, server)
@@ -63,6 +132,11 @@ func initApp(cfgPG *config.PG, cfgRedis *config.Redis, cfgRabbitMQ *config.Rabbi
 }
 
 // wire.go:
+
+// provideBroadcaster 提供 Broadcaster 实例
+func provideBroadcaster(data *repository.Data, manager *wsocket.Manager, logger *zap.Logger) wsocket.Broadcaster {
+	return wsocket.BroadcasterProvider(data.Redis(), manager, logger)
+}
 
 // provideHTTPServer provides the HTTP server instance.
 func provideHTTPServer(cfgHTTP *config.HTTP, logger *zap.Logger, webRouter *web.Router, swaggerRouter *swagger.Router) *http.Server {

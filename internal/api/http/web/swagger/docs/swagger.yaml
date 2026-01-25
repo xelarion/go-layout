@@ -1,5 +1,192 @@
 basePath: /api/web/v1
 definitions:
+  types.BatchDeleteAnnouncementsReq:
+    properties:
+      ids:
+        description: ids
+        items:
+          type: integer
+        minItems: 1
+        type: array
+    required:
+    - ids
+    type: object
+  types.BatchDeleteAnnouncementsResp:
+    properties:
+      failed_count:
+        description: 失败数量
+        type: integer
+      failed_items:
+        description: '失败的信息（格式：名称: 错误原因）'
+        items:
+          type: string
+        type: array
+      success_count:
+        description: 成功删除数量
+        type: integer
+    type: object
+  types.BatchDeleteNotificationsReq:
+    properties:
+      ids:
+        description: ids
+        items:
+          type: integer
+        minItems: 1
+        type: array
+    required:
+    - ids
+    type: object
+  types.BatchDeleteNotificationsResp:
+    properties:
+      failed_count:
+        description: 失败数量
+        type: integer
+      failed_items:
+        description: '失败的信息（格式：名称: 错误原因）'
+        items:
+          type: string
+        type: array
+      success_count:
+        description: 成功数量
+        type: integer
+    type: object
+  types.BatchDeletePositionsReq:
+    properties:
+      ids:
+        items:
+          type: integer
+        minItems: 1
+        type: array
+    required:
+    - ids
+    type: object
+  types.BatchDeletePositionsResp:
+    properties:
+      failed_count:
+        description: 失败数量
+        type: integer
+      failed_items:
+        description: '失败的信息（格式：名称: 错误原因）'
+        items:
+          type: string
+        type: array
+      success_count:
+        description: 成功删除数量
+        type: integer
+    type: object
+  types.BatchDeleteRolesReq:
+    properties:
+      ids:
+        items:
+          type: integer
+        minItems: 1
+        type: array
+    required:
+    - ids
+    type: object
+  types.BatchDeleteRolesResp:
+    properties:
+      failed_count:
+        description: 失败数量
+        type: integer
+      failed_items:
+        description: '失败的信息（格式：名称: 错误原因）'
+        items:
+          type: string
+        type: array
+      success_count:
+        description: 成功删除数量
+        type: integer
+    type: object
+  types.BatchDeleteUsersReq:
+    properties:
+      ids:
+        items:
+          type: integer
+        minItems: 1
+        type: array
+    required:
+    - ids
+    type: object
+  types.BatchDeleteUsersResp:
+    properties:
+      failed_count:
+        description: 失败数量
+        type: integer
+      failed_items:
+        description: '失败的信息（格式：名称: 错误原因）'
+        items:
+          type: string
+        type: array
+      success_count:
+        description: 成功删除数量
+        type: integer
+    type: object
+  types.BatchReadNotificationsReq:
+    properties:
+      ids:
+        description: ids
+        items:
+          type: integer
+        minItems: 1
+        type: array
+    required:
+    - ids
+    type: object
+  types.BatchReadNotificationsResp:
+    properties:
+      failed_count:
+        description: 失败数量
+        type: integer
+      failed_items:
+        description: '失败的信息（格式：名称: 错误原因）'
+        items:
+          type: string
+        type: array
+      success_count:
+        description: 成功数量
+        type: integer
+    type: object
+  types.ChangeLogDetailSchemaFieldResp:
+    properties:
+      label:
+        description: 字段显示名称
+        type: string
+      name:
+        description: 字段名
+        type: string
+    type: object
+  types.CommonUploadedFilesReqField:
+    properties:
+      key:
+        description: 文件唯一标识
+        type: string
+    required:
+    - key
+    type: object
+  types.CreateAnnouncementReq:
+    properties:
+      content:
+        description: 内容
+        type: string
+      status:
+        description: 状态
+        type: string
+      title:
+        description: 标题名称
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - content
+    - status
+    - title
+    type: object
+  types.CreateAnnouncementResp:
+    properties:
+      id:
+        type: integer
+    type: object
   types.CreateDepartmentReq:
     properties:
       description:
@@ -16,15 +203,98 @@ definitions:
       id:
         type: integer
     type: object
-  types.CreateRoleReq:
+  types.CreateOrganizationReq:
     properties:
-      description:
+      code:
+        description: 角色编号
+        maxLength: 100
+        minLength: 1
         type: string
       name:
+        description: 角色名称
+        maxLength: 100
+        minLength: 1
+        type: string
+      owner_id:
+        description: 负责人ID
+        minimum: 1
+        type: integer
+      parent_id:
+        description: 父级ID
+        minimum: 1
+        type: integer
+      remark:
+        description: 备注
+        maxLength: 1000
+        type: string
+      type:
+        description: 组织类型
+        type: string
+    required:
+    - code
+    - name
+    - owner_id
+    - type
+    type: object
+  types.CreateOrganizationResp:
+    properties:
+      id:
+        type: integer
+    type: object
+  types.CreatePositionReq:
+    properties:
+      code:
+        description: 角色编号
+        maxLength: 100
+        minLength: 1
+        type: string
+      name:
+        description: 角色名称
+        maxLength: 100
+        minLength: 1
+        type: string
+      organization_id:
+        description: 组织ID
+        minimum: 1
+        type: integer
+      remark:
+        description: 备注
+        maxLength: 1000
+        type: string
+    required:
+    - code
+    - name
+    - organization_id
+    type: object
+  types.CreatePositionResp:
+    properties:
+      id:
+        type: integer
+    type: object
+  types.CreateRoleReq:
+    properties:
+      code:
+        description: 角色编号
+        maxLength: 100
+        minLength: 1
+        type: string
+      description:
+        description: 描述
+        type: string
+      display_order:
+        description: 显示顺序
+        type: integer
+      enabled:
+        description: 是否启用
+        type: boolean
+      name:
+        description: 角色名称
         maxLength: 100
         minLength: 1
         type: string
     required:
+    - code
+    - display_order
     - name
     type: object
   types.CreateRoleResp:
@@ -34,35 +304,55 @@ definitions:
     type: object
   types.CreateUserReq:
     properties:
-      department_id:
-        minimum: 1
-        type: integer
       email:
+        description: 邮箱
         maxLength: 100
         type: string
+      employee_no:
+        description: 工号
+        maxLength: 50
+        minLength: 1
+        type: string
+      enabled:
+        description: 状态
+        type: boolean
       full_name:
+        description: 用户姓名
         maxLength: 100
         minLength: 1
         type: string
-      password:
-        minLength: 6
+      gender:
+        description: 性别
         type: string
       phone_number:
+        description: 手机号
         maxLength: 20
         minLength: 1
         type: string
+      position_id:
+        description: 岗位
+        minimum: 1
+        type: integer
+      remark:
+        description: 备注
+        maxLength: 1000
+        type: string
       role_id:
+        description: 角色
         minimum: 1
         type: integer
       username:
+        description: 用户名
         maxLength: 100
         minLength: 1
         type: string
     required:
-    - department_id
+    - email
+    - employee_no
     - full_name
-    - password
+    - gender
     - phone_number
+    - position_id
     - role_id
     - username
     type: object
@@ -71,9 +361,29 @@ definitions:
       id:
         type: integer
     type: object
+  types.DeleteAnnouncementReq:
+    type: object
+  types.DeleteAnnouncementResp:
+    type: object
   types.DeleteDepartmentReq:
     type: object
   types.DeleteDepartmentResp:
+    type: object
+  types.DeleteExportTaskReq:
+    type: object
+  types.DeleteExportTaskResp:
+    type: object
+  types.DeleteNotificationReq:
+    type: object
+  types.DeleteNotificationResp:
+    type: object
+  types.DeleteOrganizationReq:
+    type: object
+  types.DeleteOrganizationResp:
+    type: object
+  types.DeletePositionReq:
+    type: object
+  types.DeletePositionResp:
     type: object
   types.DeleteRoleReq:
     type: object
@@ -83,8 +393,233 @@ definitions:
     type: object
   types.DeleteUserResp:
     type: object
+  types.ExportResp:
+    properties:
+      download_url:
+        description: 下载URL（仅同步导出时返回）
+        type: string
+      id:
+        description: 任务ID
+        type: integer
+      is_async:
+        description: 是否异步导出
+        type: boolean
+      total_count:
+        description: 总记录数
+        type: integer
+    type: object
+  types.ExportTaskResult:
+    properties:
+      completed_at:
+        description: 完成时间
+        type: string
+      created_at:
+        description: 创建时间
+        type: string
+      error_message:
+        description: 错误信息
+        type: string
+      file_size:
+        description: 文件大小
+        type: integer
+      filename:
+        description: 文件名
+        type: string
+      id:
+        description: 任务ID
+        type: integer
+      is_async:
+        description: 是否异步导出
+        type: boolean
+      started_at:
+        description: 开始处理时间
+        type: string
+      status:
+        description: 状态
+        type: string
+      status_slug:
+        description: 状态 slug
+        type: string
+      task_type:
+        description: 任务类型
+        type: string
+      total_count:
+        description: 总记录数
+        type: integer
+    type: object
+  types.ExportUsersReq:
+    properties:
+      enabled:
+        description: 状态筛选
+        type: boolean
+      ids:
+        description: 指定导出的用户ID列表
+        items:
+          type: integer
+        type: array
+      key:
+        description: 搜索关键字
+        maxLength: 100
+        type: string
+      organization_id:
+        description: 组织筛选
+        minimum: 1
+        type: integer
+      role_id:
+        description: 角色筛选
+        minimum: 1
+        type: integer
+    type: object
+  types.GenerateCodeReq:
+    properties:
+      rule_slug:
+        description: 编码规则标识
+        type: string
+    required:
+    - rule_slug
+    type: object
+  types.GenerateCodeResp:
+    properties:
+      code:
+        description: 生成的编码
+        type: string
+    type: object
+  types.GetAnnouncementFormDataResp:
+    properties:
+      content:
+        description: 内容
+        type: string
+      id:
+        description: ID
+        type: integer
+      title:
+        description: 标题名称
+        type: string
+    type: object
+  types.GetAnnouncementPublishersOptionsResp:
+    properties:
+      results:
+        items:
+          $ref: '#/definitions/types.GetAnnouncementPublishersOptionsRespResult'
+        type: array
+    type: object
+  types.GetAnnouncementPublishersOptionsRespResult:
+    properties:
+      label:
+        type: string
+      value: {}
+    type: object
+  types.GetAnnouncementResp:
+    properties:
+      content:
+        description: 内容
+        type: string
+      id:
+        description: ID
+        type: integer
+      published_at:
+        description: 发布时间
+        type: string
+      title:
+        description: 标题名称
+        type: string
+    type: object
+  types.GetBatchRecordOperationTypeOptionsResp:
+    properties:
+      results:
+        items:
+          $ref: '#/definitions/types.GetBatchRecordOperationTypeOptionsRespResult'
+        type: array
+    type: object
+  types.GetBatchRecordOperationTypeOptionsRespResult:
+    properties:
+      label:
+        type: string
+      value: {}
+    type: object
+  types.GetBatchRecordResp:
+    properties:
+      created_at:
+        description: 创建时间
+        type: string
+      created_by:
+        description: 创建人
+        type: string
+      extra_data:
+        additionalProperties: {}
+        description: 额外数据(如非通用字段)
+        type: object
+      failure_reason:
+        description: 失败原因
+        type: string
+      id:
+        description: ID
+        type: integer
+      operation_type:
+        description: 操作类型
+        type: string
+      operation_type_slug:
+        description: 操作类型 slug
+        type: string
+      status:
+        description: 状态
+        type: string
+      status_slug:
+        description: 状态 slug
+        type: string
+    type: object
+  types.GetCodeRuleFormDataResp:
+    properties:
+      generate_rule:
+        description: 编码生成规则
+        type: string
+      generate_type:
+        description: 生成类型
+        type: string
+      id:
+        type: integer
+      initial_serial:
+        description: 初始流水号
+        type: integer
+      name:
+        description: 编码名称
+        type: string
+      prefix:
+        description: 编号前缀
+        type: string
+      preview:
+        description: 编号预览
+        type: string
+      serial_length:
+        description: 流水号长度
+        type: integer
+      step:
+        description: 步长
+        type: integer
+      target_form:
+        description: 目标表单
+        type: string
+      time_rule:
+        description: 时间规则
+        type: string
+    type: object
+  types.GetCodeRuleTargetFormOptionsResp:
+    properties:
+      results:
+        items:
+          $ref: '#/definitions/types.GetCodeRuleTargetFormOptionsRespResult'
+        type: array
+    type: object
+  types.GetCodeRuleTargetFormOptionsRespResult:
+    properties:
+      label:
+        type: string
+      value: {}
+    type: object
   types.GetCurrentUserInfoResp:
     properties:
+      full_name:
+        type: string
       id:
         type: integer
       permissions:
@@ -92,6 +627,8 @@ definitions:
           type: string
         type: array
       role_slug:
+        type: string
+      username:
         type: string
     type: object
   types.GetDepartmentFormDataResp:
@@ -133,36 +670,138 @@ definitions:
       user_count:
         type: integer
     type: object
-  types.GetPermissionTreeResp:
+  types.GetDownloadURLResp:
+    properties:
+      url:
+        description: 下载URL（预签名）
+        type: string
+    type: object
+  types.GetExportFileDownloadURLResp:
+    properties:
+      url:
+        description: 预签名URL（文件名已编码在URL中）
+        type: string
+    type: object
+  types.GetNotificationResp:
+    properties:
+      content:
+        description: 内容
+        type: string
+      created_at:
+        description: 创建时间
+        type: string
+      id:
+        description: ID
+        type: integer
+      is_read:
+        description: 是否已读
+        type: boolean
+      title:
+        description: 标题
+        type: string
+      type:
+        description: 类型
+        type: string
+    type: object
+  types.GetOrganizationFormDataResp:
+    properties:
+      code:
+        description: 角色编号
+        type: string
+      id:
+        type: integer
+      name:
+        description: 角色名称
+        type: string
+      owner_id:
+        description: 负责人ID
+        type: integer
+      parent_id:
+        description: 父级ID
+        type: integer
+      remark:
+        description: 备注
+        type: string
+      type:
+        description: 组织类型
+        type: string
+    type: object
+  types.GetOrganizationsTreeResp:
+    properties:
+      results:
+        items:
+          $ref: '#/definitions/types.TreeNodeResp'
+        type: array
+    type: object
+  types.GetPermissionsTreeResp:
     properties:
       permissions:
         items:
-          $ref: '#/definitions/types.GetPermissionTreeRespPermission'
+          $ref: '#/definitions/types.TreeNodeResp'
         type: array
     type: object
-  types.GetPermissionTreeRespPermission:
+  types.GetPositionFormDataResp:
     properties:
-      children:
-        description: Child permissions
-        items:
-          $ref: '#/definitions/types.GetPermissionTreeRespPermission'
-        type: array
+      code:
+        description: 角色编号
+        type: string
       id:
-        description: Permission identifier
-        type: string
+        type: integer
       name:
-        description: Permission name
+        description: 角色名称
         type: string
+      organization_id:
+        description: 组织ID
+        type: integer
+      remark:
+        description: 备注
+        type: string
+    type: object
+  types.GetPositionOptionsResp:
+    properties:
+      results:
+        items:
+          $ref: '#/definitions/types.GetPositionOptionsRespResult'
+        type: array
+    type: object
+  types.GetPositionOptionsRespResult:
+    properties:
+      label:
+        type: string
+      organization_name:
+        description: 组织名称
+        type: string
+      value: {}
     type: object
   types.GetProfileResp:
     properties:
       created_at:
         type: string
       email:
+        description: 邮箱
+        type: string
+      employee_no:
+        description: 工号
+        type: string
+      full_name:
+        description: 用户姓名
+        type: string
+      gender:
+        description: 性别
         type: string
       id:
         type: integer
+      organization_name:
+        description: 组织
+        type: string
+      phone_number:
+        description: 手机号
+        type: string
+      position_name:
+        description: 岗位
+        type: string
       username:
+        description: 用户名
         type: string
     type: object
   types.GetRSAPublicKeyReq:
@@ -176,13 +815,66 @@ definitions:
         description: public key
         type: string
     type: object
-  types.GetRoleFormDataResp:
+  types.GetRecentNotificationsResp:
     properties:
-      description:
+      category_results:
+        items:
+          $ref: '#/definitions/types.GetRecentNotificationsRespCategoryResult'
+        type: array
+    type: object
+  types.GetRecentNotificationsRespCategoryResult:
+    properties:
+      category_slug:
+        description: 类别 slug
+        type: string
+      count:
+        description: 数量
+        type: integer
+      results:
+        items:
+          $ref: '#/definitions/types.GetRecentNotificationsRespCategoryResultResult'
+        type: array
+    type: object
+  types.GetRecentNotificationsRespCategoryResultResult:
+    properties:
+      category_slug:
+        description: 类别 slug
+        type: string
+      created_at:
+        description: 创建时间
         type: string
       id:
+        description: ID
+        type: integer
+      is_read:
+        description: 是否已读
+        type: boolean
+      title:
+        description: 标题
+        type: string
+    type: object
+  types.GetRoleFormDataResp:
+    properties:
+      code:
+        description: 角色编号
+        type: string
+      description:
+        description: 描述
+        type: string
+      display_order:
+        description: 显示顺序
+        type: integer
+      enabled:
+        description: 是否启用
+        type: boolean
+      id:
+        description: ID
         type: integer
       name:
+        description: 角色名称
+        type: string
+      slug:
+        description: 角色标识
         type: string
     type: object
   types.GetRoleOptionsResp:
@@ -204,66 +896,428 @@ definitions:
     type: object
   types.GetRolePermissionsResp:
     properties:
+      data_scopes:
+        items:
+          $ref: '#/definitions/types.GetRolePermissionsRespDataScope'
+        type: array
       permissions:
         items:
           type: string
         type: array
     type: object
+  types.GetRolePermissionsRespDataScope:
+    properties:
+      permissions:
+        items:
+          type: string
+        type: array
+      type:
+        type: string
+    type: object
   types.GetRoleResp:
     properties:
+      code:
+        description: 角色编号
+        type: string
       created_at:
+        description: 创建时间
         type: string
       description:
+        description: 描述
         type: string
+      display_order:
+        description: 显示顺序
+        type: integer
       enabled:
+        description: 是否启用
         type: boolean
       id:
+        description: ID
         type: integer
       name:
+        description: 角色名称
+        type: string
+      slug:
+        description: 角色标识
         type: string
       user_count:
+        description: 用户数量
         type: integer
+    type: object
+  types.GetTodoStatsResp:
+    properties:
+      results:
+        items:
+          $ref: '#/definitions/types.GetTodoStatsRespResult'
+        type: array
+    type: object
+  types.GetTodoStatsRespResult:
+    properties:
+      count:
+        description: 数量
+        type: integer
+      name:
+        description: 名称
+        type: string
+      type:
+        description: 类型标识
+        type: string
     type: object
   types.GetUserFormDataResp:
     properties:
-      department_id:
-        type: integer
       email:
+        description: 邮箱
         type: string
+      employee_no:
+        description: 工号
+        type: string
+      enabled:
+        description: 状态
+        type: boolean
       full_name:
+        description: 用户姓名
+        type: string
+      gender:
+        description: 性别
         type: string
       id:
         type: integer
       phone_number:
+        description: 手机号
+        type: string
+      position_id:
+        description: 岗位
+        type: integer
+      remark:
+        description: 备注
         type: string
       role_id:
+        description: 角色
         type: integer
       role_slug:
+        description: 角色标识
         type: string
       username:
+        description: 用户名
         type: string
+    type: object
+  types.GetUserOptionsResp:
+    properties:
+      results:
+        items:
+          $ref: '#/definitions/types.GetUserOptionsRespResult'
+        type: array
+    type: object
+  types.GetUserOptionsRespResult:
+    properties:
+      enabled:
+        type: boolean
+      label:
+        type: string
+      value: {}
     type: object
   types.GetUserResp:
     properties:
       created_at:
-        type: string
-      department_name:
+        description: 创建时间
         type: string
       email:
+        description: 邮箱
+        type: string
+      employee_no:
+        description: 工号
         type: string
       enabled:
+        description: 状态
         type: boolean
       full_name:
+        description: 用户姓名
+        type: string
+      gender:
+        description: 性别
+        type: string
+      id:
+        description: ID
+        type: integer
+      organization_name:
+        description: 组织名称
+        type: string
+      phone_number:
+        description: 手机号
+        type: string
+      position_name:
+        description: 岗位名称
+        type: string
+      role_name:
+        description: 角色名称
+        type: string
+      role_slug:
+        description: 角色标识
+        type: string
+      username:
+        description: 用户名
+        type: string
+    type: object
+  types.ImportCustomersReq:
+    properties:
+      files:
+        description: 上传的文件 keys
+        items:
+          $ref: '#/definitions/types.CommonUploadedFilesReqField'
+        type: array
+    required:
+    - files
+    type: object
+  types.ImportCustomersResp:
+    type: object
+  types.ImportEquipmentTypesReq:
+    properties:
+      files:
+        description: 上传的文件 keys
+        items:
+          $ref: '#/definitions/types.CommonUploadedFilesReqField'
+        type: array
+    required:
+    - files
+    type: object
+  types.ImportEquipmentTypesResp:
+    type: object
+  types.ImportEquipmentsReq:
+    properties:
+      files:
+        description: 上传的文件 keys
+        items:
+          $ref: '#/definitions/types.CommonUploadedFilesReqField'
+        type: array
+    required:
+    - files
+    type: object
+  types.ImportEquipmentsResp:
+    type: object
+  types.ImportSuppliersReq:
+    properties:
+      files:
+        description: 上传的文件 keys
+        items:
+          $ref: '#/definitions/types.CommonUploadedFilesReqField'
+        type: array
+    required:
+    - files
+    type: object
+  types.ImportSuppliersResp:
+    type: object
+  types.ListAnnouncementsResp:
+    properties:
+      pagination:
+        $ref: '#/definitions/types.PageResp'
+      results:
+        items:
+          $ref: '#/definitions/types.ListAnnouncementsRespResult'
+        type: array
+    type: object
+  types.ListAnnouncementsRespResult:
+    properties:
+      id:
+        description: ID
+        type: integer
+      published_at:
+        description: 发布时间
+        type: string
+      publisher:
+        description: 发布人
+        type: string
+      status:
+        description: 状态
+        type: string
+      status_slug:
+        description: 状态标识
+        type: string
+      title:
+        description: 标题名称
+        type: string
+    type: object
+  types.ListBatchDetailsResp:
+    properties:
+      pagination:
+        $ref: '#/definitions/types.PageResp'
+      results:
+        items:
+          $ref: '#/definitions/types.ListBatchDetailsRespResult'
+        type: array
+    type: object
+  types.ListBatchDetailsRespResult:
+    properties:
+      created_at:
+        description: 创建时间
+        type: string
+      extra_data:
+        additionalProperties: {}
+        description: 额外数据(如非通用字段)
+        type: object
+      failure_reason:
+        description: 失败原因
+        type: string
+      id:
+        description: ID
+        type: integer
+      key:
+        description: 关键字段(用于标识此行数据或搜索)
+        type: string
+      status:
+        description: 状态
+        type: string
+      status_slug:
+        description: 状态 slug
+        type: string
+    type: object
+  types.ListBatchRecordsResp:
+    properties:
+      pagination:
+        $ref: '#/definitions/types.PageResp'
+      results:
+        items:
+          $ref: '#/definitions/types.ListBatchRecordsRespResult'
+        type: array
+    type: object
+  types.ListBatchRecordsRespResult:
+    properties:
+      created_at:
+        description: 创建时间
+        type: string
+      created_by:
+        description: 创建人
+        type: string
+      failure_reason:
+        description: 失败原因
+        type: string
+      id:
+        description: ID
+        type: integer
+      operation_type:
+        description: 操作类型
+        type: string
+      operation_type_slug:
+        description: 操作类型 slug
+        type: string
+      status:
+        description: 状态
+        type: string
+      status_slug:
+        description: 状态 slug
+        type: string
+    type: object
+  types.ListChangeLogsResp:
+    properties:
+      results:
+        items:
+          $ref: '#/definitions/types.ListChangeLogsRespResult'
+        type: array
+    type: object
+  types.ListChangeLogsRespResult:
+    properties:
+      action:
+        description: 操作类型（显示文本）
+        type: string
+      action_slug:
+        description: 操作类型（slug）
+        type: string
+      created_at:
+        description: 创建时间
+        type: string
+      details:
+        description: 变更细节
+        items:
+          $ref: '#/definitions/types.ListChangeLogsRespResultDetail'
+        type: array
+      id:
+        description: ID
+        type: integer
+      operator_display:
+        description: 操作人ID（关联显示）
+        type: string
+    type: object
+  types.ListChangeLogsRespResultDetail:
+    properties:
+      field_label:
+        description: 字段显示名称
+        type: string
+      field_name:
+        description: 字段名(结构体字段名)
+        type: string
+      id:
+        description: ID
+        type: integer
+      new_relations:
+        description: 新关联
+        items:
+          additionalProperties:
+            type: string
+          type: object
+        type: array
+      new_value:
+        description: 新值
+        type: string
+      old_relations:
+        description: 旧关联
+        items:
+          additionalProperties:
+            type: string
+          type: object
+        type: array
+      old_value:
+        description: 旧值
+        type: string
+      relation_group_by:
+        description: 关联字段的分组字段名
+        type: string
+      relation_schema:
+        description: 关联字段的列定义
+        items:
+          $ref: '#/definitions/types.ChangeLogDetailSchemaFieldResp'
+        type: array
+    type: object
+  types.ListCodeRulesResp:
+    properties:
+      pagination:
+        $ref: '#/definitions/types.PageResp'
+      results:
+        items:
+          $ref: '#/definitions/types.ListCodeRulesRespResult'
+        type: array
+    type: object
+  types.ListCodeRulesRespResult:
+    properties:
+      generate_rule:
+        description: 编码生成规则
+        type: string
+      generate_type:
+        description: 生成类型
         type: string
       id:
         type: integer
-      phone_number:
+      initial_serial:
+        description: 初始流水号
+        type: integer
+      name:
+        description: 编码名称
         type: string
-      role_name:
+      prefix:
+        description: 编号前缀
         type: string
-      role_slug:
+      preview:
+        description: 编号预览
         type: string
-      username:
+      serial_length:
+        description: 流水号长度
+        type: integer
+      step:
+        description: 步长
+        type: integer
+      target_form:
+        description: 目标表单
+        type: string
+      time_rule:
+        description: 时间规则
         type: string
     type: object
   types.ListDepartmentsResp:
@@ -290,6 +1344,118 @@ definitions:
       user_count:
         type: integer
     type: object
+  types.ListExportTasksResp:
+    properties:
+      pagination:
+        $ref: '#/definitions/types.PageResp'
+      results:
+        items:
+          $ref: '#/definitions/types.ExportTaskResult'
+        type: array
+    type: object
+  types.ListNotificationsResp:
+    properties:
+      pagination:
+        $ref: '#/definitions/types.PageResp'
+      results:
+        items:
+          $ref: '#/definitions/types.ListNotificationsRespResult'
+        type: array
+    type: object
+  types.ListNotificationsRespResult:
+    properties:
+      category:
+        description: 类别(通知、消息)
+        type: string
+      category_slug:
+        description: 类别 slug
+        type: string
+      created_at:
+        description: 创建时间
+        type: string
+      id:
+        description: ID
+        type: integer
+      is_read:
+        description: 是否已读
+        type: boolean
+      title:
+        description: 标题
+        type: string
+      type:
+        description: 类型
+        type: string
+      type_slug:
+        description: 类型 slug
+        type: string
+    type: object
+  types.ListOrganizationsResp:
+    properties:
+      results:
+        items:
+          $ref: '#/definitions/types.ListOrganizationsRespResult'
+        type: array
+    type: object
+  types.ListOrganizationsRespResult:
+    properties:
+      children:
+        description: 子级
+        items:
+          $ref: '#/definitions/types.ListOrganizationsRespResult'
+        type: array
+      code:
+        description: 角色编号
+        type: string
+      id:
+        type: integer
+      name:
+        description: 角色名称
+        type: string
+      owner:
+        description: 负责人
+        type: string
+      parent_id:
+        description: 父级ID
+        type: integer
+      remark:
+        description: 备注
+        type: string
+      type:
+        description: 组织类型
+        type: string
+      user_count:
+        description: 员工人数
+        type: integer
+    type: object
+  types.ListPositionsResp:
+    properties:
+      pagination:
+        $ref: '#/definitions/types.PageResp'
+      results:
+        items:
+          $ref: '#/definitions/types.ListPositionsRespResult'
+        type: array
+    type: object
+  types.ListPositionsRespResult:
+    properties:
+      code:
+        description: 角色编号
+        type: string
+      id:
+        type: integer
+      name:
+        description: 角色名称
+        type: string
+      organization_name:
+        description: 组织名称
+        type: string
+      remark:
+        description: 备注
+        type: string
+      user_count:
+        description: 用户数量
+        type: integer
+    type: object
   types.ListRolesResp:
     properties:
       pagination:
@@ -301,19 +1467,28 @@ definitions:
     type: object
   types.ListRolesRespResult:
     properties:
-      created_at:
+      code:
+        description: 角色编号
         type: string
       description:
+        description: 描述
         type: string
+      display_order:
+        description: 显示顺序
+        type: integer
       enabled:
+        description: 是否启用
         type: boolean
       id:
         type: integer
       name:
+        description: 角色名称
         type: string
       slug:
+        description: 角色标识
         type: string
       user_count:
+        description: 用户数量
         type: integer
     type: object
   types.ListUsersResp:
@@ -327,25 +1502,40 @@ definitions:
     type: object
   types.ListUsersRespResult:
     properties:
-      created_at:
-        type: string
-      department_name:
-        type: string
       email:
+        description: 邮箱
+        type: string
+      employee_no:
+        description: 工号
         type: string
       enabled:
+        description: 状态
         type: boolean
       full_name:
+        description: 用户姓名
+        type: string
+      gender:
+        description: 性别
         type: string
       id:
         type: integer
+      organization_name:
+        description: 组织名称
+        type: string
       phone_number:
+        description: 手机号
+        type: string
+      position_name:
+        description: 岗位名称
         type: string
       role_name:
+        description: 角色名称
         type: string
       role_slug:
+        description: 角色标识
         type: string
       username:
+        description: 用户名
         type: string
     type: object
   types.LoginReq:
@@ -413,6 +1603,51 @@ definitions:
         description: Total number of pages
         type: integer
     type: object
+  types.PreviewCodeReq:
+    properties:
+      generate_type:
+        description: 生成类型
+        type: string
+      initial_serial:
+        description: 初始流水号
+        type: integer
+      prefix:
+        description: 编码前缀
+        type: string
+      serial_length:
+        description: 流水号长度
+        type: integer
+      step:
+        description: 步长
+        type: integer
+      time_rule:
+        description: 时间规则
+        type: string
+    required:
+    - generate_type
+    - initial_serial
+    - prefix
+    - serial_length
+    - step
+    - time_rule
+    type: object
+  types.PreviewCodeResp:
+    properties:
+      code:
+        description: 预览的编码
+        type: string
+      generate_rule:
+        description: 生成规则
+        type: string
+    type: object
+  types.ReadAllNotificationsReq:
+    properties:
+      category:
+        description: 类别(为空时已读全部)
+        type: string
+    type: object
+  types.ReadAllNotificationsResp:
+    type: object
   types.RefreshTokenResp:
     properties:
       expire:
@@ -449,6 +1684,67 @@ definitions:
       meta:
         description: Additional metadata
     type: object
+  types.TreeNodeResp:
+    properties:
+      children:
+        description: child nodes
+        items:
+          $ref: '#/definitions/types.TreeNodeResp'
+        type: array
+      key:
+        description: key
+      title:
+        description: title
+        type: string
+    type: object
+  types.UpdateAnnouncementReq:
+    properties:
+      content:
+        description: 内容
+        type: string
+      status:
+        description: 状态
+        type: string
+      title:
+        description: 名称
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - content
+    - status
+    - title
+    type: object
+  types.UpdateAnnouncementResp:
+    type: object
+  types.UpdateCodeRuleReq:
+    properties:
+      generate_type:
+        description: 生成类型 slug
+        type: string
+      initial_serial:
+        description: 初始流水号
+        type: integer
+      prefix:
+        description: 编号前缀
+        maxLength: 100
+        minLength: 1
+        type: string
+      serial_length:
+        description: 流水号长度
+        type: integer
+      time_rule:
+        description: 时间规则 slug
+        type: string
+    required:
+    - generate_type
+    - initial_serial
+    - prefix
+    - serial_length
+    - time_rule
+    type: object
+  types.UpdateCodeRuleResp:
+    type: object
   types.UpdateDepartmentEnabledReq:
     properties:
       enabled:
@@ -471,18 +1767,84 @@ definitions:
     type: object
   types.UpdateDepartmentResp:
     type: object
+  types.UpdateOrganizationReq:
+    properties:
+      code:
+        description: 角色编号
+        maxLength: 100
+        minLength: 1
+        type: string
+      name:
+        description: 角色名称
+        maxLength: 100
+        minLength: 1
+        type: string
+      owner_id:
+        description: 负责人ID
+        type: integer
+      parent_id:
+        description: 父级ID
+        minimum: 1
+        type: integer
+      remark:
+        description: 备注
+        maxLength: 1000
+        type: string
+      type:
+        description: 组织类型
+        type: string
+    required:
+    - code
+    - name
+    - owner_id
+    - type
+    type: object
+  types.UpdateOrganizationResp:
+    type: object
+  types.UpdatePositionReq:
+    properties:
+      code:
+        description: 角色编号
+        maxLength: 100
+        minLength: 1
+        type: string
+      name:
+        description: 角色名称
+        maxLength: 100
+        minLength: 1
+        type: string
+      organization_id:
+        description: 组织ID
+        type: integer
+      remark:
+        description: 备注
+        maxLength: 1000
+        type: string
+    required:
+    - code
+    - name
+    - organization_id
+    type: object
+  types.UpdatePositionResp:
+    type: object
   types.UpdateProfileReq:
     properties:
-      avatar:
+      current_password:
+        maxLength: 100
+        minLength: 1
         type: string
       email:
+        type: string
+      full_name:
+        maxLength: 100
+        minLength: 1
         type: string
       password:
         minLength: 6
         type: string
-      username:
-        maxLength: 100
-        minLength: 2
+      phone_number:
+        maxLength: 20
+        minLength: 1
         type: string
     type: object
   types.UpdateProfileResp:
@@ -498,24 +1860,56 @@ definitions:
     type: object
   types.UpdateRolePermissionsReq:
     properties:
+      data_scopes:
+        items:
+          $ref: '#/definitions/types.UpdateRolePermissionsReqDataScope'
+        type: array
       permissions:
         items:
           type: string
         type: array
     required:
+    - data_scopes
     - permissions
+    type: object
+  types.UpdateRolePermissionsReqDataScope:
+    properties:
+      permissions:
+        items:
+          type: string
+        type: array
+      type:
+        type: string
+    required:
+    - permissions
+    - type
     type: object
   types.UpdateRolePermissionsResp:
     type: object
   types.UpdateRoleReq:
     properties:
-      description:
+      code:
+        description: 角色编号
+        maxLength: 100
+        minLength: 1
         type: string
+      description:
+        description: 描述
+        type: string
+      display_order:
+        description: 显示顺序
+        type: integer
+      enabled:
+        description: 是否启用
+        type: boolean
       name:
+        description: 角色名称
         maxLength: 100
         minLength: 1
         type: string
     required:
+    - code
+    - display_order
     - name
     type: object
   types.UpdateRoleResp:
@@ -529,40 +1923,90 @@ definitions:
     type: object
   types.UpdateUserEnabledResp:
     type: object
+  types.UpdateUserPasswordReq:
+    properties:
+      password:
+        maxLength: 100
+        minLength: 6
+        type: string
+    required:
+    - password
+    type: object
+  types.UpdateUserPasswordResp:
+    type: object
   types.UpdateUserReq:
     properties:
-      department_id:
-        minimum: 1
-        type: integer
       email:
+        description: 邮箱
         maxLength: 100
         type: string
+      employee_no:
+        description: 工号
+        maxLength: 50
+        minLength: 1
+        type: string
+      enabled:
+        description: 状态
+        type: boolean
       full_name:
+        description: 用户姓名
         maxLength: 100
         minLength: 1
         type: string
-      password:
-        minLength: 6
+      gender:
+        description: 性别
         type: string
       phone_number:
+        description: 手机号
         maxLength: 20
         minLength: 1
         type: string
+      position_id:
+        description: 岗位
+        minimum: 1
+        type: integer
+      remark:
+        description: 备注
+        maxLength: 1000
+        type: string
       role_id:
+        description: 角色
         minimum: 1
         type: integer
       username:
+        description: 用户名
         maxLength: 100
         minLength: 1
         type: string
     required:
-    - department_id
+    - email
+    - employee_no
     - full_name
+    - gender
     - phone_number
+    - position_id
     - role_id
     - username
     type: object
   types.UpdateUserResp:
+    type: object
+  types.UploadFileResp:
+    properties:
+      filename:
+        description: 原始文件名
+        type: string
+      key:
+        description: 文件唯一标识
+        type: string
+      mime_type:
+        description: MIME类型
+        type: string
+      size:
+        description: 文件大小（字节）
+        type: integer
+      url:
+        description: 资源链接
+        type: string
     type: object
 host: localhost:8080
 info:
@@ -572,6 +2016,632 @@ info:
   title: Web API
   version: "1.0"
 paths:
+  /announcements:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of Announcements
+      operationId: ListAnnouncements
+      parameters:
+      - description: 搜索关键字
+        in: query
+        maxLength: 100
+        name: key
+        type: string
+      - description: Current page number (1-based)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        maximum: 100
+        minimum: 1
+        name: page_size
+        type: integer
+      - description: 发布时间结束
+        in: query
+        name: published_at_end
+        type: string
+      - description: 发布时间开始
+        in: query
+        name: published_at_start
+        type: string
+      - description: 发布人ID
+        in: query
+        name: publisher_id
+        type: integer
+      - description: Field to sort by, can include table prefix (e.g. "users.id")
+        in: query
+        name: sort_field
+        type: string
+      - description: 'Sort direction: asc or desc'
+        enum:
+        - asc
+        - desc
+        - ASC
+        - DESC
+        - ascend
+        - descend
+        in: query
+        name: sort_order
+        type: string
+      - description: 状态
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ListAnnouncementsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: List Announcements
+      tags:
+      - announcement
+    post:
+      consumes:
+      - application/json
+      description: Creates a new Announcement
+      operationId: CreateAnnouncement
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.CreateAnnouncementReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.CreateAnnouncementResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Announcement
+      tags:
+      - announcement
+  /announcements/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes an existing Announcement
+      operationId: DeleteAnnouncement
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.DeleteAnnouncementReq'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.DeleteAnnouncementResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Announcement
+      tags:
+      - announcement
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Announcement
+      operationId: GetAnnouncement
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetAnnouncementResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Announcement
+      tags:
+      - announcement
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing Announcement
+      operationId: UpdateAnnouncement
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateAnnouncementReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UpdateAnnouncementResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Announcement
+      tags:
+      - announcement
+  /announcements/{id}/form:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Announcement Form Data
+      operationId: GetAnnouncementFormData
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetAnnouncementFormDataResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Announcement Form Data
+      tags:
+      - announcement
+  /announcements/batch-delete:
+    post:
+      consumes:
+      - application/json
+      description: Batch Delete Announcements
+      operationId: BatchDeleteAnnouncements
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.BatchDeleteAnnouncementsReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.BatchDeleteAnnouncementsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Batch Delete Announcements
+      tags:
+      - announcement
+  /announcements/publishers/options:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Announcement Publishers Options
+      operationId: GetAnnouncementPublishersOptions
+      parameters:
+      - description: Field to sort by, can include table prefix (e.g. "users.id")
+        in: query
+        name: sort_field
+        type: string
+      - description: 'Sort direction: asc or desc'
+        enum:
+        - asc
+        - desc
+        - ASC
+        - DESC
+        - ascend
+        - descend
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetAnnouncementPublishersOptionsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Announcement Publishers Options
+      tags:
+      - announcement
+  /batch_details:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of Batch Details
+      operationId: ListBatchDetails
+      parameters:
+      - description: 批次记录ID
+        in: query
+        minimum: 1
+        name: batch_record_id
+        required: true
+        type: integer
+      - description: 关键字段
+        in: query
+        name: key
+        type: string
+      - description: Current page number (1-based)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        maximum: 100
+        minimum: 1
+        name: page_size
+        type: integer
+      - description: Field to sort by, can include table prefix (e.g. "users.id")
+        in: query
+        name: sort_field
+        type: string
+      - description: 'Sort direction: asc or desc'
+        enum:
+        - asc
+        - desc
+        - ASC
+        - DESC
+        - ascend
+        - descend
+        in: query
+        name: sort_order
+        type: string
+      - description: 状态
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ListBatchDetailsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: List Batch Details
+      tags:
+      - batch_detail
+  /batch_records:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of Batch Records
+      operationId: ListBatchRecords
+      parameters:
+      - description: 创建时间结束
+        in: query
+        name: created_at_end
+        type: string
+      - description: 创建时间开始
+        in: query
+        name: created_at_start
+        type: string
+      - description: 创建人
+        in: query
+        minimum: 1
+        name: created_by
+        type: integer
+      - description: 操作类型
+        in: query
+        name: operation_type
+        type: string
+      - description: Current page number (1-based)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        maximum: 100
+        minimum: 1
+        name: page_size
+        type: integer
+      - description: Field to sort by, can include table prefix (e.g. "users.id")
+        in: query
+        name: sort_field
+        type: string
+      - description: 'Sort direction: asc or desc'
+        enum:
+        - asc
+        - desc
+        - ASC
+        - DESC
+        - ascend
+        - descend
+        in: query
+        name: sort_order
+        type: string
+      - description: 状态
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ListBatchRecordsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: List Batch Records
+      tags:
+      - batch_record
+  /batch_records/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Batch Record
+      operationId: GetBatchRecord
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetBatchRecordResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Batch Record
+      tags:
+      - batch_record
+  /batch_records/operation_type/options:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Batch Record Operation Type Options
+      operationId: GetBatchRecordOperationTypeOptions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetBatchRecordOperationTypeOptionsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Batch Record Operation Type Options
+      tags:
+      - batch_record
   /captcha/{id}/reload:
     post:
       consumes:
@@ -657,6 +2727,366 @@ paths:
       summary: New Captcha
       tags:
       - auth
+  /change_logs:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of Change Logs
+      operationId: ListChangeLogs
+      parameters:
+      - description: 资源ID
+        in: query
+        name: resource_id
+        required: true
+        type: integer
+      - description: 资源类型
+        in: query
+        maxLength: 255
+        name: resource_type
+        required: true
+        type: string
+      - description: Field to sort by, can include table prefix (e.g. "users.id")
+        in: query
+        name: sort_field
+        type: string
+      - description: 'Sort direction: asc or desc'
+        enum:
+        - asc
+        - desc
+        - ASC
+        - DESC
+        - ascend
+        - descend
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ListChangeLogsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: List Change Logs
+      tags:
+      - change_log
+  /code_rules:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of CodeRules
+      operationId: ListCodeRules
+      parameters:
+      - description: 生成类型
+        in: query
+        name: generate_type
+        type: string
+      - description: 搜索关键词
+        in: query
+        maxLength: 100
+        name: key
+        type: string
+      - description: Current page number (1-based)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        maximum: 100
+        minimum: 1
+        name: page_size
+        type: integer
+      - description: Field to sort by, can include table prefix (e.g. "users.id")
+        in: query
+        name: sort_field
+        type: string
+      - description: 'Sort direction: asc or desc'
+        enum:
+        - asc
+        - desc
+        - ASC
+        - DESC
+        - ascend
+        - descend
+        in: query
+        name: sort_order
+        type: string
+      - description: 目标表单
+        in: query
+        name: target_form
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ListCodeRulesResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: List CodeRules
+      tags:
+      - code_rule
+  /code_rules/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing CodeRule
+      operationId: UpdateCodeRule
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateCodeRuleReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UpdateCodeRuleResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Update CodeRule
+      tags:
+      - code_rule
+  /code_rules/{id}/form:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single CodeRule Form Data
+      operationId: GetCodeRuleFormData
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetCodeRuleFormDataResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get CodeRule Form Data
+      tags:
+      - code_rule
+  /code_rules/target_form/options:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Code Rule Target Form Options
+      operationId: GetCodeRuleTargetFormOptions
+      parameters:
+      - description: Field to sort by, can include table prefix (e.g. "users.id")
+        in: query
+        name: sort_field
+        type: string
+      - description: 'Sort direction: asc or desc'
+        enum:
+        - asc
+        - desc
+        - ASC
+        - DESC
+        - ascend
+        - descend
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetCodeRuleTargetFormOptionsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Code Rule Target Form Options
+      tags:
+      - code_rule
+  /codes/generate:
+    post:
+      consumes:
+      - application/json
+      description: Generate Code
+      operationId: GenerateCode
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.GenerateCodeReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GenerateCodeResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Generate Code
+      tags:
+      - code
+  /codes/preview:
+    post:
+      consumes:
+      - application/json
+      description: Preview Code
+      operationId: PreviewCode
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.PreviewCodeReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.PreviewCodeResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Preview Code
+      tags:
+      - code
   /departments:
     get:
       consumes:
@@ -1023,6 +3453,368 @@ paths:
       summary: Get Department Options
       tags:
       - department
+  /export_tasks:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of Export Tasks
+      operationId: ListExportTasks
+      parameters:
+      - description: Current page number (1-based)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        maximum: 100
+        minimum: 1
+        name: page_size
+        type: integer
+      - description: Field to sort by, can include table prefix (e.g. "users.id")
+        in: query
+        name: sort_field
+        type: string
+      - description: 'Sort direction: asc or desc'
+        enum:
+        - asc
+        - desc
+        - ASC
+        - DESC
+        - ascend
+        - descend
+        in: query
+        name: sort_order
+        type: string
+      - description: 状态筛选
+        in: query
+        name: status
+        type: string
+      - description: 任务类型筛选
+        in: query
+        name: task_type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ListExportTasksResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: List Export Tasks
+      tags:
+      - export
+  /export_tasks/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes an existing Export Task
+      operationId: DeleteExportTask
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.DeleteExportTaskReq'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.DeleteExportTaskResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Export Task
+      tags:
+      - export
+  /export_tasks/{id}/download_url:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Export File Download URL
+      operationId: GetExportFileDownloadURL
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetExportFileDownloadURLResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Export File Download URL
+      tags:
+      - export
+  /import/customers:
+    post:
+      consumes:
+      - application/json
+      description: Import Customers
+      operationId: ImportCustomers
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.ImportCustomersReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ImportCustomersResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Import Customers
+      tags:
+      - import
+  /import/equipment_types:
+    post:
+      consumes:
+      - application/json
+      description: Import Equipment Types
+      operationId: ImportEquipmentTypes
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.ImportEquipmentTypesReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ImportEquipmentTypesResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Import Equipment Types
+      tags:
+      - import
+  /import/equipments:
+    post:
+      consumes:
+      - application/json
+      description: Import Equipments
+      operationId: ImportEquipments
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.ImportEquipmentsReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ImportEquipmentsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Import Equipments
+      tags:
+      - import
+  /import/suppliers:
+    post:
+      consumes:
+      - application/json
+      description: Import Suppliers
+      operationId: ImportSuppliers
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.ImportSuppliersReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ImportSuppliersResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Import Suppliers
+      tags:
+      - import
+  /import/template/download:
+    get:
+      consumes:
+      - application/json
+      description: Download Import Template
+      operationId: DownloadImportTemplate
+      parameters:
+      - description: 模板类型
+        in: query
+        name: type
+        required: true
+        type: string
+      produces:
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      responses:
+        "200":
+          description: Excel 文件
+          schema:
+            type: file
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Download Import Template
+      tags:
+      - import
   /login:
     post:
       consumes:
@@ -1105,12 +3897,55 @@ paths:
       summary: Logout
       tags:
       - auth
-  /permissions/tree:
+  /notifications:
     get:
       consumes:
       - application/json
-      description: Retrieves a single Permission Tree
-      operationId: GetPermissionTree
+      description: Retrieves a list of Notifications
+      operationId: ListNotifications
+      parameters:
+      - description: 类别(通知、消息)
+        in: query
+        name: category
+        type: string
+      - description: 是否已读
+        in: query
+        name: is_read
+        type: boolean
+      - description: 标题
+        in: query
+        name: key
+        type: string
+      - description: Current page number (1-based)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        maximum: 100
+        minimum: 1
+        name: page_size
+        type: integer
+      - description: Field to sort by, can include table prefix (e.g. "users.id")
+        in: query
+        name: sort_field
+        type: string
+      - description: 'Sort direction: asc or desc'
+        enum:
+        - asc
+        - desc
+        - ASC
+        - DESC
+        - ascend
+        - descend
+        in: query
+        name: sort_order
+        type: string
+      - description: 类型
+        in: query
+        name: type
+        type: string
       produces:
       - application/json
       responses:
@@ -1121,7 +3956,569 @@ paths:
             - $ref: '#/definitions/types.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/types.GetPermissionTreeResp'
+                  $ref: '#/definitions/types.ListNotificationsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: List Notifications
+      tags:
+      - notification
+  /notifications/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes an existing Notification
+      operationId: DeleteNotification
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.DeleteNotificationReq'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.DeleteNotificationResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Notification
+      tags:
+      - notification
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Notification
+      operationId: GetNotification
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetNotificationResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Notification
+      tags:
+      - notification
+  /notifications/batch-delete:
+    post:
+      consumes:
+      - application/json
+      description: Batch Delete Notifications
+      operationId: BatchDeleteNotifications
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.BatchDeleteNotificationsReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.BatchDeleteNotificationsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Batch Delete Notifications
+      tags:
+      - notification
+  /notifications/batch-read:
+    post:
+      consumes:
+      - application/json
+      description: Batch Read Notifications
+      operationId: BatchReadNotifications
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.BatchReadNotificationsReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.BatchReadNotificationsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Batch Read Notifications
+      tags:
+      - notification
+  /notifications/read-all:
+    post:
+      consumes:
+      - application/json
+      description: Read All Notifications
+      operationId: ReadAllNotifications
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.ReadAllNotificationsReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ReadAllNotificationsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Read All Notifications
+      tags:
+      - notification
+  /notifications/recent:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Recent Notifications
+      operationId: GetRecentNotifications
+      parameters:
+      - description: 是否已读
+        in: query
+        name: is_read
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetRecentNotificationsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Recent Notifications
+      tags:
+      - notification
+  /organizations:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of Organizations
+      operationId: ListOrganizations
+      parameters:
+      - description: 搜索关键词
+        in: query
+        maxLength: 100
+        name: key
+        type: string
+      - description: 负责人ID
+        in: query
+        name: owner_id
+        type: integer
+      - description: Field to sort by, can include table prefix (e.g. "users.id")
+        in: query
+        name: sort_field
+        type: string
+      - description: 'Sort direction: asc or desc'
+        enum:
+        - asc
+        - desc
+        - ASC
+        - DESC
+        - ascend
+        - descend
+        in: query
+        name: sort_order
+        type: string
+      - description: 组织类型
+        in: query
+        name: type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ListOrganizationsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: List Organizations
+      tags:
+      - organization
+    post:
+      consumes:
+      - application/json
+      description: Creates a new Organization
+      operationId: CreateOrganization
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.CreateOrganizationReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.CreateOrganizationResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Organization
+      tags:
+      - organization
+  /organizations/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes an existing Organization
+      operationId: DeleteOrganization
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.DeleteOrganizationReq'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.DeleteOrganizationResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Organization
+      tags:
+      - organization
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing Organization
+      operationId: UpdateOrganization
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateOrganizationReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UpdateOrganizationResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Organization
+      tags:
+      - organization
+  /organizations/{id}/form:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Organization Form Data
+      operationId: GetOrganizationFormData
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetOrganizationFormDataResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Organization Form Data
+      tags:
+      - organization
+  /organizations/tree:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Organization Tree
+      operationId: GetOrganizationsTree
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetOrganizationsTreeResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Organization Tree
+      tags:
+      - organization
+  /permissions/tree:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Permission Tree
+      operationId: GetPermissionsTree
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetPermissionsTreeResp'
               type: object
         "400":
           description: Bad request
@@ -1140,6 +4537,346 @@ paths:
       summary: Get Permission Tree
       tags:
       - permission
+  /positions:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of Positions
+      operationId: ListPositions
+      parameters:
+      - description: 搜索关键词
+        in: query
+        maxLength: 100
+        name: key
+        type: string
+      - description: 所属组织
+        in: query
+        minimum: 1
+        name: organization_id
+        type: integer
+      - description: Current page number (1-based)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        maximum: 100
+        minimum: 1
+        name: page_size
+        type: integer
+      - description: Field to sort by, can include table prefix (e.g. "users.id")
+        in: query
+        name: sort_field
+        type: string
+      - description: 'Sort direction: asc or desc'
+        enum:
+        - asc
+        - desc
+        - ASC
+        - DESC
+        - ascend
+        - descend
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ListPositionsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: List Positions
+      tags:
+      - position
+    post:
+      consumes:
+      - application/json
+      description: Creates a new Position
+      operationId: CreatePosition
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.CreatePositionReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.CreatePositionResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Position
+      tags:
+      - position
+  /positions/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes an existing Position
+      operationId: DeletePosition
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.DeletePositionReq'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.DeletePositionResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Position
+      tags:
+      - position
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing Position
+      operationId: UpdatePosition
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdatePositionReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UpdatePositionResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Position
+      tags:
+      - position
+  /positions/{id}/form:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Position Form Data
+      operationId: GetPositionFormData
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetPositionFormDataResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Position Form Data
+      tags:
+      - position
+  /positions/batch-delete:
+    post:
+      consumes:
+      - application/json
+      description: Batch Delete Positions
+      operationId: BatchDeletePositions
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.BatchDeletePositionsReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.BatchDeletePositionsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Batch Delete Positions
+      tags:
+      - position
+  /positions/options:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Position Options
+      operationId: GetPositionOptions
+      parameters:
+      - description: Field to sort by, can include table prefix (e.g. "users.id")
+        in: query
+        name: sort_field
+        type: string
+      - description: 'Sort direction: asc or desc'
+        enum:
+        - asc
+        - desc
+        - ASC
+        - DESC
+        - ascend
+        - descend
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetPositionOptionsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Position Options
+      tags:
+      - position
   /profile:
     get:
       consumes:
@@ -1307,7 +5044,7 @@ paths:
         type: boolean
       - in: query
         maxLength: 100
-        name: name
+        name: key
         type: string
       - description: Current page number (1-based)
         in: query
@@ -1713,12 +5450,70 @@ paths:
       summary: Update Role Permissions
       tags:
       - permission
+  /roles/batch-delete:
+    post:
+      consumes:
+      - application/json
+      description: Batch Delete Roles
+      operationId: BatchDeleteRoles
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.BatchDeleteRolesReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.BatchDeleteRolesResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Batch Delete Roles
+      tags:
+      - role
   /roles/options:
     get:
       consumes:
       - application/json
       description: Retrieves a single Role Options
       operationId: GetRoleOptions
+      parameters:
+      - description: Field to sort by, can include table prefix (e.g. "users.id")
+        in: query
+        name: sort_field
+        type: string
+      - description: 'Sort direction: asc or desc'
+        enum:
+        - asc
+        - desc
+        - ASC
+        - DESC
+        - ascend
+        - descend
+        in: query
+        name: sort_order
+        type: string
       produces:
       - application/json
       responses:
@@ -1748,6 +5543,127 @@ paths:
       summary: Get Role Options
       tags:
       - role
+  /storage/{key}/download_url:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Download URL
+      operationId: GetDownloadURL
+      parameters:
+      - description: key
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetDownloadURLResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Download URL
+      tags:
+      - storage
+  /storage/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload File
+      operationId: UploadFile
+      parameters:
+      - description: File to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: public
+        in: formData
+        name: public
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UploadFileResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Upload File
+      tags:
+      - storage
+  /todo_stats:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single Todo Stats
+      operationId: GetTodoStats
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetTodoStatsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Todo Stats
+      tags:
+      - notification
   /users:
     get:
       consumes:
@@ -1756,10 +5672,6 @@ paths:
       operationId: ListUsers
       parameters:
       - in: query
-        minimum: 1
-        name: department_id
-        type: integer
-      - in: query
         name: enabled
         type: boolean
       - description: Search by username or full name
@@ -1767,6 +5679,10 @@ paths:
         maxLength: 100
         name: key
         type: string
+      - in: query
+        minimum: 1
+        name: organization_id
+        type: integer
       - description: Current page number (1-based)
         in: query
         minimum: 1
@@ -2088,6 +6004,95 @@ paths:
       summary: Get User Form Data
       tags:
       - user
+  /users/{id}/password:
+    patch:
+      consumes:
+      - application/json
+      description: Updates an existing User Password
+      operationId: UpdateUserPassword
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateUserPasswordReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UpdateUserPasswordResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Update User Password
+      tags:
+      - user
+  /users/batch-delete:
+    post:
+      consumes:
+      - application/json
+      description: Batch Delete Users
+      operationId: BatchDeleteUsers
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.BatchDeleteUsersReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.BatchDeleteUsersResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Batch Delete Users
+      tags:
+      - user
   /users/current:
     get:
       consumes:
@@ -2123,6 +6128,127 @@ paths:
       summary: Get Current User Info
       tags:
       - auth
+  /users/export:
+    post:
+      consumes:
+      - application/json
+      description: Export Users
+      operationId: ExportUsers
+      parameters:
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/types.ExportUsersReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ExportResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Export Users
+      tags:
+      - user
+  /users/options:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single User Options
+      operationId: GetUserOptions
+      parameters:
+      - description: 状态筛选
+        in: query
+        name: enabled
+        type: boolean
+      - description: Field to sort by, can include table prefix (e.g. "users.id")
+        in: query
+        name: sort_field
+        type: string
+      - description: 'Sort direction: asc or desc'
+        enum:
+        - asc
+        - desc
+        - ASC
+        - DESC
+        - ascend
+        - descend
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.GetUserOptionsResp'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get User Options
+      tags:
+      - user
+  /ws:
+    get:
+      consumes:
+      - application/json
+      description: 建立 WebSocket 连接，需要在 URL 中传递 token 参数
+      operationId: WSConnect
+      parameters:
+      - description: JWT Token
+        in: query
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "101":
+          description: Switching Protocols
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+      summary: WebSocket Connect
+      tags:
+      - ws
 securityDefinitions:
   BearerAuth:
     description: Bearer token authentication

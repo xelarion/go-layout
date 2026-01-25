@@ -6,84 +6,9 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/xelarion/go-layout/internal/infra/config"
-	"github.com/xelarion/go-layout/internal/repository"
-	"github.com/xelarion/go-layout/internal/task"
 	"github.com/xelarion/go-layout/internal/task/poller"
-	pollerTasks "github.com/xelarion/go-layout/internal/task/poller/tasks"
-	"github.com/xelarion/go-layout/internal/task/queue"
-	queueTasks "github.com/xelarion/go-layout/internal/task/queue/tasks"
 	"github.com/xelarion/go-layout/internal/task/scheduler"
-	schedulerTasks "github.com/xelarion/go-layout/internal/task/scheduler/tasks"
-	"github.com/xelarion/go-layout/pkg/app"
 )
-
-// initApp initializes the Task application with all needed resources.
-// It sets up database connections, message queues, and all task runners.
-func initApp(cfgPG *config.PG, cfgRedis *config.Redis, cfgRabbitMQ *config.RabbitMQ, logger *zap.Logger) (*app.App, func(), error) {
-	// Initialize data with connections
-	data, dataCleanup, err := repository.NewData(cfgPG, cfgRedis, cfgRabbitMQ, logger)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Initialize dependencies - this manages all connections and their cleanup
-	dependencies, err := task.NewDependencies(data, logger)
-	if err != nil {
-		dataCleanup()
-		return nil, nil, err
-	}
-
-	// Initialize task components
-	var (
-		taskScheduler *scheduler.Scheduler
-		taskPoller    *poller.Poller
-		queueManager  *queue.Manager
-	)
-
-	// Initialize scheduler
-	taskScheduler = scheduler.NewScheduler(scheduler.Config{
-		Logger: logger,
-	})
-	// Register all scheduler tasks with dependencies
-	if err := schedulerTasks.RegisterAll(taskScheduler, dependencies, logger); err != nil {
-		dataCleanup()
-		return nil, nil, err
-	}
-
-	// Initialize poller
-	taskPoller = poller.NewPoller(logger)
-	// Register all poller tasks with dependencies
-	if err := pollerTasks.RegisterAll(taskPoller, dependencies, logger); err != nil {
-		dataCleanup()
-		return nil, nil, err
-	}
-
-	// Initialize queue manager using RabbitMQ from dependencies
-	queueManager = queue.NewManager(data.RabbitMQ(), cfgRabbitMQ, logger)
-	// Register all queue tasks with dependencies
-	if err := queueTasks.RegisterAll(queueManager, dependencies, logger); err != nil {
-		dataCleanup()
-		return nil, nil, err
-	}
-
-	// Create a custom server that implements app.Server
-	ts := newTaskServer(
-		taskScheduler,
-		taskPoller,
-		logger,
-	)
-
-	// Create application using the newApp function
-	appInstance := newApp(logger, ts)
-
-	// Create a combined cleanup function
-	cleanup := func() {
-		dataCleanup()
-	}
-
-	return appInstance, cleanup, nil
-}
 
 // taskServer implements app.Server for Task service
 type taskServer struct {

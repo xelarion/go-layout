@@ -18,8 +18,8 @@ func NewPermissionUseCase() *PermissionUseCase {
 	}
 }
 
-// GetPermissionTree returns the permission tree
-func (uc *PermissionUseCase) GetPermissionTree(ctx context.Context) ([]*permission.Node, error) {
+// GetPermissionsTree returns the permission tree
+func (uc *PermissionUseCase) GetPermissionsTree(ctx context.Context) ([]*permission.Node, error) {
 	// Get permission tree from the builder
 	return uc.permBuilder.GetTree(ctx)
 }

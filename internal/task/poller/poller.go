@@ -147,21 +147,14 @@ func (p *Poller) executeTask(task *pollingTask) {
 	execCtx, cancel := context.WithTimeout(task.ctx, timeout)
 	defer cancel()
 
-	start := time.Now()
-
 	if err := task.task(execCtx); err != nil {
 		task.logger.WithOptions(
 			zap.WithCaller(false),
 			zap.AddStacktrace(zap.FatalLevel),
 		).Error("Polling task failed"+errs.GetStack(err),
 			zap.String("name", task.name),
-			zap.Error(err),
-			zap.Duration("duration", time.Since(start)))
-		return
+			zap.Error(err))
 	}
-
-	task.logger.Info("Polling task completed",
-		zap.Duration("duration", time.Since(start)))
 }
 
 // Stop stops all polling tasks and waits for them to complete.

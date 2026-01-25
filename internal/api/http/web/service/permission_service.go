@@ -4,8 +4,10 @@ import (
 	"context"
 
 	"github.com/xelarion/go-layout/internal/api/http/web/types"
+	appctx "github.com/xelarion/go-layout/internal/context"
 	"github.com/xelarion/go-layout/internal/permission"
 	"github.com/xelarion/go-layout/internal/usecase"
+	"github.com/xelarion/go-layout/pkg/errs"
 )
 
 // PermissionService handles permission related business logic
@@ -25,38 +27,38 @@ func NewPermissionService(
 	}
 }
 
-// nodeToResponse converts permission.Node to types.GetPermissionTreeRespPermission
-func nodeToResponse(node *permission.Node) *types.GetPermissionTreeRespPermission {
-	resp := &types.GetPermissionTreeRespPermission{
-		ID:   node.ID,
-		Name: node.Name,
+// permissionNodeToTreeNodeResp converts permission.Node to types.TreeNodeResp
+func (s *PermissionService) permissionNodeToTreeNodeResp(node *permission.Node) *types.TreeNodeResp {
+	resp := &types.TreeNodeResp{
+		Key:   node.ID,
+		Title: node.Name,
 	}
 
 	if len(node.Children) > 0 {
-		resp.Children = make([]*types.GetPermissionTreeRespPermission, 0, len(node.Children))
+		resp.Children = make([]*types.TreeNodeResp, 0, len(node.Children))
 		for _, child := range node.Children {
-			resp.Children = append(resp.Children, nodeToResponse(child))
+			resp.Children = append(resp.Children, s.permissionNodeToTreeNodeResp(child))
 		}
 	}
 
 	return resp
 }
 
-// GetPermissionTree returns the permission tree
-func (s *PermissionService) GetPermissionTree(ctx context.Context, req *types.GetPermissionTreeReq) (*types.GetPermissionTreeResp, error) {
+// GetPermissionsTree returns the permission tree
+func (s *PermissionService) GetPermissionsTree(ctx context.Context, req *types.GetPermissionsTreeReq) (*types.GetPermissionsTreeResp, error) {
 	// Get permission tree from usecase
-	nodes, err := s.permissionUseCase.GetPermissionTree(ctx)
+	nodes, err := s.permissionUseCase.GetPermissionsTree(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	// Convert to response type
-	respPerms := make([]*types.GetPermissionTreeRespPermission, 0, len(nodes))
+	respPerms := make([]*types.TreeNodeResp, 0, len(nodes))
 	for _, node := range nodes {
-		respPerms = append(respPerms, nodeToResponse(node))
+		respPerms = append(respPerms, s.permissionNodeToTreeNodeResp(node))
 	}
 
-	return &types.GetPermissionTreeResp{
+	return &types.GetPermissionsTreeResp{
 		Permissions: respPerms,
 	}, nil
 }
@@ -69,15 +71,44 @@ func (s *PermissionService) GetRolePermissions(ctx context.Context, req *types.G
 		return nil, err
 	}
 
+	dataScopes := make([]types.GetRolePermissionsRespDataScope, 0, len(role.DataScopes))
+	for _, dataScope := range role.DataScopes {
+		dataScopes = append(dataScopes, types.GetRolePermissionsRespDataScope{
+			Permissions: dataScope.Permissions,
+			Type:        string(dataScope.Type),
+		})
+	}
+
 	return &types.GetRolePermissionsResp{
 		Permissions: role.Permissions,
+		DataScopes:  dataScopes,
 	}, nil
 }
 
 // UpdateRolePermissions updates the permissions for a role
 func (s *PermissionService) UpdateRolePermissions(ctx context.Context, req *types.UpdateRolePermissionsReq) (*types.UpdateRolePermissionsResp, error) {
-	// Update role permissions
-	if err := s.roleUseCase.UpdatePermissions(ctx, req.RoleID, req.Permissions); err != nil {
+	current := appctx.GetCurrent(ctx)
+	if current == nil {
+		return nil, errs.NewBusiness("unauthorized").WithReason(errs.ReasonUnauthorized)
+	}
+
+	dataScopes := make([]usecase.UpdatePermissionsDataScope, 0, len(req.DataScopes))
+	for _, dataScope := range req.DataScopes {
+		dataScopes = append(dataScopes, usecase.UpdatePermissionsDataScope{
+			Permissions: dataScope.Permissions,
+			Type:        dataScope.Type,
+		})
+	}
+	params := usecase.UpdatePermissionsParams{
+		UpdateRecordCommonParams: usecase.UpdateRecordCommonParams{
+			UpdatedBy: current.UserID,
+		},
+		ID:          req.RoleID,
+		Permissions: req.Permissions,
+		DataScopes:  dataScopes,
+	}
+
+	if err := s.roleUseCase.UpdatePermissions(ctx, params); err != nil {
 		return nil, err
 	}
 

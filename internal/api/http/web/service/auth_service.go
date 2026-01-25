@@ -11,6 +11,7 @@ import (
 	"github.com/xelarion/go-layout/internal/api/http/web/middleware"
 	"github.com/xelarion/go-layout/internal/api/http/web/types"
 	"github.com/xelarion/go-layout/internal/usecase"
+	"github.com/xelarion/go-layout/internal/util"
 	"github.com/xelarion/go-layout/pkg/errs"
 )
 
@@ -44,7 +45,7 @@ func (s *AuthService) GetRSAPublicKey(ctx context.Context, req *types.GetRSAPubl
 func (s *AuthService) NewCaptcha(ctx context.Context, req *types.NewCaptchaReq) (*types.NewCaptchaResp, error) {
 	id := captcha.NewLen(4)
 	var buf bytes.Buffer
-	if err := captcha.WriteImage(&buf, id, 180, 80); err != nil {
+	if err := captcha.WriteImage(&buf, id, 100, 55); err != nil {
 		return nil, errs.WrapInternal(err, "failed to write captcha image")
 	}
 
@@ -88,6 +89,8 @@ func (s *AuthService) GetCurrentUserInfo(ctx context.Context, req *types.GetCurr
 
 	return &types.GetCurrentUserInfoResp{
 		ID:          user.ID,
+		Username:    user.Username,
+		FullName:    user.FullName,
 		RoleSlug:    current.RoleSlug,
 		Permissions: role.Permissions,
 	}, nil
@@ -106,10 +109,16 @@ func (s *AuthService) GetProfile(ctx context.Context, req *types.GetProfileReq) 
 	}
 
 	return &types.GetProfileResp{
-		ID:        user.ID,
-		CreatedAt: types.Time(user.CreatedAt),
-		Username:  user.Username,
-		Email:     user.Email,
+		ID:               user.ID,
+		CreatedAt:        util.FormatDateTime(user.CreatedAt),
+		Username:         user.Username,
+		EmployeeNo:       user.EmployeeNo,
+		FullName:         user.FullName,
+		Gender:           user.Gender.Text(),
+		PhoneNumber:      user.PhoneNumber,
+		Email:            user.Email,
+		OrganizationName: user.OrganizationName,
+		PositionName:     user.PositionName,
 	}, nil
 }
 
@@ -119,28 +128,35 @@ func (s *AuthService) UpdateProfile(ctx context.Context, req *types.UpdateProfil
 	if current == nil {
 		return nil, errs.NewBusiness("unauthorized").WithReason(errs.ReasonUnauthorized)
 	}
-
 	// Create update params
 	params := usecase.UpdateUserParams{
 		ID: current.UserID,
 	}
-
-	// Only set fields that are provided in the request
-	if req.Username != "" {
-		params.Username = req.Username
-		params.UsernameSet = true
-	}
-
-	if req.Email != "" {
-		params.Email = req.Email
-		params.EmailSet = true
-	}
+	//if req.Email != "" {
+	params.Email = req.Email
+	params.EmailSet = true
+	//}
 
 	if req.Password != "" {
 		params.Password = req.Password
 		params.PasswordSet = true
 	}
 
+	if req.PhoneNumber != "" {
+		params.PhoneNumber = req.PhoneNumber
+		params.PhoneNumberSet = true
+	}
+
+	if req.FullName != "" {
+		params.FullName = req.FullName
+		params.FullNameSet = true
+	}
+	if req.CurrentPassword != "" {
+		err := s.userUseCase.CheckCurrentPassword(ctx, current.UserID, req.CurrentPassword)
+		if err != nil {
+			return nil, err
+		}
+	}
 	if err := s.userUseCase.Update(ctx, params); err != nil {
 		return nil, err
 	}

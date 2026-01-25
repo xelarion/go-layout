@@ -32,7 +32,7 @@ type Config struct {
 // NewScheduler creates a new task scheduler.
 func NewScheduler(cfg Config) *Scheduler {
 	if cfg.Location == nil {
-		cfg.Location = time.UTC
+		cfg.Location = time.Local
 	}
 
 	if cfg.Logger == nil {
@@ -52,7 +52,44 @@ func NewScheduler(cfg Config) *Scheduler {
 }
 
 // Register adds a task to the scheduler with the given cron expression.
-// Returns an error if the task name already exists or if the cron expression is invalid.
+// Returns an error if the task name already exists or if the cron expression is invalid./* cron AddFunc spec
+/* cronExpr
+	c.AddFunc("30 * * * *", func() { fmt.Println("Every hour on the half hour") })
+	c.AddFunc("30 3-6,20-23 * * *", func() { fmt.Println(".. in the range 3-6am, 8-11pm") })
+	c.AddFunc("CRON_TZ=Asia/Tokyo 30 04 * * *", func() { fmt.Println("Runs at 04:30 Tokyo time every day") })
+	c.AddFunc("@hourly", func() { fmt.Println("Every hour, starting an hour from now") })
+	c.AddFunc("@daily", func() { fmt.Println("Every day") })
+	c.AddFunc("@every 1h30m", func() { fmt.Println("Every hour thirty, starting an hour thirty from now") })
+	c.AddFunc("@every 10s", func() { fmt.Println("Every 10 seconds, starting 10 seconds from now") })
+
+┌───────────── minute (0-59)
+│ ┌───────────── hour (0-23)
+│ │ ┌───────────── day of the month (1-31)
+│ │ │ ┌───────────── month (1-12 or JAN-DEC)
+│ │ │ │ ┌───────────── day of the week (0-6 or SUN-SAT)
+│ │ │ │ │
+│ │ │ │ │
+* * * * *
+
+You may use one of several pre-defined schedules in place of a cron expression.
+
+	Entry                  | Description                                | Equivalent To
+	-----                  | -----------                                | -------------
+	@yearly (or @annually) | Run once a year, midnight, Jan. 1st        | 0 0 1 1 *
+	@monthly               | Run once a month, midnight, first of month | 0 0 1 * *
+	@weekly                | Run once a week, midnight between Sat/Sun  | 0 0 * * 0
+	@daily (or @midnight)  | Run once a day, midnight                   | 0 0 * * *
+	@hourly                | Run once an hour, beginning of hour        | 0 * * * *
+
+You may also schedule a job to execute at fixed intervals, starting at the time it's added
+or cron is run. This is supported by formatting the cron spec like this:
+
+    @every <duration>
+
+where "duration" is a string accepted by time.ParseDuration
+(http://golang.org/pkg/time/#ParseDuration).
+
+*/
 func (s *Scheduler) Register(name, cronExpr string, task Task) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -64,23 +101,14 @@ func (s *Scheduler) Register(name, cronExpr string, task Task) error {
 	id, err := s.cron.AddFunc(cronExpr, func() {
 		ctx := context.Background()
 
-		s.logger.Info("Starting scheduled task", zap.String("task", name))
-		start := time.Now()
-
 		if err := task(ctx); err != nil {
 			s.logger.WithOptions(
 				zap.WithCaller(false),
 				zap.AddStacktrace(zap.FatalLevel),
 			).Error("Scheduled task failed"+errs.GetStack(err),
 				zap.String("name", name),
-				zap.Error(err),
-				zap.Duration("duration", time.Since(start)))
-			return
+				zap.Error(err))
 		}
-
-		s.logger.Info("Scheduled task completed",
-			zap.String("task", name),
-			zap.Duration("duration", time.Since(start)))
 	})
 
 	if err != nil {

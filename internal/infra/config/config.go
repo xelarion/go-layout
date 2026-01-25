@@ -19,6 +19,8 @@ type Config struct {
 	RabbitMQ RabbitMQ
 	JWT      JWT
 	Log      Log
+	Export   Export
+	Storage  Storage
 }
 
 // HTTP holds the HTTP server related configuration.
@@ -39,7 +41,7 @@ type HTTP struct {
 
 // PG holds the PostgreSQL database configuration.
 type PG struct {
-	URL             string        `env:"PG_URL" envDefault:"postgres://postgres:postgres@localhost:5432/go_layout?sslmode=disable"`
+	URL             string        `env:"PG_URL" envDefault:"postgres://postgres:postgres@localhost:5432/go_layout?sslmode=disable&connect_timeout=5"`
 	MaxOpenConns    int           `env:"PG_MAX_OPEN_CONNS" envDefault:"25"`
 	MaxIdleConns    int           `env:"PG_MAX_IDLE_CONNS" envDefault:"5"`
 	ConnMaxLifetime time.Duration `env:"PG_CONN_MAX_LIFETIME" envDefault:"5m"`
@@ -83,6 +85,41 @@ type Log struct {
 	MaxAge      int    `env:"LOG_MAX_AGE" envDefault:"7"`         // Maximum number of days to retain old log files
 	MaxBackups  int    `env:"LOG_MAX_BACKUPS" envDefault:"5"`     // Maximum number of old log files to retain
 	Compress    bool   `env:"LOG_COMPRESS" envDefault:"true"`     // Compress rotated files with gzip
+}
+
+// Export holds the export related configuration.
+type Export struct {
+	SyncThreshold int `env:"EXPORT_SYNC_THRESHOLD" envDefault:"100"` // 同步导出阈值
+	ExpireDays    int `env:"EXPORT_EXPIRE_DAYS" envDefault:"7"`      // 文件过期天数
+}
+
+// Storage holds the storage related configuration.
+type Storage struct {
+	// Common settings
+	Provider     string        `env:"STORAGE_PROVIDER" envDefault:"minio"`           // Storage provider: minio, oss, cos
+	Bucket       string        `env:"STORAGE_BUCKET" envDefault:"attachments"`       // Bucket name
+	URLExpires   time.Duration `env:"STORAGE_URL_EXPIRES" envDefault:"3600s"`        // Presigned URL expiration time
+	PublicURL    string        `env:"STORAGE_PUBLIC_URL"`                            // Public URL (CDN address, optional)
+	MaxFileSize  int64         `env:"STORAGE_MAX_FILE_SIZE" envDefault:"1073741824"` // Maximum file size in bytes (1GB)
+	AllowedTypes []string      `env:"STORAGE_ALLOWED_TYPES" envDefault:"*"`          // Allowed content types
+
+	// MinIO settings
+	MinIOEndpoint        string `env:"STORAGE_MINIO_ENDPOINT"`                      // MinIO endpoint (e.g., localhost:9000)
+	MinIOAccessKeyID     string `env:"STORAGE_MINIO_ACCESS_KEY_ID"`                 // MinIO access key ID
+	MinIOSecretAccessKey string `env:"STORAGE_MINIO_SECRET_ACCESS_KEY"`             // MinIO secret access key
+	MinIOUseSSL          bool   `env:"STORAGE_MINIO_USE_SSL" envDefault:"false"`    // MinIO use SSL/TLS
+	MinIORegion          string `env:"STORAGE_MINIO_REGION" envDefault:"us-east-1"` // MinIO region
+
+	// Aliyun OSS settings
+	OSSEndpoint        string `env:"STORAGE_OSS_ENDPOINT"`          // OSS endpoint (e.g., oss-cn-hangzhou.aliyuncs.com)
+	OSSAccessKeyID     string `env:"STORAGE_OSS_ACCESS_KEY_ID"`     // OSS access key ID
+	OSSAccessKeySecret string `env:"STORAGE_OSS_ACCESS_KEY_SECRET"` // OSS access key secret
+
+	// Tencent COS settings
+	COSRegion    string `env:"STORAGE_COS_REGION"`     // COS region (e.g., ap-guangzhou)
+	COSAppID     string `env:"STORAGE_COS_APP_ID"`     // COS app ID (e.g., 1250000000)
+	COSSecretID  string `env:"STORAGE_COS_SECRET_ID"`  // COS secret ID
+	COSSecretKey string `env:"STORAGE_COS_SECRET_KEY"` // COS secret key
 }
 
 // Load loads the configuration from environment variables.

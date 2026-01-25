@@ -23,6 +23,15 @@ var taskRegistry = map[string]TaskHandlerConstructor{
 	"example-task": func(deps *task.Dependencies, logger *zap.Logger) TaskHandler {
 		return NewExampleHandler(deps, logger)
 	},
+	"export-task": func(deps *task.Dependencies, logger *zap.Logger) TaskHandler {
+		return NewExportTaskHandler(deps, logger)
+	},
+	"import-customer-task": func(deps *task.Dependencies, logger *zap.Logger) TaskHandler {
+		return NewImportCustomerHandler(deps, logger)
+	},
+	"create-user-notification-task": func(deps *task.Dependencies, logger *zap.Logger) TaskHandler {
+		return NewCreateUserNotificationHandler(deps, logger)
+	},
 	// Add new task constructors here
 }
 

@@ -23,7 +23,18 @@ var taskRegistry = map[string]TaskHandlerConstructor{
 	"example-task": func(deps *task.Dependencies, logger *zap.Logger) TaskHandler {
 		return NewExampleHandler(deps, logger)
 	},
-	// Add new task constructors here
+	"partition-task": func(deps *task.Dependencies, logger *zap.Logger) TaskHandler {
+		return NewPartitionHandler(deps, logger)
+	},
+	"export-cleaner": func(deps *task.Dependencies, logger *zap.Logger) TaskHandler {
+		return NewExportCleanerHandler(deps, logger)
+	},
+	"broadcast-test": func(deps *task.Dependencies, logger *zap.Logger) TaskHandler {
+		return NewBroadcastTestHandler(deps, logger)
+	},
+	"storage-cleaner": func(deps *task.Dependencies, logger *zap.Logger) TaskHandler {
+		return NewStorageCleanerHandler(deps, logger)
+	},
 }
 
 // RegisterAll registers all scheduler tasks with the provided scheduler

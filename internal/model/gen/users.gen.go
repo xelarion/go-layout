@@ -6,22 +6,32 @@ package gen
 
 import (
 	"time"
+
+	"gorm.io/plugin/soft_delete"
 )
 
 const TableNameUser = "users"
 
 // User mapped from table <users>
 type User struct {
-	ID           uint      `gorm:"column:id;type:bigint;primaryKey;autoIncrement:true;comment:Primary key" json:"id"`                                               // Primary key
-	CreatedAt    time.Time `gorm:"column:created_at;type:timestamp with time zone;not null;comment:Creation timestamp" json:"created_at"`                           // Creation timestamp
-	Username     string    `gorm:"column:username;type:character varying(100);not null;uniqueIndex:idx_users_username,priority:1;comment:Username" json:"username"` // Username
-	Password     string    `gorm:"column:password;type:character varying(255);not null;comment:Password" json:"password"`                                           // Password
-	FullName     string    `gorm:"column:full_name;type:character varying(100);not null;comment:Full name" json:"full_name"`                                        // Full name
-	PhoneNumber  string    `gorm:"column:phone_number;type:character varying(20);not null;comment:Phone number" json:"phone_number"`                                // Phone number
-	Email        string    `gorm:"column:email;type:character varying(100);not null;comment:Email" json:"email"`                                                    // Email
-	Enabled      bool      `gorm:"column:enabled;type:boolean;not null;comment:Enabled" json:"enabled"`                                                             // Enabled
-	DepartmentID uint      `gorm:"column:department_id;type:bigint;not null;comment:Department ID" json:"department_id"`                                            // Department ID
-	RoleID       uint      `gorm:"column:role_id;type:bigint;not null;comment:Role ID" json:"role_id"`                                                              // Role ID
+	ID            uint                  `gorm:"column:id;type:bigint;primaryKey;autoIncrement:true;comment:主键" json:"id"`                                                              // 主键
+	CreatedAt     time.Time             `gorm:"column:created_at;type:timestamp with time zone;not null;comment:创建时间" json:"created_at"`                                               // 创建时间
+	UpdatedAt     time.Time             `gorm:"column:updated_at;type:timestamp with time zone;not null;comment:更新时间" json:"updated_at"`                                               // 更新时间
+	DeletedAt     soft_delete.DeletedAt `gorm:"column:deleted_at;type:bigint;not null;comment:删除时间;softDelete:nano" json:"deleted_at"`                                                 // 删除时间
+	CreatedBy     uint                  `gorm:"column:created_by;type:bigint;not null;comment:创建人ID" json:"created_by"`                                                                // 创建人ID
+	UpdatedBy     uint                  `gorm:"column:updated_by;type:bigint;not null;comment:更新人ID" json:"updated_by"`                                                                // 更新人ID
+	CreatedRoleID uint                  `gorm:"column:created_role_id;type:bigint;not null;comment:创建时角色ID" json:"created_role_id"`                                                    // 创建时角色ID
+	FullName      string                `gorm:"column:full_name;type:character varying(100);not null;comment:用户姓名" json:"full_name"`                                                   // 用户姓名
+	EmployeeNo    string                `gorm:"column:employee_no;type:character varying(50);not null;uniqueIndex:idx_users_employee_no,priority:1;comment:工号" json:"employee_no"`     // 工号
+	Username      string                `gorm:"column:username;type:character varying(100);not null;uniqueIndex:idx_users_username,priority:1;comment:用户名" json:"username"`            // 用户名
+	Password      string                `gorm:"column:password;type:character varying(255);not null;comment:密码" json:"password"`                                                       // 密码
+	Gender        int16                 `gorm:"column:gender;type:smallint;not null;comment:性别" json:"gender"`                                                                         // 性别
+	PhoneNumber   string                `gorm:"column:phone_number;type:character varying(20);not null;uniqueIndex:idx_users_phone_number,priority:1;comment:手机号" json:"phone_number"` // 手机号
+	Email         string                `gorm:"column:email;type:character varying(100);not null;uniqueIndex:idx_users_email,priority:1;comment:邮箱" json:"email"`                      // 邮箱
+	Enabled       bool                  `gorm:"column:enabled;type:boolean;not null;comment:状态" json:"enabled"`                                                                        // 状态
+	Remark        string                `gorm:"column:remark;type:text;not null;comment:备注" json:"remark"`                                                                             // 备注
+	PositionID    uint                  `gorm:"column:position_id;type:bigint;not null;comment:岗位" json:"position_id"`                                                                 // 岗位
+	RoleID        uint                  `gorm:"column:role_id;type:bigint;not null;comment:角色" json:"role_id"`                                                                         // 角色
 }
 
 // TableName User's table name

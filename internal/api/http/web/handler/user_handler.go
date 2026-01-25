@@ -216,6 +216,38 @@ func (h *UserHandler) UpdateUserEnabled(c *gin.Context) {
 	c.JSON(http.StatusOK, types.Success(resp).WithMessage("operation successfully"))
 }
 
+// UpdateUserPassword godoc
+//
+//	@ID				UpdateUserPassword
+//	@Summary		Update User Password
+//	@Description	Updates an existing User Password
+//	@Tags			user
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		integer												true	"id"
+//	@Param			req	body		types.UpdateUserPasswordReq							true	"req"
+//	@Success		200	{object}	types.Response{data=types.UpdateUserPasswordResp}	"Success"
+//	@Failure		400	{object}	types.Response										"Bad request"
+//	@Failure		401	{object}	types.Response										"Unauthorized"
+//	@Failure		500	{object}	types.Response										"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/users/{id}/password [patch]
+func (h *UserHandler) UpdateUserPassword(c *gin.Context) {
+	var req types.UpdateUserPasswordReq
+	if err := binding.Bind(c, &req, binding.URI, binding.JSON); err != nil {
+		_ = c.Error(errs.WrapValidation(err, err.Error()))
+		return
+	}
+
+	resp, err := h.userService.UpdateUserPassword(c.Request.Context(), &req)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, types.Success(resp).WithMessage("operation successfully"))
+}
+
 // DeleteUser godoc
 //
 //	@ID				DeleteUser
@@ -246,4 +278,97 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, types.Success(resp).WithMessage("deleted successfully"))
+}
+
+// BatchDeleteUsers godoc
+//
+//	@ID				BatchDeleteUsers
+//	@Summary		Batch Delete Users
+//	@Description	Batch Delete Users
+//	@Tags			user
+//	@Accept			json
+//	@Produce		json
+//	@Param			req	body		types.BatchDeleteUsersReq						true	"req"
+//	@Success		201	{object}	types.Response{data=types.BatchDeleteUsersResp}	"Success"
+//	@Failure		400	{object}	types.Response									"Bad request"
+//	@Failure		401	{object}	types.Response									"Unauthorized"
+//	@Failure		500	{object}	types.Response									"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/users/batch-delete [post]
+func (h *UserHandler) BatchDeleteUsers(c *gin.Context) {
+	var req types.BatchDeleteUsersReq
+	if err := binding.Bind(c, &req, binding.JSON); err != nil {
+		_ = c.Error(errs.WrapValidation(err, err.Error()))
+		return
+	}
+
+	resp, err := h.userService.BatchDeleteUsers(c.Request.Context(), &req)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, types.Success(resp))
+}
+
+// GetUserOptions godoc
+//
+//	@ID				GetUserOptions
+//	@Summary		Get User Options
+//	@Description	Retrieves a single User Options
+//	@Tags			user
+//	@Accept			json
+//	@Produce		json
+//	@Param			req	query		types.GetUserOptionsReq							false	"req"
+//	@Success		200	{object}	types.Response{data=types.GetUserOptionsResp}	"Success"
+//	@Failure		400	{object}	types.Response									"Bad request"
+//	@Failure		401	{object}	types.Response									"Unauthorized"
+//	@Failure		500	{object}	types.Response									"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/users/options [get]
+func (h *UserHandler) GetUserOptions(c *gin.Context) {
+	var req types.GetUserOptionsReq
+	if err := binding.Bind(c, &req, binding.Query); err != nil {
+		_ = c.Error(errs.WrapValidation(err, err.Error()))
+		return
+	}
+
+	resp, err := h.userService.GetUserOptions(c.Request.Context(), &req)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, types.Success(resp))
+}
+
+// ExportUsers godoc
+//
+//	@ID				ExportUsers
+//	@Summary		Export Users
+//	@Description	Export Users
+//	@Tags			user
+//	@Accept			json
+//	@Produce		json
+//	@Param			req	body		types.ExportUsersReq					true	"req"
+//	@Success		201	{object}	types.Response{data=types.ExportResp}	"Success"
+//	@Failure		400	{object}	types.Response							"Bad request"
+//	@Failure		401	{object}	types.Response							"Unauthorized"
+//	@Failure		500	{object}	types.Response							"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/users/export [post]
+func (h *UserHandler) ExportUsers(c *gin.Context) {
+	var req types.ExportUsersReq
+	if err := binding.Bind(c, &req, binding.JSON); err != nil {
+		_ = c.Error(errs.WrapValidation(err, err.Error()))
+		return
+	}
+
+	resp, err := h.userService.ExportUsers(c.Request.Context(), &req)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, types.Success(resp))
 }

@@ -26,29 +26,29 @@ func NewPermissionHandler(permissionService *service.PermissionService, logger *
 	}
 }
 
-// GetPermissionTree godoc
+// GetPermissionsTree godoc
 //
-//	@ID				GetPermissionTree
+//	@ID				GetPermissionsTree
 //	@Summary		Get Permission Tree
 //	@Description	Retrieves a single Permission Tree
 //	@Tags			permission
 //	@Accept			json
 //	@Produce		json
-//	@Param			req	query		types.GetPermissionTreeReq							false	"req"
-//	@Success		200	{object}	types.Response{data=types.GetPermissionTreeResp}	"Success"
+//	@Param			req	query		types.GetPermissionsTreeReq							false	"req"
+//	@Success		200	{object}	types.Response{data=types.GetPermissionsTreeResp}	"Success"
 //	@Failure		400	{object}	types.Response										"Bad request"
 //	@Failure		401	{object}	types.Response										"Unauthorized"
 //	@Failure		500	{object}	types.Response										"Internal server error"
 //	@Security		BearerAuth
 //	@Router			/permissions/tree [get]
-func (h *PermissionHandler) GetPermissionTree(c *gin.Context) {
-	var req types.GetPermissionTreeReq
+func (h *PermissionHandler) GetPermissionsTree(c *gin.Context) {
+	var req types.GetPermissionsTreeReq
 	if err := binding.Bind(c, &req, binding.Query); err != nil {
 		_ = c.Error(errs.WrapValidation(err, err.Error()))
 		return
 	}
 
-	resp, err := h.permissionService.GetPermissionTree(c.Request.Context(), &req)
+	resp, err := h.permissionService.GetPermissionsTree(c.Request.Context(), &req)
 	if err != nil {
 		_ = c.Error(err)
 		return

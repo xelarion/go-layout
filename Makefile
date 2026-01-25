@@ -77,16 +77,21 @@ migrate-fix:
 #
 # Code generation
 #
-.PHONY: gen-models gen-model gen-wire gen-wire-web
+.PHONY: gen-models gen-model gen-wire gen-wire-web gen-wire-task
 
 # Generate wire dependency injection code
-gen-wire: gen-wire-web
+gen-wire: gen-wire-web gen-wire-task
 	@echo "All wire code generated successfully"
 
 # Generate wire code for web-api service
 gen-wire-web:
 	@echo "Generating wire code for web-api service..."
 	cd cmd/web-api && wire
+
+# Generate wire code for task service
+gen-wire-task:
+	@echo "Generating wire code for task service..."
+	cd cmd/task && wire
 
 # Generate models from database schema
 gen-models:

@@ -1004,9 +1004,15 @@ func generateSwaggerComment(funcDecl *ast.FuncDecl, config *Config, routes map[s
 	addParametersToComment(&comment, handlerName, path, method, typeFinder)
 
 	// Add response type
-	statusCode := determineStatusCode(method)
-	comment.WriteString(fmt.Sprintf("// @Success %d {object} types.Response{data=types.%sResp} \"Success\"\n",
-		statusCode, handlerName))
+	statusCode := determineStatusCode(method, handlerName)
+	// TODO 导出特殊处理
+	if strings.HasPrefix(handlerName, "Export") {
+		comment.WriteString(fmt.Sprintf("// @Success %d {object} types.Response{data=types.ExportResp} \"Success\"\n",
+			statusCode))
+	} else {
+		comment.WriteString(fmt.Sprintf("// @Success %d {object} types.Response{data=types.%sResp} \"Success\"\n",
+			statusCode, handlerName))
+	}
 
 	// Add error responses
 	comment.WriteString("// @Failure 400 {object} types.Response \"Bad request\"\n")
@@ -1149,10 +1155,13 @@ func updateFileWithComment(filePath string, funcDecl *ast.FuncDecl, comment stri
 }
 
 // determineStatusCode determines the HTTP status code based on the method
-func determineStatusCode(method string) int {
+func determineStatusCode(method string, handlerName string) int {
 	switch method {
 	case "post":
-		return 201 // Created
+		if strings.Contains(handlerName, "Create") {
+			return 201
+		}
+		return 200
 	case "delete":
 		return 204 // No Content
 	default:

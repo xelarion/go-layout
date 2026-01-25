@@ -8,19 +8,29 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+	"gorm.io/datatypes"
+	"gorm.io/plugin/soft_delete"
 )
 
 const TableNameRole = "roles"
 
 // Role mapped from table <roles>
 type Role struct {
-	ID          uint           `gorm:"column:id;type:bigint;primaryKey;autoIncrement:true;comment:Primary key" json:"id"`                                    // Primary key
-	CreatedAt   time.Time      `gorm:"column:created_at;type:timestamp with time zone;not null;comment:Creation timestamp" json:"created_at"`                // Creation timestamp
-	Name        string         `gorm:"column:name;type:character varying(100);not null;uniqueIndex:idx_roles_name,priority:1;comment:Role name" json:"name"` // Role name
-	Slug        string         `gorm:"column:slug;type:character varying(100);not null;comment:Role slug" json:"slug"`                                       // Role slug
-	Description string         `gorm:"column:description;type:text;not null;comment:Role description" json:"description"`                                    // Role description
-	Enabled     bool           `gorm:"column:enabled;type:boolean;not null;comment:Role enabled status" json:"enabled"`                                      // Role enabled status
-	Permissions pq.StringArray `gorm:"column:permissions;type:character varying(100)[];not null;comment:Role permissions" json:"permissions"`                // Role permissions
+	ID            uint                  `gorm:"column:id;type:bigint;primaryKey;autoIncrement:true;comment:主键ID" json:"id"`                                    // 主键ID
+	CreatedAt     time.Time             `gorm:"column:created_at;type:timestamp with time zone;not null;comment:创建时间" json:"created_at"`                       // 创建时间
+	UpdatedAt     time.Time             `gorm:"column:updated_at;type:timestamp with time zone;not null;comment:更新时间" json:"updated_at"`                       // 更新时间
+	DeletedAt     soft_delete.DeletedAt `gorm:"column:deleted_at;type:bigint;not null;comment:删除时间;softDelete:nano" json:"deleted_at"`                         // 删除时间
+	CreatedBy     uint                  `gorm:"column:created_by;type:bigint;not null;comment:创建人ID" json:"created_by"`                                        // 创建人ID
+	UpdatedBy     uint                  `gorm:"column:updated_by;type:bigint;not null;comment:更新人ID" json:"updated_by"`                                        // 更新人ID
+	CreatedRoleID uint                  `gorm:"column:created_role_id;type:bigint;not null;comment:创建时角色ID" json:"created_role_id"`                            // 创建时角色ID
+	Name          string                `gorm:"column:name;type:character varying(100);not null;uniqueIndex:idx_roles_name,priority:1;comment:名称" json:"name"` // 名称
+	Slug          string                `gorm:"column:slug;type:character varying(100);not null;comment:标识" json:"slug"`                                       // 标识
+	Code          string                `gorm:"column:code;type:character varying(100);not null;uniqueIndex:idx_roles_code,priority:1;comment:编号" json:"code"` // 编号
+	DisplayOrder  int32                 `gorm:"column:display_order;type:integer;not null;comment:显示顺序" json:"display_order"`                                  // 显示顺序
+	Description   string                `gorm:"column:description;type:text;not null;comment:描述" json:"description"`                                           // 描述
+	Enabled       bool                  `gorm:"column:enabled;type:boolean;not null;comment:启用状态" json:"enabled"`                                              // 启用状态
+	Permissions   pq.StringArray        `gorm:"column:permissions;type:character varying(100)[];not null;comment:权限" json:"permissions"`                       // 权限
+	DataScopes    datatypes.JSON        `gorm:"column:data_scopes;type:jsonb;not null;comment:数据范围" json:"data_scopes"`                                        // 数据范围
 }
 
 // TableName Role's table name

@@ -21,9 +21,12 @@ type contextTxKey struct{}
 
 // Data manages data access resources and their lifecycle.
 type Data struct {
-	db     *gorm.DB      // Database connection
-	rds    *redis.Client // Redis client
-	mq     *mq.RabbitMQ  // RabbitMQ client
+	db  *gorm.DB      // Database connection
+	rds *redis.Client // Redis client
+
+	mq         *mq.RabbitMQ // RabbitMQ client
+	mqExchange string       // RabbitMQ exchange
+
 	logger *zap.Logger
 
 	// Closers holds all resources that need to be closed
@@ -86,6 +89,7 @@ func NewData(cfgPG *config.PG, cfgRedis *config.Redis, cfgRabbitMQ *config.Rabbi
 			return nil, nil, fmt.Errorf("failed to connect to RabbitMQ: %w", err)
 		}
 		data.mq = rabbitMQ
+		data.mqExchange = cfgRabbitMQ.Exchange
 		data.closers = append(data.closers, func() {
 			rabbitMQ.Close() // RabbitMQ.Close() doesn't return error
 		})
@@ -105,6 +109,12 @@ func (d *Data) Transaction(ctx context.Context, fn func(ctx context.Context) err
 	})
 }
 
+// IsInTransaction checks if the context is within a transaction.
+func (d *Data) IsInTransaction(ctx context.Context) bool {
+	_, ok := ctx.Value(contextTxKey{}).(*gorm.DB)
+	return ok
+}
+
 // DB returns the database connection, honoring any transaction in the context.
 func (d *Data) DB(ctx context.Context) *gorm.DB {
 	tx, ok := ctx.Value(contextTxKey{}).(*gorm.DB)
@@ -122,4 +132,8 @@ func (d *Data) Redis() *redis.Client {
 // RabbitMQ returns the RabbitMQ client if initialized, or nil otherwise.
 func (d *Data) RabbitMQ() *mq.RabbitMQ {
 	return d.mq
+}
+
+func (d *Data) RabbitMQExchange() string {
+	return d.mqExchange
 }

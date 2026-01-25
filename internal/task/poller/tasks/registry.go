@@ -23,6 +23,9 @@ var taskRegistry = map[string]TaskHandlerConstructor{
 	"example-task": func(deps *task.Dependencies, logger *zap.Logger) TaskHandler {
 		return NewExampleHandler(deps, logger)
 	},
+	"amqp-message-publish-task": func(deps *task.Dependencies, logger *zap.Logger) TaskHandler {
+		return NewAmqpMessagePublishHandler(deps, logger)
+	},
 	// Add new task constructors here
 }
 

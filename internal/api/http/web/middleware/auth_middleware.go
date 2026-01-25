@@ -39,11 +39,11 @@ func NewAuthMiddleware(cfg *config.JWT, uc *usecase.UserUseCase, logger *zap.Log
 		IdentityKey:           IdentityKey,
 		PayloadFunc:           payloadFunc(cfg.TokenExpiration),
 		IdentityHandler:       identityHandler,
-		Authenticator:         authenticator(uc),
+		Authenticator:         authenticator(uc, logger),
 		Authorizator:          authorizator(uc, logger),
 		Unauthorized:          unauthorized,
 		LoginResponse:         loginResponse,
-		LogoutResponse:        logoutResponse,
+		LogoutResponse:        logoutResponse(logger),
 		RefreshResponse:       refreshResponse,
 		TokenLookup:           "header: Authorization",
 		TokenHeadName:         "Bearer",
@@ -85,7 +85,7 @@ func identityHandler(c *gin.Context) any {
 }
 
 // authenticator validates user credentials and returns identity
-func authenticator(uc *usecase.UserUseCase) func(c *gin.Context) (any, error) {
+func authenticator(uc *usecase.UserUseCase, logger *zap.Logger) func(c *gin.Context) (any, error) {
 	return func(c *gin.Context) (any, error) {
 		var req types.LoginReq
 		if err := binding.Bind(c, &req, binding.JSON); err != nil {
@@ -190,15 +190,17 @@ func loginResponse(c *gin.Context, code int, token string, expire time.Time) {
 
 	c.JSON(code, types.Success(types.LoginResp{
 		Token:     token,
-		Expire:    types.Time(expire),
+		Expire:    util.FormatDateTime(expire),
 		ExpiresIn: expiresIn,
 		TokenType: TokenType,
 	}))
 }
 
 // logoutResponse handles logout responses with the standard response format
-func logoutResponse(c *gin.Context, code int) {
-	c.JSON(code, types.Success(types.LogoutResp{}))
+func logoutResponse(logger *zap.Logger) func(c *gin.Context, code int) {
+	return func(c *gin.Context, code int) {
+		c.JSON(code, types.Success(types.LogoutResp{}))
+	}
 }
 
 // refreshResponse handles refresh token responses with the standard response format
@@ -208,7 +210,7 @@ func refreshResponse(c *gin.Context, code int, token string, expire time.Time) {
 
 	c.JSON(code, types.Success(types.RefreshTokenResp{
 		Token:     token,
-		Expire:    types.Time(expire),
+		Expire:    util.FormatDateTime(expire),
 		ExpiresIn: expiresIn,
 		TokenType: TokenType,
 	}))
